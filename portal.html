@@ -9,1162 +9,644 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    /* ─── VARIABLES ─── */
     :root {
-      --navy:       #0f2044;
-      --navy-mid:   #1a3260;
-      --navy-light: #2a4a8a;
-      --gold:       #c9a03a;
-      --gold-light: #e0b84a;
-      --white:      #ffffff;
-      --off-white:  #f7f8fc;
-      --text:       #1a1a2e;
-      --muted:      #6b7280;
-      --border:     #e5e7eb;
-      --green:      #10b981;
-      --green-bg:   #ecfdf5;
-      --red:        #ef4444;
-      --red-bg:     #fef2f2;
-      --blue:       #3b82f6;
-      --blue-bg:    #eff6ff;
-      --amber:      #f59e0b;
-      --amber-bg:   #fffbeb;
-      --font-arch:  'Josefin Sans', sans-serif;
-      --font-body:  'Inter', sans-serif;
-      --sidebar-w:  260px;
-      --radius:     12px;
-      --shadow:     0 2px 16px rgba(15,32,68,0.10);
+      --navy:#0f2044;--navy-mid:#1a3260;--navy-light:#2a4a8a;
+      --gold:#c9a03a;--gold-light:#e0b84a;
+      --white:#ffffff;--off-white:#f7f8fc;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;
+      --green:#10b981;--green-bg:#ecfdf5;--red:#ef4444;--red-bg:#fef2f2;
+      --blue:#3b82f6;--blue-bg:#eff6ff;--amber:#f59e0b;--amber-bg:#fffbeb;
+      --purple:#8b5cf6;--purple-bg:#f5f3ff;
+      --font-arch:'Josefin Sans',sans-serif;--font-body:'Inter',sans-serif;
+      --sidebar-w:260px;--radius:12px;--shadow:0 2px 16px rgba(15,32,68,.10);
     }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:16px}
+    body{font-family:var(--font-body);background:var(--off-white);color:var(--text);min-height:100vh}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 16px; }
-    body { font-family: var(--font-body); background: var(--off-white); color: var(--text); min-height: 100vh; }
+    /* ── LOGIN ── */
+    #loginScreen{min-height:100vh;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 60%,var(--navy-light) 100%);display:flex;align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden}
+    #loginScreen::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;border:1px solid rgba(201,160,58,.12);top:-200px;right:-200px}
+    #loginScreen::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;border:1px solid rgba(201,160,58,.08);bottom:-150px;left:-100px}
+    .login-card{background:rgba(255,255,255,.04);border:1px solid rgba(201,160,58,.2);backdrop-filter:blur(20px);border-radius:24px;padding:3rem 2.5rem;width:100%;max-width:420px;text-align:center;position:relative;z-index:1;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+    .login-logo{width:72px;height:72px;margin:0 auto 1.25rem;filter:drop-shadow(0 0 18px rgba(201,160,58,.5))}
+    .login-brand{font-family:var(--font-arch);font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem}
+    .login-title{font-size:1.6rem;font-weight:700;color:var(--white);margin-bottom:.4rem}
+    .login-sub{font-size:.88rem;color:rgba(255,255,255,.55);margin-bottom:2.25rem}
+    .login-label{display:block;text-align:left;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:.5rem}
+    .login-input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(201,160,58,.25);border-radius:10px;padding:.9rem 1.1rem;font-size:1.15rem;font-family:var(--font-arch);font-weight:600;letter-spacing:.25em;text-transform:uppercase;color:var(--white);text-align:center;outline:none;transition:border-color .2s,box-shadow .2s}
+    .login-input::placeholder{color:rgba(255,255,255,.25);letter-spacing:.1em}
+    .login-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,160,58,.15)}
+    .login-btn{width:100%;margin-top:1.25rem;padding:.95rem;background:linear-gradient(135deg,var(--gold) 0%,var(--gold-light) 100%);color:var(--navy);font-family:var(--font-arch);font-size:.85rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border:none;border-radius:10px;cursor:pointer;transition:opacity .2s,transform .15s}
+    .login-btn:hover{opacity:.92;transform:translateY(-1px)}
+    .login-error{margin-top:1rem;padding:.7rem 1rem;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;font-size:.85rem;color:#fca5a5;display:none}
+    .login-divider{margin:2rem 0 0;border:none;border-top:1px solid rgba(255,255,255,.08)}
+    .login-footer{margin-top:1.25rem;font-size:.78rem;color:rgba(255,255,255,.3)}
+    .login-footer a{color:var(--gold);text-decoration:none}
+    .login-footer a:hover{text-decoration:underline}
 
-    /* ─── LOGIN SCREEN ─── */
-    #loginScreen {
-      min-height: 100vh;
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, var(--navy-light) 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      position: relative;
-      overflow: hidden;
-    }
-    #loginScreen::before {
-      content: '';
-      position: absolute;
-      width: 600px; height: 600px;
-      border-radius: 50%;
-      border: 1px solid rgba(201,160,58,0.12);
-      top: -200px; right: -200px;
-    }
-    #loginScreen::after {
-      content: '';
-      position: absolute;
-      width: 400px; height: 400px;
-      border-radius: 50%;
-      border: 1px solid rgba(201,160,58,0.08);
-      bottom: -150px; left: -100px;
-    }
-    .login-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(201,160,58,0.2);
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 3rem 2.5rem;
-      width: 100%;
-      max-width: 420px;
-      text-align: center;
-      position: relative;
-      z-index: 1;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.4);
-    }
-    .login-logo {
-      width: 72px; height: 72px;
-      margin: 0 auto 1.25rem;
-      filter: drop-shadow(0 0 18px rgba(201,160,58,0.5));
-    }
-    .login-brand {
-      font-family: var(--font-arch);
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 0.35rem;
-    }
-    .login-title {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 0.4rem;
-    }
-    .login-sub {
-      font-size: 0.88rem;
-      color: rgba(255,255,255,0.55);
-      margin-bottom: 2.25rem;
-    }
-    .login-label {
-      display: block;
-      text-align: left;
-      font-size: 0.78rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 0.5rem;
-    }
-    .login-input {
-      width: 100%;
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(201,160,58,0.25);
-      border-radius: 10px;
-      padding: 0.9rem 1.1rem;
-      font-size: 1.15rem;
-      font-family: var(--font-arch);
-      font-weight: 600;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      color: var(--white);
-      text-align: center;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .login-input::placeholder { color: rgba(255,255,255,0.25); letter-spacing: 0.1em; }
-    .login-input:focus {
-      border-color: var(--gold);
-      box-shadow: 0 0 0 3px rgba(201,160,58,0.15);
-    }
-    .login-btn {
-      width: 100%;
-      margin-top: 1.25rem;
-      padding: 0.95rem;
-      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
-      color: var(--navy);
-      font-family: var(--font-arch);
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.15s;
-    }
-    .login-btn:hover { opacity: 0.92; transform: translateY(-1px); }
-    .login-btn:active { transform: translateY(0); }
-    .login-error {
-      margin-top: 1rem;
-      padding: 0.7rem 1rem;
-      background: rgba(239,68,68,0.15);
-      border: 1px solid rgba(239,68,68,0.3);
-      border-radius: 8px;
-      font-size: 0.85rem;
-      color: #fca5a5;
-      display: none;
-    }
-    .login-divider {
-      margin: 2rem 0 0;
-      border: none;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .login-footer {
-      margin-top: 1.25rem;
-      font-size: 0.78rem;
-      color: rgba(255,255,255,0.3);
-    }
-    .login-footer a { color: var(--gold); text-decoration: none; }
-    .login-footer a:hover { text-decoration: underline; }
-
-    /* ─── APP LAYOUT ─── */
-    #appShell { display: none; min-height: 100vh; }
+    /* ── APP SHELL ── */
+    #appShell{display:none;min-height:100vh}
 
     /* SIDEBAR */
-    .sidebar {
-      position: fixed;
-      top: 0; left: 0;
-      width: var(--sidebar-w);
-      height: 100vh;
-      background: var(--navy);
-      display: flex;
-      flex-direction: column;
-      z-index: 100;
-      box-shadow: 4px 0 24px rgba(0,0,0,0.2);
-      transition: transform 0.3s ease;
-    }
-    .sidebar-brand {
-      padding: 1.75rem 1.5rem 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-    }
-    .sidebar-logo { width: 36px; height: 36px; flex-shrink: 0; }
-    .sidebar-brand-text { line-height: 1.2; }
-    .sidebar-brand-name {
-      font-family: var(--font-arch);
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--gold);
-    }
-    .sidebar-brand-sub {
-      font-size: 0.7rem;
-      color: rgba(255,255,255,0.4);
-    }
-    .sidebar-student {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-    }
-    .sidebar-avatar {
-      width: 44px; height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--font-arch);
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--navy);
-      margin-bottom: 0.6rem;
-    }
-    .sidebar-student-name {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--white);
-      margin-bottom: 0.1rem;
-    }
-    .sidebar-student-tag {
-      font-size: 0.72rem;
-      color: rgba(255,255,255,0.4);
-    }
-    .sidebar-nav {
-      flex: 1;
-      padding: 1rem 0;
-      overflow-y: auto;
-    }
-    .nav-section-label {
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.25);
-      padding: 0.75rem 1.5rem 0.35rem;
-    }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.65rem 1.5rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: rgba(255,255,255,0.55);
-      cursor: pointer;
-      border-radius: 0;
-      border-left: 3px solid transparent;
-      transition: all 0.18s;
-      user-select: none;
-    }
-    .nav-item:hover { color: var(--white); background: rgba(255,255,255,0.05); }
-    .nav-item.active {
-      color: var(--gold);
-      background: rgba(201,160,58,0.1);
-      border-left-color: var(--gold);
-    }
-    .nav-icon { font-size: 1.05rem; width: 20px; text-align: center; flex-shrink: 0; }
-    .nav-badge {
-      margin-left: auto;
-      background: var(--gold);
-      color: var(--navy);
-      font-size: 0.65rem;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 99px;
-    }
-    .sidebar-footer {
-      padding: 1rem 1.5rem;
-      border-top: 1px solid rgba(255,255,255,0.07);
-    }
-    .logout-btn {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-size: 0.82rem;
-      color: rgba(255,255,255,0.35);
-      cursor: pointer;
-      transition: color 0.18s;
-      background: none;
-      border: none;
-      padding: 0;
-      width: 100%;
-    }
-    .logout-btn:hover { color: rgba(255,255,255,0.7); }
+    .sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--navy);display:flex;flex-direction:column;z-index:100;box-shadow:4px 0 24px rgba(0,0,0,.2);transition:transform .3s ease}
+    .sidebar-brand{padding:1.75rem 1.5rem 1.25rem;display:flex;align-items:center;gap:.75rem;border-bottom:1px solid rgba(255,255,255,.07)}
+    .sidebar-logo{width:36px;height:36px;flex-shrink:0}
+    .sidebar-brand-name{font-family:var(--font-arch);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+    .sidebar-brand-sub{font-size:.7rem;color:rgba(255,255,255,.4)}
+    .sidebar-student{padding:1.25rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.07)}
+    .sidebar-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gold) 0%,var(--gold-light) 100%);display:flex;align-items:center;justify-content:center;font-family:var(--font-arch);font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:.6rem}
+    .sidebar-student-name{font-size:.9rem;font-weight:600;color:var(--white);margin-bottom:.1rem}
+    .sidebar-student-tag{font-size:.72rem;color:rgba(255,255,255,.4)}
+    .sidebar-nav{flex:1;padding:1rem 0;overflow-y:auto}
+    .nav-section-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);padding:.75rem 1.5rem .35rem}
+    .nav-item{display:flex;align-items:center;gap:.75rem;padding:.65rem 1.5rem;font-size:.875rem;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border-left:3px solid transparent;transition:all .18s;user-select:none}
+    .nav-item:hover{color:var(--white);background:rgba(255,255,255,.05)}
+    .nav-item.active{color:var(--gold);background:rgba(201,160,58,.1);border-left-color:var(--gold)}
+    .nav-icon{font-size:1.05rem;width:20px;text-align:center;flex-shrink:0}
+    .nav-badge{margin-left:auto;background:var(--gold);color:var(--navy);font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:99px}
+    .sidebar-footer{padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,.07)}
+    .logout-btn{display:flex;align-items:center;gap:.6rem;font-size:.82rem;color:rgba(255,255,255,.35);cursor:pointer;transition:color .18s;background:none;border:none;padding:0;width:100%}
+    .logout-btn:hover{color:rgba(255,255,255,.7)}
 
-    /* MAIN CONTENT */
-    .main {
-      margin-left: var(--sidebar-w);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .topbar {
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-      padding: 1rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-    }
-    .topbar-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--navy);
-    }
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .topbar-date {
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-    .topbar-menu-btn {
-      display: none;
-      background: none;
-      border: none;
-      font-size: 1.4rem;
-      cursor: pointer;
-      color: var(--navy);
-    }
-    .content { padding: 2rem; flex: 1; }
-    .page-section { display: none; }
-    .page-section.active { display: block; }
+    /* MAIN */
+    .main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column}
+    .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+    .topbar-title{font-size:1.05rem;font-weight:700;color:var(--navy)}
+    .topbar-date{font-size:.8rem;color:var(--muted)}
+    .topbar-menu-btn{display:none;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--navy)}
+    .content{padding:2rem;flex:1}
+    .page-section{display:none}
+    .page-section.active{display:block}
 
-    /* ─── CARDS & SHARED ─── */
-    .card {
-      background: var(--white);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border);
-    }
-    .card-header {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .card-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--navy);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .card-body { padding: 1.5rem; }
+    /* ── CARDS ── */
+    .card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border)}
+    .card-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .card-title{font-size:.95rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:.5rem}
+    .card-body{padding:1.5rem}
 
-    /* ─── DASHBOARD ─── */
-    .welcome-banner {
-      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
-      border-radius: var(--radius);
-      padding: 2rem;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      overflow: hidden;
-      position: relative;
-    }
-    .welcome-banner::after {
-      content: '⭐';
-      position: absolute;
-      font-size: 8rem;
-      right: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      opacity: 0.06;
-    }
-    .welcome-text h2 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 0.3rem;
-    }
-    .welcome-text p { font-size: 0.88rem; color: rgba(255,255,255,0.6); }
-    .welcome-badge {
-      background: rgba(201,160,58,0.15);
-      border: 1px solid rgba(201,160,58,0.3);
-      border-radius: 8px;
-      padding: 0.6rem 1rem;
-      text-align: center;
-      flex-shrink: 0;
-    }
-    .welcome-badge-label { font-size: 0.7rem; color: rgba(255,255,255,0.5); letter-spacing: 0.06em; text-transform: uppercase; }
-    .welcome-badge-value { font-family: var(--font-arch); font-size: 1rem; font-weight: 700; color: var(--gold); margin-top: 0.1rem; }
+    /* ── DASHBOARD ── */
+    .welcome-banner{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);border-radius:var(--radius);padding:2rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;overflow:hidden;position:relative}
+    .welcome-banner::after{content:'⭐';position:absolute;font-size:8rem;right:1.5rem;top:50%;transform:translateY(-50%);opacity:.06}
+    .welcome-text h2{font-size:1.5rem;font-weight:700;color:var(--white);margin-bottom:.3rem}
+    .welcome-text p{font-size:.88rem;color:rgba(255,255,255,.6)}
+    .welcome-badge{background:rgba(201,160,58,.15);border:1px solid rgba(201,160,58,.3);border-radius:8px;padding:.6rem 1rem;text-align:center;flex-shrink:0}
+    .welcome-badge-label{font-size:.7rem;color:rgba(255,255,255,.5);letter-spacing:.06em;text-transform:uppercase}
+    .welcome-badge-value{font-family:var(--font-arch);font-size:.85rem;font-weight:700;color:var(--gold);margin-top:.1rem;line-height:1.3}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+    .stat-card{background:var(--white);border-radius:var(--radius);padding:1.25rem;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:.75rem}
+    .stat-value{font-size:1.6rem;font-weight:800;color:var(--navy);line-height:1;margin-bottom:.2rem}
+    .stat-label{font-size:.78rem;color:var(--muted);font-weight:500}
+    .stat-change{font-size:.72rem;font-weight:600;margin-top:.3rem}
+    .stat-change.up{color:var(--green)}.stat-change.gold{color:var(--gold)}.stat-change.red{color:var(--red)}
+    .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+    .dash-grid-full{grid-column:1/-1}
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .stat-card {
-      background: var(--white);
-      border-radius: var(--radius);
-      padding: 1.25rem;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-    }
-    .stat-icon {
-      width: 38px; height: 38px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem;
-      margin-bottom: 0.75rem;
-    }
-    .stat-value {
-      font-size: 1.6rem;
-      font-weight: 800;
-      color: var(--navy);
-      line-height: 1;
-      margin-bottom: 0.2rem;
-    }
-    .stat-label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
-    .stat-change { font-size: 0.72rem; font-weight: 600; margin-top: 0.3rem; }
-    .stat-change.up { color: var(--green); }
-    .stat-change.gold { color: var(--gold); }
+    /* ── SCORE PROGRESS (AP students) ── */
+    .subject-tabs{display:flex;gap:.5rem;padding:1rem 1.5rem 0;border-bottom:1px solid var(--border)}
+    .subject-tab{font-size:.82rem;font-weight:600;padding:.5rem 1rem;border-radius:8px 8px 0 0;cursor:pointer;color:var(--muted);border:1px solid transparent;border-bottom:none;background:none;transition:all .18s;position:relative;bottom:-1px}
+    .subject-tab.active{color:var(--navy);background:var(--white);border-color:var(--border);border-bottom-color:var(--white)}
+    .subject-panel{display:none;padding:1.5rem}
+    .subject-panel.active{display:block}
+    .score-timeline{display:flex;flex-direction:column;gap:.75rem}
+    .score-entry{display:flex;align-items:center;gap:1rem}
+    .score-date{font-size:.78rem;color:var(--muted);width:70px;flex-shrink:0}
+    .score-bar-wrap{flex:1;height:28px;background:var(--off-white);border-radius:6px;overflow:hidden}
+    .score-bar{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:10px;font-size:.78rem;font-weight:700;color:var(--white);transition:width 1s cubic-bezier(.22,1,.36,1);width:0}
+    .score-bar.navy{background:linear-gradient(90deg,var(--navy-mid),var(--navy-light))}
+    .score-bar.gold{background:linear-gradient(90deg,var(--gold),var(--gold-light))}
+    .score-num{font-size:.82rem;font-weight:700;color:var(--navy);width:40px;text-align:right;flex-shrink:0}
+    .ap-score-wrap{margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)}
+    .ap-score-label{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem}
+    .ap-score-chips{display:flex;gap:.5rem;flex-wrap:wrap}
+    .ap-chip{padding:.35rem .75rem;border-radius:99px;font-size:.78rem;font-weight:600}
+    .ap-chip.score5{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0}
+    .ap-chip.score4{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+    .ap-chip.score3{background:#fffbeb;color:#d97706;border:1px solid #fde68a}
+    .ap-chip.target{background:rgba(201,160,58,.12);color:var(--gold);border:1px solid rgba(201,160,58,.3)}
 
-    .dash-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-    .dash-grid-full { grid-column: 1 / -1; }
+    /* ── SESSIONS ── */
+    .sessions-list{display:flex;flex-direction:column;gap:.75rem}
+    .session-item{display:flex;gap:1rem;padding:1rem;border-radius:10px;border:1px solid var(--border);align-items:flex-start;transition:box-shadow .18s}
+    .session-item:hover{box-shadow:0 4px 16px rgba(15,32,68,.08)}
+    .session-date-block{background:var(--navy);color:var(--white);border-radius:8px;padding:.5rem .75rem;text-align:center;flex-shrink:0;min-width:52px}
+    .session-num-block{background:var(--navy);color:var(--white);border-radius:8px;padding:.5rem .75rem;text-align:center;flex-shrink:0;min-width:52px}
+    .session-month{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700}
+    .session-day{font-size:1.3rem;font-weight:800;line-height:1}
+    .session-num-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700}
+    .session-num-val{font-size:1.2rem;font-weight:800;line-height:1}
+    .session-info{flex:1}
+    .session-subject{font-size:.9rem;font-weight:700;color:var(--navy);margin-bottom:.15rem}
+    .session-topic{font-size:.8rem;color:var(--muted);margin-bottom:.35rem}
+    .session-meta{display:flex;gap:.5rem;flex-wrap:wrap}
+    .session-tag{font-size:.7rem;font-weight:600;padding:.2rem .55rem;border-radius:99px}
+    .session-tag.time{background:var(--blue-bg);color:var(--blue)}
+    .session-tag.type{background:var(--amber-bg);color:var(--amber)}
+    .session-tag.done{background:var(--green-bg);color:var(--green)}
+    .session-tag.inprog{background:var(--purple-bg);color:var(--purple)}
+    .session-tag.phase{background:rgba(201,160,58,.12);color:var(--gold)}
+    .session-notes{margin-top:.5rem;font-size:.78rem;color:var(--muted);background:var(--off-white);padding:.5rem .75rem;border-radius:6px;border-left:3px solid var(--gold);font-style:italic}
+    .session-hw{margin-top:.5rem;font-size:.78rem;color:var(--navy);background:#eff6ff;padding:.5rem .75rem;border-radius:6px;border-left:3px solid var(--blue)}
+    .section-subtitle{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:1.25rem 0 .6rem}
+    .section-subtitle:first-child{margin-top:0}
 
-    /* ─── PROGRESS ─── */
-    .subject-tabs {
-      display: flex;
-      gap: 0.5rem;
-      padding: 1rem 1.5rem 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .subject-tab {
-      font-size: 0.82rem;
-      font-weight: 600;
-      padding: 0.5rem 1rem;
-      border-radius: 8px 8px 0 0;
-      cursor: pointer;
-      color: var(--muted);
-      border: 1px solid transparent;
-      border-bottom: none;
-      background: none;
-      transition: all 0.18s;
-      position: relative;
-      bottom: -1px;
-    }
-    .subject-tab.active {
-      color: var(--navy);
-      background: var(--white);
-      border-color: var(--border);
-      border-bottom-color: var(--white);
-    }
-    .subject-tab:hover:not(.active) { color: var(--navy); }
-    .subject-panel { display: none; padding: 1.5rem; }
-    .subject-panel.active { display: block; }
+    /* ── COLLEGE LIST ── */
+    .college-tier{margin-bottom:1.5rem}
+    .tier-header{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem}
+    .tier-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.25rem .7rem;border-radius:99px}
+    .tier-label.extreme-reach{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+    .tier-label.reach{background:#fff7ed;color:#ea580c;border:1px solid #fed7aa}
+    .tier-label.target{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+    .tier-label.solid-target{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+    .tier-label.safety{background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe}
+    .college-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.6rem}
+    .college-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+    .college-name{font-size:.85rem;font-weight:600;color:var(--navy)}
+    .college-status{font-size:.7rem;font-weight:600;padding:.2rem .55rem;border-radius:99px;flex-shrink:0}
+    .college-status.tbd{background:var(--off-white);color:var(--muted);border:1px solid var(--border)}
+    .college-status.applied{background:var(--blue-bg);color:var(--blue)}
+    .college-status.submitted{background:var(--green-bg);color:var(--green)}
 
-    .score-timeline { display: flex; flex-direction: column; gap: 0.75rem; }
-    .score-entry {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .score-date { font-size: 0.78rem; color: var(--muted); width: 70px; flex-shrink: 0; }
-    .score-bar-wrap { flex: 1; height: 28px; background: var(--off-white); border-radius: 6px; overflow: hidden; position: relative; }
-    .score-bar {
-      height: 100%;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      padding-left: 10px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--white);
-      transition: width 1s cubic-bezier(0.22,1,0.36,1);
-      width: 0;
-    }
-    .score-bar.navy { background: linear-gradient(90deg, var(--navy-mid), var(--navy-light)); }
-    .score-bar.gold { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
-    .score-num { font-size: 0.82rem; font-weight: 700; color: var(--navy); width: 40px; text-align: right; flex-shrink: 0; }
+    /* ── PHASE TRACKER ── */
+    .phases-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+    .phase-card{border-radius:10px;padding:1.1rem;border:1px solid var(--border);position:relative;overflow:hidden}
+    .phase-card.complete{border-color:#a7f3d0;background:#ecfdf5}
+    .phase-card.active{border-color:var(--gold);background:rgba(201,160,58,.05)}
+    .phase-card.upcoming{background:var(--white)}
+    .phase-num{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem}
+    .phase-card.complete .phase-num{color:var(--green)}
+    .phase-card.active .phase-num{color:var(--gold)}
+    .phase-card.upcoming .phase-num{color:var(--muted)}
+    .phase-name{font-size:.82rem;font-weight:700;color:var(--navy);margin-bottom:.4rem;line-height:1.3}
+    .phase-meta{font-size:.72rem;color:var(--muted)}
+    .phase-badge{position:absolute;top:.75rem;right:.75rem;font-size:.8rem}
 
-    .ap-score-wrap { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
-    .ap-score-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.6rem; }
-    .ap-score-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .ap-chip {
-      padding: 0.35rem 0.75rem;
-      border-radius: 99px;
-      font-size: 0.78rem;
-      font-weight: 600;
-    }
-    .ap-chip.score5 { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
-    .ap-chip.score4 { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-    .ap-chip.score3 { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
-    .ap-chip.target { background: rgba(201,160,58,0.12); color: var(--gold); border: 1px solid rgba(201,160,58,0.3); }
+    /* ── ACADEMIC SNAPSHOT ── */
+    .academic-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+    .academic-row{display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border-radius:8px;background:var(--off-white);gap:1rem}
+    .academic-label{font-size:.78rem;color:var(--muted);font-weight:500}
+    .academic-val{font-size:.85rem;font-weight:700;color:var(--navy);text-align:right}
+    .academic-val.warn{color:var(--red)}
+    .academic-val.good{color:var(--green)}
 
-    /* ─── SESSIONS ─── */
-    .sessions-list { display: flex; flex-direction: column; gap: 0.75rem; }
-    .session-item {
-      display: flex;
-      gap: 1rem;
-      padding: 1rem;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      align-items: flex-start;
-      transition: box-shadow 0.18s;
-    }
-    .session-item:hover { box-shadow: 0 4px 16px rgba(15,32,68,0.08); }
-    .session-date-block {
-      background: var(--navy);
-      color: var(--white);
-      border-radius: 8px;
-      padding: 0.5rem 0.75rem;
-      text-align: center;
-      flex-shrink: 0;
-      min-width: 52px;
-    }
-    .session-month { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); font-weight: 700; }
-    .session-day { font-size: 1.3rem; font-weight: 800; line-height: 1; }
-    .session-info { flex: 1; }
-    .session-subject { font-size: 0.9rem; font-weight: 700; color: var(--navy); margin-bottom: 0.15rem; }
-    .session-topic { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; }
-    .session-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .session-tag {
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 0.2rem 0.55rem;
-      border-radius: 99px;
-    }
-    .session-tag.time { background: var(--blue-bg); color: var(--blue); }
-    .session-tag.type { background: var(--amber-bg); color: var(--amber); }
-    .session-tag.done { background: var(--green-bg); color: var(--green); }
-    .session-notes {
-      margin-top: 0.5rem;
-      font-size: 0.78rem;
-      color: var(--muted);
-      background: var(--off-white);
-      padding: 0.5rem 0.75rem;
-      border-radius: 6px;
-      border-left: 3px solid var(--gold);
-      font-style: italic;
-    }
-    .section-subtitle {
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin: 1.25rem 0 0.6rem;
-    }
-    .section-subtitle:first-child { margin-top: 0; }
+    /* ── ESSAYS ── */
+    .essay-category{margin-bottom:1.5rem}
+    .essay-category-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem}
+    .essay-list{display:flex;flex-direction:column;gap:.6rem}
+    .essay-item{border:1px solid var(--border);border-radius:10px;padding:1rem;background:var(--white)}
+    .essay-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;margin-bottom:.4rem}
+    .essay-title{font-size:.9rem;font-weight:700;color:var(--navy)}
+    .essay-status{font-size:.7rem;font-weight:700;padding:.2rem .6rem;border-radius:99px;flex-shrink:0;white-space:nowrap}
+    .essay-status.not-started{background:var(--off-white);color:var(--muted);border:1px solid var(--border)}
+    .essay-status.drafting{background:var(--amber-bg);color:var(--amber)}
+    .essay-status.revising{background:var(--blue-bg);color:var(--blue)}
+    .essay-status.complete{background:var(--green-bg);color:var(--green)}
+    .essay-topic{font-size:.78rem;color:var(--muted);margin-bottom:.4rem;line-height:1.4}
+    .essay-footer{display:flex;gap:.5rem;flex-wrap:wrap}
+    .essay-tag{font-size:.7rem;font-weight:600;padding:.18rem .55rem;border-radius:99px;background:var(--off-white);color:var(--muted)}
 
-    /* ─── RESOURCES ─── */
-    .resources-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 1rem;
-    }
-    .resource-card {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.1rem;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
-      text-decoration: none;
-      color: inherit;
-      transition: box-shadow 0.18s, border-color 0.18s;
-      background: var(--white);
-    }
-    .resource-card:hover { box-shadow: 0 4px 16px rgba(15,32,68,0.1); border-color: var(--gold); }
-    .resource-icon {
-      width: 40px; height: 40px;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem;
-      flex-shrink: 0;
-    }
-    .resource-name { font-size: 0.88rem; font-weight: 600; color: var(--navy); margin-bottom: 0.15rem; }
-    .resource-meta { font-size: 0.72rem; color: var(--muted); }
+    /* ── EC ACTION PLAN ── */
+    .action-list{display:flex;flex-direction:column;gap:.65rem}
+    .action-item{display:flex;align-items:flex-start;gap:.85rem;padding:1rem;border-radius:10px;border:1px solid var(--border);background:var(--white)}
+    .action-priority{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+    .action-priority.urgent{background:var(--red)}
+    .action-priority.high{background:var(--amber)}
+    .action-priority.medium{background:var(--green)}
+    .action-info{flex:1}
+    .action-title{font-size:.9rem;font-weight:600;color:var(--navy);margin-bottom:.15rem}
+    .action-desc{font-size:.78rem;color:var(--muted);margin-bottom:.35rem;line-height:1.4}
+    .action-footer{display:flex;gap:.5rem;flex-wrap:wrap}
+    .action-tag{font-size:.7rem;font-weight:600;padding:.18rem .55rem;border-radius:99px}
+    .action-tag.urgent{background:var(--red-bg);color:var(--red)}
+    .action-tag.high{background:var(--amber-bg);color:var(--amber)}
+    .action-tag.medium{background:var(--green-bg);color:var(--green)}
+    .action-tag.inprog{background:var(--purple-bg);color:var(--purple)}
+    .action-tag.done{background:var(--green-bg);color:var(--green)}
+    .action-tag.notstarted{background:var(--off-white);color:var(--muted)}
 
-    /* ─── ASSIGNMENTS ─── */
-    .assignments-list { display: flex; flex-direction: column; gap: 0.65rem; }
-    .assignment-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.85rem;
-      padding: 1rem;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--white);
-      transition: box-shadow 0.18s;
-    }
-    .assignment-item:hover { box-shadow: 0 2px 12px rgba(15,32,68,0.08); }
-    .assignment-check {
-      width: 22px; height: 22px;
-      border-radius: 6px;
-      border: 2px solid var(--border);
-      flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      margin-top: 1px;
-      transition: all 0.18s;
-      font-size: 0.75rem;
-      color: transparent;
-    }
-    .assignment-check.done {
-      background: var(--green);
-      border-color: var(--green);
-      color: var(--white);
-    }
-    .assignment-info { flex: 1; }
-    .assignment-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--navy);
-      margin-bottom: 0.15rem;
-    }
-    .assignment-title.done-text { text-decoration: line-through; color: var(--muted); }
-    .assignment-desc { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.35rem; }
-    .assignment-footer { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    .assign-tag {
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 0.18rem 0.55rem;
-      border-radius: 99px;
-    }
-    .assign-tag.subject { background: var(--blue-bg); color: var(--blue); }
-    .assign-tag.due-soon { background: var(--amber-bg); color: var(--amber); }
-    .assign-tag.due-ok { background: var(--off-white); color: var(--muted); }
-    .assign-tag.done-tag { background: var(--green-bg); color: var(--green); }
+    /* ── RESOURCES ── */
+    .resources-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+    .resource-card{border:1px solid var(--border);border-radius:10px;padding:1.1rem;display:flex;align-items:flex-start;gap:.75rem;text-decoration:none;color:inherit;transition:box-shadow .18s,border-color .18s;background:var(--white)}
+    .resource-card:hover{box-shadow:0 4px 16px rgba(15,32,68,.1);border-color:var(--gold)}
+    .resource-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+    .resource-name{font-size:.88rem;font-weight:600;color:var(--navy);margin-bottom:.15rem}
+    .resource-meta{font-size:.72rem;color:var(--muted)}
 
-    /* ─── ANNOUNCEMENTS ─── */
-    .announcements-list { display: flex; flex-direction: column; gap: 1rem; }
-    .announcement-item {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .announcement-header {
-      background: linear-gradient(90deg, var(--navy) 0%, var(--navy-mid) 100%);
-      padding: 0.75rem 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .announcement-title { font-size: 0.9rem; font-weight: 700; color: var(--white); }
-    .announcement-date { font-size: 0.72rem; color: rgba(255,255,255,0.5); }
-    .announcement-body {
-      padding: 1rem 1.25rem;
-      font-size: 0.875rem;
-      color: var(--text);
-      line-height: 1.6;
-    }
-    .announcement-from {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 0.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
+    /* ── ASSIGNMENTS (AP students) ── */
+    .assignments-list{display:flex;flex-direction:column;gap:.65rem}
+    .assignment-item{display:flex;align-items:flex-start;gap:.85rem;padding:1rem;border-radius:10px;border:1px solid var(--border);background:var(--white)}
+    .assignment-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:1px;transition:all .18s;font-size:.75rem;color:transparent}
+    .assignment-check.done{background:var(--green);border-color:var(--green);color:var(--white)}
+    .assignment-info{flex:1}
+    .assignment-title{font-size:.9rem;font-weight:600;color:var(--navy);margin-bottom:.15rem}
+    .assignment-title.done-text{text-decoration:line-through;color:var(--muted)}
+    .assignment-desc{font-size:.78rem;color:var(--muted);margin-bottom:.35rem}
+    .assignment-footer{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+    .assign-tag{font-size:.7rem;font-weight:600;padding:.18rem .55rem;border-radius:99px}
+    .assign-tag.subject{background:var(--blue-bg);color:var(--blue)}
+    .assign-tag.due-soon{background:var(--amber-bg);color:var(--amber)}
+    .assign-tag.due-ok{background:var(--off-white);color:var(--muted)}
+    .assign-tag.done-tag{background:var(--green-bg);color:var(--green)}
 
-    /* ─── EMPTY STATE ─── */
-    .empty-state {
-      text-align: center;
-      padding: 2.5rem 1rem;
-      color: var(--muted);
-    }
-    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
-    .empty-state p { font-size: 0.875rem; }
+    /* ── ANNOUNCEMENTS ── */
+    .announcements-list{display:flex;flex-direction:column;gap:1rem}
+    .announcement-item{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    .announcement-header{background:linear-gradient(90deg,var(--navy) 0%,var(--navy-mid) 100%);padding:.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between}
+    .announcement-title{font-size:.9rem;font-weight:700;color:var(--white)}
+    .announcement-date{font-size:.72rem;color:rgba(255,255,255,.5)}
+    .announcement-body{padding:1rem 1.25rem;font-size:.875rem;color:var(--text);line-height:1.6}
+    .announcement-from{font-size:.75rem;color:var(--muted);margin-top:.5rem;display:flex;align-items:center;gap:.4rem}
 
-    /* ─── MOBILE OVERLAY ─── */
-    .sidebar-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 99;
-    }
+    /* ── EMPTY STATE ── */
+    .empty-state{text-align:center;padding:2.5rem 1rem;color:var(--muted)}
+    .empty-state .empty-icon{font-size:2.5rem;margin-bottom:.75rem;opacity:.5}
+    .empty-state p{font-size:.875rem}
 
-    /* ─── RESPONSIVE ─── */
-    @media (max-width: 1100px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 860px) {
-      .dash-grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 700px) {
-      .sidebar { transform: translateX(-100%); }
-      .sidebar.open { transform: translateX(0); }
-      .sidebar-overlay.open { display: block; }
-      .main { margin-left: 0; }
-      .topbar-menu-btn { display: block; }
-      .content { padding: 1rem; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .welcome-banner::after { display: none; }
-    }
-    @media (max-width: 420px) {
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-    }
+    /* ── PROGRESS BAR (program) ── */
+    .prog-bar-wrap{background:var(--off-white);border-radius:99px;height:8px;overflow:hidden;margin-top:.35rem}
+    .prog-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--gold-light));transition:width 1s cubic-bezier(.22,1,.36,1)}
+
+    /* ── MOBILE ── */
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+    @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.phases-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:860px){.dash-grid{grid-template-columns:1fr}.academic-grid{grid-template-columns:1fr}}
+    @media(max-width:700px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.main{margin-left:0}.topbar-menu-btn{display:block}.content{padding:1rem}.stats-grid{grid-template-columns:repeat(2,1fr)}}
   </style>
 </head>
 <body>
 
-<!-- ══════════════════ LOGIN SCREEN ══════════════════ -->
+<!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-card">
     <img src="logo.png" class="login-logo" alt="Northstar logo" />
     <div class="login-brand">Northstar Academic Prep</div>
     <div class="login-title">Student Portal</div>
     <div class="login-sub">Enter your personal access code to continue</div>
-
     <form id="loginForm" onsubmit="handleLogin(event)">
       <label class="login-label" for="codeInput">Access Code</label>
       <input id="codeInput" class="login-input" type="text" placeholder="XXXXXX" autocomplete="off" spellcheck="false" />
       <div id="loginError" class="login-error">Invalid access code. Please try again or contact your tutor.</div>
       <button type="submit" class="login-btn">Enter Portal →</button>
     </form>
-
     <hr class="login-divider" />
     <div class="login-footer">
       Don't have a code? <a href="index.html#contact">Contact us</a> to get started.<br />
-      <a href="index.html" style="margin-top:0.4rem;display:inline-block;">← Back to website</a>
+      <a href="index.html" style="margin-top:.4rem;display:inline-block;">← Back to website</a>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════ APP SHELL ══════════════════ -->
+<!-- APP SHELL -->
 <div id="appShell">
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <img src="logo.png" class="sidebar-logo" alt="logo" />
-      <div class="sidebar-brand-text">
+      <div>
         <div class="sidebar-brand-name">Northstar</div>
         <div class="sidebar-brand-sub">Academic Prep</div>
       </div>
     </div>
-
     <div class="sidebar-student">
       <div class="sidebar-avatar" id="sidebarInitials">NS</div>
       <div class="sidebar-student-name" id="sidebarName">Student</div>
-      <div class="sidebar-student-tag" id="sidebarTag">Portal Member</div>
+      <div class="sidebar-student-tag" id="sidebarTag"></div>
     </div>
-
-    <nav class="sidebar-nav">
-      <div class="nav-section-label">Main</div>
-      <div class="nav-item active" onclick="showSection('dashboard', this)">
-        <span class="nav-icon">🏠</span> Dashboard
-      </div>
-      <div class="nav-item" onclick="showSection('progress', this)">
-        <span class="nav-icon">📈</span> My Progress
-      </div>
-      <div class="nav-section-label">Schedule</div>
-      <div class="nav-item" onclick="showSection('sessions', this)">
-        <span class="nav-icon">📅</span> Sessions
-        <span class="nav-badge" id="upcomingBadge">0</span>
-      </div>
-      <div class="nav-section-label">Learning</div>
-      <div class="nav-item" onclick="showSection('resources', this)">
-        <span class="nav-icon">📚</span> Resources
-        <span class="nav-badge" id="resourcesBadge" style="display:none"></span>
-      </div>
-      <div class="nav-item" onclick="showSection('assignments', this)">
-        <span class="nav-icon">✏️</span> Assignments
-        <span class="nav-badge" id="assignBadge">0</span>
-      </div>
-      <div class="nav-section-label">Updates</div>
-      <div class="nav-item" onclick="showSection('announcements', this)">
-        <span class="nav-icon">📣</span> Announcements
-        <span class="nav-badge" id="announceBadge" style="display:none"></span>
-      </div>
-    </nav>
-
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
     <div class="sidebar-footer">
-      <button class="logout-btn" onclick="logout()">
-        <span>🚪</span> Sign out
-      </button>
+      <button class="logout-btn" onclick="logout()"><span>🚪</span> Sign out</button>
     </div>
   </aside>
 
-  <!-- MAIN -->
   <div class="main">
     <header class="topbar">
-      <div style="display:flex;align-items:center;gap:0.75rem;">
+      <div style="display:flex;align-items:center;gap:.75rem">
         <button class="topbar-menu-btn" onclick="toggleSidebar()">☰</button>
         <div class="topbar-title" id="topbarTitle">Dashboard</div>
       </div>
-      <div class="topbar-right">
-        <div class="topbar-date" id="topbarDate"></div>
-      </div>
+      <div class="topbar-date" id="topbarDate"></div>
     </header>
-
     <div class="content">
 
-      <!-- ── DASHBOARD ── -->
+      <!-- DASHBOARD (all students) -->
       <section class="page-section active" id="sec-dashboard">
         <div class="welcome-banner">
-          <div class="welcome-text">
-            <h2 id="welcomeMsg">Welcome back! 👋</h2>
-            <p id="welcomeSub">Here's an overview of your progress and upcoming sessions.</p>
-          </div>
-          <div class="welcome-badge">
-            <div class="welcome-badge-label">Target</div>
-            <div class="welcome-badge-value" id="welcomeTarget">Score 5</div>
-          </div>
+          <div class="welcome-text"><h2 id="welcomeMsg">Welcome back!</h2><p id="welcomeSub"></p></div>
+          <div class="welcome-badge"><div class="welcome-badge-label" id="welcomeBadgeLabel">Target</div><div class="welcome-badge-value" id="welcomeTarget"></div></div>
         </div>
-
-        <div class="stats-grid" id="statsGrid">
-          <!-- filled by JS -->
-        </div>
-
-        <div class="dash-grid">
-          <!-- Upcoming Sessions -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">📅 Next Session</div>
-            </div>
-            <div class="card-body" id="dashNextSession">
-              <div class="empty-state"><div class="empty-icon">📅</div><p>No upcoming sessions</p></div>
-            </div>
-          </div>
-
-          <!-- Pending Assignments -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">✏️ Pending Assignments</div>
-            </div>
-            <div class="card-body" id="dashAssignments">
-              <div class="empty-state"><div class="empty-icon">✅</div><p>All caught up!</p></div>
-            </div>
-          </div>
-
-          <!-- Latest Announcement -->
-          <div class="card dash-grid-full">
-            <div class="card-header">
-              <div class="card-title">📣 Latest from Your Tutor</div>
-            </div>
-            <div class="card-body" id="dashAnnouncement">
-              <div class="empty-state"><div class="empty-icon">📣</div><p>No announcements yet</p></div>
-            </div>
-          </div>
-        </div>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="dash-grid" id="dashGrid"></div>
       </section>
 
-      <!-- ── PROGRESS ── -->
+      <!-- PROGRESS — AP students -->
       <section class="page-section" id="sec-progress">
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">📈 Score Progress</div>
-          </div>
+          <div class="card-header"><div class="card-title">📈 Score Progress</div></div>
           <div class="subject-tabs" id="subjectTabs"></div>
           <div id="subjectPanels"></div>
         </div>
       </section>
 
-      <!-- ── SESSIONS ── -->
+      <!-- COLLEGE LIST — counseling students -->
+      <section class="page-section" id="sec-colleges">
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card-header"><div class="card-title">📊 Academic Snapshot</div></div>
+          <div class="card-body"><div class="academic-grid" id="academicGrid"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🏫 College List</div></div>
+          <div class="card-body" id="collegeListBody"></div>
+        </div>
+      </section>
+
+      <!-- SESSIONS (all students) -->
       <section class="page-section" id="sec-sessions">
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">📅 Your Sessions</div>
-          </div>
-          <div class="card-body" id="sessionsBody">
-            <div class="empty-state"><div class="empty-icon">📅</div><p>No sessions scheduled yet</p></div>
-          </div>
+          <div class="card-header"><div class="card-title">📅 Sessions</div></div>
+          <div class="card-body" id="sessionsBody"></div>
         </div>
       </section>
 
-      <!-- ── RESOURCES ── -->
+      <!-- ESSAYS — counseling students -->
+      <section class="page-section" id="sec-essays">
+        <div class="card">
+          <div class="card-header"><div class="card-title">✍️ Essay Tracker</div></div>
+          <div class="card-body" id="essaysBody"></div>
+        </div>
+      </section>
+
+      <!-- EC ACTION PLAN — counseling students -->
+      <section class="page-section" id="sec-ecplan">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🏆 EC Action Plan</div></div>
+          <div class="card-body" id="ecplanBody"></div>
+        </div>
+      </section>
+
+      <!-- RESOURCES (all students) -->
       <section class="page-section" id="sec-resources">
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">📚 Study Resources</div>
-          </div>
-          <div class="card-body">
-            <div class="resources-grid" id="resourcesGrid">
-              <div class="empty-state"><div class="empty-icon">📚</div><p>No resources shared yet</p></div>
-            </div>
-          </div>
+          <div class="card-header"><div class="card-title">📚 Study Resources</div></div>
+          <div class="card-body"><div class="resources-grid" id="resourcesGrid"></div></div>
         </div>
       </section>
 
-      <!-- ── ASSIGNMENTS ── -->
+      <!-- ASSIGNMENTS — AP students -->
       <section class="page-section" id="sec-assignments">
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">✏️ Assignments</div>
-          </div>
-          <div class="card-body" id="assignmentsBody">
-            <div class="empty-state"><div class="empty-icon">✅</div><p>No assignments yet</p></div>
-          </div>
+          <div class="card-header"><div class="card-title">✏️ Assignments</div></div>
+          <div class="card-body" id="assignmentsBody"></div>
         </div>
       </section>
 
-      <!-- ── ANNOUNCEMENTS ── -->
+      <!-- ANNOUNCEMENTS (all students) -->
       <section class="page-section" id="sec-announcements">
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">📣 Announcements</div>
-          </div>
-          <div class="card-body" id="announcementsBody">
-            <div class="empty-state"><div class="empty-icon">📣</div><p>No announcements yet</p></div>
-          </div>
+          <div class="card-header"><div class="card-title">📣 Announcements</div></div>
+          <div class="card-body" id="announcementsBody"></div>
         </div>
       </section>
 
-    </div><!-- /content -->
-  </div><!-- /main -->
-</div><!-- /appShell -->
+    </div>
+  </div>
+</div>
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   ████  STUDENT DATABASE  ████
-   Add/edit students below. Each key is the ACCESS CODE
-   (case-insensitive). Students enter this on the login screen.
+   STUDENT DATABASE
+   portalType: 'ap-prep' or 'college-counseling'
    ═══════════════════════════════════════════════════════ */
 const STUDENTS = {
 
-  /* ── EXAMPLE STUDENT 1 ── */
+  /* ══ AP PREP EXAMPLE ══ */
   'NORTH001': {
-    name: 'Alex Johnson',
-    grade: '11th Grade',
-    subjects: ['AP Calculus BC', 'AP Biology'],
-    target: 'Score 5 on both exams',
-    joined: 'January 2026',
-
-    /* Quick stats shown on dashboard */
-    stats: {
-      sessionsCompleted: 14,
-      hoursLearned: 21,
-      scoreImprovement: '+13%',
-      currentStreak: '4 weeks'
-    },
-
-    /* Progress entries per subject — score out of 100 (practice test %) */
+    portalType: 'ap-prep',
+    name: 'Alex Johnson', grade: '11th Grade', subjects: ['AP Calculus BC','AP Biology'],
+    target: 'Score 5 on both exams', joined: 'January 2026',
+    stats: { sessionsCompleted: 14, hoursLearned: 21, scoreImprovement: '+13%', currentStreak: '4 weeks' },
     progress: {
       'AP Calculus BC': [
-        { date: 'Jan 10', score: 61, label: 'Baseline' },
-        { date: 'Feb 3',  score: 69, label: 'Unit 2 Test' },
-        { date: 'Feb 24', score: 76, label: 'Mid-Check' },
-        { date: 'Mar 17', score: 83, label: 'Practice Exam 1' },
-        { date: 'Apr 8',  score: 89, label: 'Practice Exam 2' },
+        {date:'Jan 10',score:61,label:'Baseline'},{date:'Feb 3',score:69,label:'Unit 2 Test'},
+        {date:'Feb 24',score:76,label:'Mid-Check'},{date:'Mar 17',score:83,label:'Practice Exam 1'},
+        {date:'Apr 8',score:89,label:'Practice Exam 2'},
       ],
       'AP Biology': [
-        { date: 'Jan 15', score: 58, label: 'Baseline' },
-        { date: 'Feb 10', score: 67, label: 'Unit 3 Quiz' },
-        { date: 'Mar 5',  score: 74, label: 'Mid-Check' },
-        { date: 'Apr 1',  score: 81, label: 'Practice Exam 1' },
+        {date:'Jan 15',score:58,label:'Baseline'},{date:'Feb 10',score:67,label:'Unit 3 Quiz'},
+        {date:'Mar 5',score:74,label:'Mid-Check'},{date:'Apr 1',score:81,label:'Practice Exam 1'},
       ]
     },
-
-    /* AP score predictions or past scores */
     apScores: {
-      'AP Calculus BC': { predicted: 4, target: 5, note: 'On track for a 5!' },
-      'AP Biology':     { predicted: 4, target: 5, note: 'Strong upward trend' }
+      'AP Calculus BC': {predicted:4,target:5,note:'On track for a 5!'},
+      'AP Biology': {predicted:4,target:5,note:'Strong upward trend'}
+    },
+    upcomingSessions: [
+      {month:'APR',day:'25',subject:'AP Calculus BC',topic:'Integration by Parts & U-Substitution',time:'4:00 PM',type:'Virtual (Zoom)'},
+      {month:'APR',day:'29',subject:'AP Biology',topic:'Genetics & Heredity Deep Dive',time:'3:00 PM',type:'Virtual (Zoom)'},
+    ],
+    pastSessions: [
+      {month:'APR',day:'18',subject:'AP Calculus BC',topic:'Derivatives & Related Rates',time:'4:00 PM',type:'Virtual',notes:'Great work on implicit differentiation! Review problem set 3 before next session.'},
+    ],
+    resources: [
+      {icon:'📄',iconBg:'#fef2f2',title:'AP Calc BC Formula Sheet',type:'PDF',date:'Apr 10',url:'#'},
+      {icon:'📝',iconBg:'#eff6ff',title:'Integration Practice Problems',type:'PDF',date:'Apr 15',url:'#'},
+      {icon:'🎥',iconBg:'#f0fdf4',title:'Related Rates Video Walkthrough',type:'Video',date:'Apr 18',url:'#'},
+    ],
+    assignments: [
+      {title:'Integration Practice Set A',subject:'AP Calculus BC',dueDate:'Apr 26, 2026',dueSoon:true,status:'pending',desc:'Complete problems 1–20 on the integration practice sheet. Show all work.'},
+      {title:'Derivatives Problem Set',subject:'AP Calculus BC',dueDate:'Apr 18, 2026',dueSoon:false,status:'completed',desc:'Completed 25 related rates problems.'},
+    ],
+    announcements: [
+      {date:'Apr 20, 2026',title:'🔥 AP Exams Are 3 Weeks Away — Final Push!',message:"You're doing amazing, Alex! AP Calc is May 13th and AP Bio is May 15th. We're going to use the next 3 sessions for full practice exams and targeted review. Keep grinding — you've got this!"}
+    ]
+  },
+
+  /* ══ SAISHA ══ */
+  'SAISHA2026': {
+    portalType: 'ap-prep',
+    name: 'Saisha Kotnala', grade: 'AP Student', subjects: ['AP Calculus AB'],
+    target: 'Score 5 on AP Calc AB · Exam: May 11, 2026', joined: 'April 2026',
+    stats: { sessionsCompleted: 1, hoursLearned: 1.5, scoreImprovement: 'In Progress', currentStreak: 'Just started!' },
+    progress: {
+      'AP Calculus AB': [{date:'Apr 22',score:0,label:'Baseline — TBD after first session'}]
+    },
+    apScores: {
+      'AP Calculus AB': {predicted:null,target:5,note:'🗓️ Exam: May 11, 2026 — 19 days away!'}
+    },
+    upcomingSessions: [],
+    pastSessions: [],
+    resources: [
+      {icon:'📄',iconBg:'#eff6ff',title:'AP Calc AB Formula Sheet',type:'PDF',date:'Apr 22',url:'https://apcentral.collegeboard.org/media/pdf/ap-calculus-ab-bc-formula-sheet.pdf'},
+      {icon:'🔗',iconBg:'#f0fdf4',title:'AP Classroom — Calc AB',type:'Link',date:'Apr 22',url:'https://myap.collegeboard.org'},
+    ],
+    assignments: [],
+    announcements: [
+      {date:'Apr 22, 2026',title:'🚀 Welcome to Your Portal, Saisha!',message:"Hey Saisha! Welcome to your Northstar Academic Prep student portal. Your AP Calculus AB exam is on May 11th — that gives us 19 days to lock in your score. This portal is where you'll track your progress, access resources, and stay on top of assignments. Let's get to work!"}
+    ]
+  },
+
+  /* ══ MICHAEL — COLLEGE COUNSELING ══ */
+  'MICHAEL2027': {
+    portalType: 'college-counseling',
+    name: 'Michael Rizkalli', grade: '11th Grade (Junior)',
+    subjects: ['Finance / Economics'],
+    target: 'UMich Ross · UCLA · UC Berkeley Haas\nApplications Due: Nov 2026',
+    joined: 'March 2026',
+
+    stats: {
+      sessionsCompleted: 4,
+      hoursRemaining: 26,
+      schoolsOnList: 25,
+      satTarget: '1030 → 1400+'
     },
 
-    /* Upcoming sessions */
+    /* Academic snapshot */
+    academic: {
+      'GPA (Unweighted)': { val: '3.64', note: 'good' },
+      'GPA (Weighted)':   { val: '3.88', note: 'good' },
+      'SAT (Current)':    { val: '1030  ⚠️', note: 'warn' },
+      'SAT Target':       { val: '1400+', note: '' },
+      'SAT Retake':       { val: 'June 6, 2026', note: '' },
+      'Target Major':     { val: 'Finance / Economics', note: '' },
+      'High School':      { val: 'San Ramon High School', note: '' },
+      'Grad Year':        { val: '2027', note: '' },
+      'App Deadline':     { val: 'Nov 1–30, 2026 (UC) · EA/ED Nov', note: '' },
+      'Program Hours':    { val: '30 Hours Total (4 complete)', note: '' },
+    },
+
+    /* Program phases */
+    phases: [
+      {num:1,name:'Discovery, Strategy & Reality Check',hours:5,sessions:'1–4',status:'complete'},
+      {num:2,name:'EC Development & Resume Building',hours:7,sessions:'5–10',status:'active'},
+      {num:3,name:'Essay Development (All Essays)',hours:12,sessions:'11–22',status:'upcoming'},
+      {num:4,name:'Application Assembly & Final Submission',hours:6,sessions:'23–30',status:'upcoming'},
+    ],
+
+    /* College list */
+    colleges: [
+      { tier:'extreme-reach', schools: [
+        {name:'UC Berkeley (Haas UG)',status:'tbd'},
+      ]},
+      { tier:'reach', schools: [
+        {name:'University of Michigan (Ross)',status:'tbd'},
+        {name:'UCLA (Anderson UG / Econ)',status:'tbd'},
+        {name:'Wharton School of Business',status:'tbd'},
+        {name:'NYU (Stern / Econ)',status:'tbd'},
+        {name:'Vanderbilt',status:'tbd'},
+        {name:'Duke',status:'tbd'},
+        {name:'Stanford',status:'tbd'},
+      ]},
+      { tier:'target', schools: [
+        {name:'UNC Chapel Hill',status:'tbd'},
+        {name:'USC',status:'tbd'},
+        {name:'UC San Diego',status:'tbd'},
+        {name:'UC Davis',status:'tbd'},
+        {name:'UC Irvine',status:'tbd'},
+        {name:'UC Santa Barbara',status:'tbd'},
+        {name:'University of Washington',status:'tbd'},
+        {name:'University of Miami',status:'tbd'},
+        {name:'Cal Poly SLO',status:'tbd'},
+      ]},
+      { tier:'solid-target', schools: [
+        {name:'Santa Clara University',status:'tbd'},
+        {name:'Purdue',status:'tbd'},
+        {name:'University of Texas',status:'tbd'},
+        {name:'Boston College',status:'tbd'},
+        {name:'University of Washington',status:'tbd'},
+      ]},
+      { tier:'safety', schools: [
+        {name:'University of Oregon',status:'tbd'},
+        {name:'Syracuse',status:'tbd'},
+        {name:'Cal State Fullerton',status:'tbd'},
+        {name:'Pepperdine University',status:'tbd'},
+        {name:'SDSU',status:'tbd'},
+        {name:'Colorado Boulder',status:'tbd'},
+      ]},
+    ],
+
+    /* Sessions — key ones listed */
     upcomingSessions: [
-      {
-        month: 'APR', day: '25',
-        subject: 'AP Calculus BC',
-        topic: 'Integration by Parts & U-Substitution',
-        time: '4:00 PM',
-        type: 'Virtual (Zoom)'
-      },
-      {
-        month: 'APR', day: '29',
-        subject: 'AP Biology',
-        topic: 'Genetics & Heredity Deep Dive',
-        time: '3:00 PM',
-        type: 'Virtual (Zoom)'
-      },
-      {
-        month: 'MAY', day: '2',
-        subject: 'AP Calculus BC',
-        topic: 'Full Practice Exam Review',
-        time: '4:00 PM',
-        type: 'Virtual (Zoom)'
-      }
+      {num:'4',phase:'Phase 1',subject:'College List Reality Check',topic:'Research Michigan Ross, Haas, UCLA admissions stats live. Build full reach/target/safety list.',hw:"Decide on 2–3 schools to focus on. Understand holistic application process and how ECs demonstrate the 5 core qualities."},
+      {num:'5',phase:'Phase 2',subject:'EC Audit',topic:'Inventory every activity with honest depth. Basketball (3 yrs varsity + coaching/reffing) is strongest. AI Club and Stroke Foundation need depth.',hw:'List all activities with: hours/week, weeks/year, your specific role, one tangible impact you had.'},
+      {num:'8',phase:'Phase 2',subject:'PIQ Draft Review + Resume + Internship',topic:'Review Session 7 PIQ draft line by line. Quantify basketball/coaching bullets. Build cold email target list.',hw:'Revise PIQ draft. Fill in resume numbers. Send 5 cold emails. Khan Academy: 1 math + 1 reading section.',status:'inprog'},
+      {num:'9',phase:'Phase 2',subject:'Resume Rebuild',topic:'Go line by line. Rewrite every bullet to show impact, not just membership. Quantify everything possible.',hw:'Bring updated activity descriptions. Draft resume in Common App format (10 slots, 150 chars each).'},
+      {num:'10',phase:'Phase 2',subject:'Resume Finalization + Parent Check-In',topic:"Polish resume. Present progress to parents. Confirm summer plan, SAT prep on track, college list locked.",hw:'Finalize resume. Review college list with family.'},
     ],
 
-    /* Past sessions */
     pastSessions: [
-      {
-        month: 'APR', day: '18',
-        subject: 'AP Calculus BC',
-        topic: 'Derivatives & Related Rates',
-        time: '4:00 PM',
-        type: 'Virtual',
-        notes: 'Great work on implicit differentiation! Review problem set 3 before next session.'
-      },
-      {
-        month: 'APR', day: '14',
-        subject: 'AP Biology',
-        topic: 'Cell Division & Mitosis',
-        time: '3:00 PM',
-        type: 'Virtual',
-        notes: 'Excellent questions today. Make sure to memorize the phases of mitosis.'
-      }
+      {num:'1',phase:'Phase 1',subject:'Deep Dive Discovery',topic:"Who is Michael really? Basketball story, Stroke Foundation, family background, what 'business' means to him.",hw:"Write 1-page 'About Me' draft. List 5 moments in your life you're most proud of.",notes:'Session 1 complete — great rapport built, strong essay material identified.'},
+      {num:'2',phase:'Phase 1',subject:'Major Deep Dive',topic:'Finance vs. Engineering breakdown. Work-life landscape, job opportunities. Target schools built.',hw:'Review the school list we built. Research 2–3 schools on your own. Note what excites you about each.'},
+      {num:'3',phase:'Phase 1',subject:'Finalizing Major + EC Overview',topic:'Major locked: Finance/Economics. Holistic application approach discussed. EC landscape overview.',hw:'Complete essay prompts & begin focusing efforts on ECs.',notes:'Major confirmed: Finance. Discussed EC landscape and holistic approach.'},
+      {num:'7',phase:'Phase 2',subject:'UC PIQ Walkthrough (Ahead of Schedule)',topic:'Worked through a full UC PIQ question start to finish. Resume enhancement and internship outreach strategy for finance.',hw:'Revise PIQ draft. Finalize resume bullets with numbers. Send 5 cold emails to local finance firms.',notes:'Apr 19, 2026 | Covered PIQ + resume + internship. Ahead of schedule — PIQ is Phase 3 work.'},
     ],
 
-    /* Study resources (use '#' for url if no link yet) */
+    /* Essays */
+    essays: [
+      { category:'Common App', items:[
+        {title:'Personal Essay',topic:'Basketball coaching / leadership / teaching story (most likely angle)',wordLimit:650,draftDue:'Aug 2026',finalDue:'Sep 15, 2026',status:'not-started'},
+      ]},
+      { category:'UC Personal Insight Questions (PIQs)', items:[
+        {title:'PIQ #1 — Leadership',topic:'Basketball Head Coach experience — leadership, responsibility, youth impact',wordLimit:350,draftDue:'Aug 2026',finalDue:'Oct 1, 2026',status:'not-started'},
+        {title:'PIQ #2 — Resilience / Challenge',topic:'Balancing varsity sports + AP coursework. What you struggled with, what changed.',wordLimit:350,draftDue:'Sep 2026',finalDue:'Oct 1, 2026',status:'not-started'},
+        {title:'PIQ #3 — Talent or Passion',topic:'Basketball analytics / AI Club project / Stroke Foundation story',wordLimit:350,draftDue:'Sep 2026',finalDue:'Oct 1, 2026',status:'not-started'},
+        {title:'PIQ #4 — Educational / Community Goal',topic:'Why Finance/Economics? How does your background shape your goals?',wordLimit:350,draftDue:'Sep 2026',finalDue:'Oct 1, 2026',status:'not-started'},
+      ]},
+      { category:'University of Michigan (Ross)', items:[
+        {title:'Why Michigan?',topic:'Specific Ross programs, MAP (Multidisciplinary Action Projects), clubs, campus culture',wordLimit:250,draftDue:'Sep 2026',finalDue:'Oct 15, 2026',status:'not-started'},
+        {title:'Why Business?',topic:"Personal motivation — where did the interest in Finance come from? What will you do with it?",wordLimit:250,draftDue:'Sep 2026',finalDue:'Oct 15, 2026',status:'not-started'},
+        {title:'Community Contribution',topic:'What will you contribute to Ross? Basketball + Finance angle.',wordLimit:250,draftDue:'Sep 2026',finalDue:'Oct 15, 2026',status:'not-started'},
+      ]},
+      { category:'Private Schools', items:[
+        {title:'Santa Clara — Why SCU?',topic:'Jesuit values, Silicon Valley location, Finance/Business community.',wordLimit:250,draftDue:'Oct 2026',finalDue:'Oct 20, 2026',status:'not-started'},
+        {title:'Additional Supplementals',topic:'Based on final school list — to be added as list is locked in.',wordLimit:'Varies',draftDue:'Oct 2026',finalDue:'Oct 25, 2026',status:'not-started'},
+      ]},
+    ],
+
+    /* EC Action Plan */
+    ecActions: [
+      { category:'🔴 Urgent — Do Now', items:[
+        {title:'Quantify Basketball Stats',priority:'urgent',status:'inprog',deadline:'ASAP',desc:"Points/assists avg, team record, all awards. Ask coach for a written statement of impact. You were 2-year captain — that needs to be front and center."},
+        {title:'SAT Prep — June 6 Retake',priority:'urgent',status:'inprog',deadline:'Jun 6, 2026',desc:'1030 → 1400+ is make-or-break for Michigan, UCLA, and Haas. Consistent weekly Khan Academy practice minimum. Every week matters.'},
+        {title:'Document Basketball Coaching Formally',priority:'urgent',status:'inprog',deadline:'ASAP',desc:'Org name (Next Level), ages coached, hours/week, weeks coached, any team record. Get a supervisor contact for recommendation.'},
+        {title:'Finance/Investment Club — Get Active',priority:'urgent',status:'inprog',deadline:'ASAP',desc:"Brand-new member — need to show real involvement. Attend every meeting, take on a leadership task. 'Member' alone won't impress admissions."},
+        {title:'Join DECA',priority:'urgent',status:'notstarted',deadline:'ASAP',desc:'Finance-specific. DECA membership + competition = exactly the major-specific EC your profile is missing. Find out if your school has a chapter — if not, look for local options.'},
+      ]},
+      { category:'🟠 High Priority', items:[
+        {title:'Add Basketball Refereeing to Common App',priority:'high',status:'inprog',deadline:'Mar 2026',desc:'This is paid work experience — goes in the Work section, not Activities. Shows responsibility, conflict resolution, real-world accountability.'},
+        {title:'AI Club — Get a Leadership Role or Documented Project',priority:'high',status:'inprog',deadline:'Apr 2026',desc:"Talk to club advisor: lead a project, present at a meeting, co-organize an event. 'Member' alone doesn't impress admissions. Need a title or tangible output."},
+        {title:'Stroke Foundation — Determine Your Why',priority:'high',status:'inprog',deadline:'Soon',desc:"Is there a family connection to strokes? If yes → powerful essay story. If no → honest answer needed. Without a compelling 'why', this reads as resume padding."},
+        {title:'Shadow a Finance Professional',priority:'high',status:'notstarted',deadline:'May 2026',desc:'Cold email 10+ local financial advisors, bankers, or CPAs. Ask to shadow for a day or week. 1 will say yes. Even 1 day of shadowing = major application differentiator.'},
+        {title:'Math Tutoring — Formalize It',priority:'high',status:'inprog',deadline:'Soon',desc:"You're tutoring friends and scored 14/20 at Math Olympiad. Document hours, subject areas, student outcomes. This can appear in Activities as 'Peer Math Tutor'."},
+      ]},
+      { category:'🟡 Medium Priority', items:[
+        {title:'Homeless Shelter Volunteer — Increase Hours',priority:'medium',status:'inprog',deadline:'Summer 2026',desc:'White Pony Express (Concord). Paused during basketball season — restart in summer. Document specific role (dietary distribution). Get a reference contact.'},
+        {title:'Summer Basketball Skills Clinic',priority:'medium',status:'inprog',deadline:'Jun–Aug 2026',desc:"Run 2–3 sessions for youth players = 'organized youth sports camp' on application. Connect to your coaching experience."},
+        {title:'Faith & Fellowship Club — Document It',priority:'medium',status:'inprog',deadline:'Ongoing',desc:'Once every 3 weeks, 60–65 students, Bible study with local pastor. Worth listing in Activities — shows community, values, consistency.'},
+      ]},
+    ],
+
     resources: [
-      { icon: '📄', iconBg: '#fef2f2', title: 'AP Calc BC Formula Sheet', type: 'PDF', date: 'Apr 10', url: '#' },
-      { icon: '📝', iconBg: '#eff6ff', title: 'Integration Practice Problems', type: 'PDF', date: 'Apr 15', url: '#' },
-      { icon: '🎥', iconBg: '#f0fdf4', title: 'Related Rates Video Walkthrough', type: 'Video', date: 'Apr 18', url: '#' },
-      { icon: '📄', iconBg: '#fefce8', title: 'AP Bio Cell Division Diagrams', type: 'PDF', date: 'Apr 14', url: '#' },
-      { icon: '🔗', iconBg: '#faf5ff', title: 'Khan Academy — Genetics Unit', type: 'Link', date: 'Apr 14', url: 'https://www.khanacademy.org' },
+      {icon:'🏫',iconBg:'#eff6ff',title:'Michigan Ross BBA Overview',type:'Link',date:'Apr 22',url:'https://michiganross.umich.edu/undergraduate'},
+      {icon:'🏫',iconBg:'#f0fdf4',title:'UC Application Portal (MyUCAS)',type:'Link',date:'Apr 22',url:'https://apply.universityofcalifornia.edu'},
+      {icon:'📝',iconBg:'#fff7ed',title:'Common App',type:'Link',date:'Apr 22',url:'https://www.commonapp.org'},
+      {icon:'📊',iconBg:'#fef9ee',title:'Khan Academy SAT Prep',type:'Link',date:'Apr 22',url:'https://www.khanacademy.org/sat'},
+      {icon:'🏆',iconBg:'#faf5ff',title:'DECA — Find Your Chapter',type:'Link',date:'Apr 22',url:'https://www.deca.org'},
+      {icon:'📄',iconBg:'#fef2f2',title:'UC PIQ Prompts (Official)',type:'Link',date:'Apr 22',url:'https://admission.universityofcalifornia.edu/how-to-apply/applying-as-a-freshman/personal-insight-questions.html'},
     ],
 
-    /* Assignments — status: 'pending' or 'completed' */
-    assignments: [
-      {
-        title: 'Integration Practice Set A',
-        subject: 'AP Calculus BC',
-        dueDate: 'Apr 26, 2026',
-        dueSoon: true,
-        status: 'pending',
-        desc: 'Complete problems 1–20 on the integration practice sheet. Show all work.'
-      },
-      {
-        title: 'Bio Chapter 14 Review',
-        subject: 'AP Biology',
-        dueDate: 'Apr 28, 2026',
-        dueSoon: false,
-        status: 'pending',
-        desc: 'Read Chapter 14 and answer end-of-chapter questions 1–15.'
-      },
-      {
-        title: 'Derivatives Problem Set',
-        subject: 'AP Calculus BC',
-        dueDate: 'Apr 18, 2026',
-        dueSoon: false,
-        status: 'completed',
-        desc: 'Completed 25 related rates problems. Great job!'
-      },
-      {
-        title: 'Mitosis Diagram Worksheet',
-        subject: 'AP Biology',
-        dueDate: 'Apr 14, 2026',
-        dueSoon: false,
-        status: 'completed',
-        desc: 'Label and explain all phases of mitosis and meiosis.'
-      }
-    ],
-
-    /* Tutor announcements */
     announcements: [
-      {
-        date: 'Apr 20, 2026',
-        title: '🔥 AP Exams Are 3 Weeks Away — Final Push!',
-        message: "You're doing amazing, Alex! AP Calc is May 13th and AP Bio is May 15th. We're going to use the next 3 sessions for full practice exams and targeted review. Make sure you're getting enough sleep and staying consistent with daily review. You've got this!"
-      },
-      {
-        date: 'Apr 14, 2026',
-        title: '📚 New Resources Added',
-        message: "I've uploaded the AP Bio cell division diagrams and a Genetics Khan Academy link to your Resources tab. These are great for visual review — go through them before our next session."
-      }
+      {date:'Apr 22, 2026',title:"🎯 Session 8 Prep — Here's What We're Doing",message:"Michael, great work on Session 7 — getting the PIQ done ahead of schedule was huge. For Session 8 we're going line by line on the PIQ draft, rebuilding your resume bullets with real numbers, and building your cold email list for finance internship outreach. Before we meet: try to have your PIQ revised and at least 5 finance firms identified in the San Ramon / Danville area to cold email. Also keep grinding Khan Academy — June 6th is coming fast."},
+      {date:'Apr 19, 2026',title:'✅ Session 7 Complete — Big Session',message:"We covered a lot today: went through a full UC PIQ prompt together, discussed your resume and how to strengthen each bullet with quantifiable impact, and mapped out your internship outreach strategy. You're ahead of schedule — PIQ work is normally Phase 3, and you already have a draft. The next step is making that draft sound more like you and less like a college essay. Great session."},
     ]
   },
 
   /* ── ADD MORE STUDENTS BELOW ── */
-  /* Copy the block above, change the code (e.g. 'NORTH002'), and fill in the student's data */
-
-  'SAISHA2026': {
-    name: 'Saisha Kotnala',
-    grade: 'AP Student',
-    subjects: ['AP Calculus AB'],
-    target: 'Score 5 on AP Calc AB · Exam: May 11, 2026',
-    joined: 'April 2026',
-
-    stats: {
-      sessionsCompleted: 1,
-      hoursLearned: 1.5,
-      scoreImprovement: 'In Progress',
-      currentStreak: 'Just started!'
-    },
-
-    progress: {
-      'AP Calculus AB': [
-        { date: 'Apr 22', score: 0, label: 'Baseline — TBD after first session' },
-      ]
-    },
-
-    apScores: {
-      'AP Calculus AB': { predicted: null, target: 5, note: '🗓️ Exam: May 11, 2026 — 19 days away!' }
-    },
-
-    upcomingSessions: [
-      /* Add sessions like this:
-      {
-        month: 'APR', day: '25',
-        subject: 'AP Calculus AB',
-        topic: 'Limits & Continuity Review',
-        time: '4:00 PM',
-        type: 'Virtual (Zoom)'
-      },
-      */
-    ],
-
-    pastSessions: [
-      /* Add completed sessions here */
-    ],
-
-    resources: [
-      { icon: '📄', iconBg: '#eff6ff', title: 'AP Calc AB Formula Sheet', type: 'PDF', date: 'Apr 22', url: 'https://apcentral.collegeboard.org/media/pdf/ap-calculus-ab-bc-formula-sheet.pdf' },
-      { icon: '🔗', iconBg: '#f0fdf4', title: 'AP Classroom — Calc AB', type: 'Link', date: 'Apr 22', url: 'https://myap.collegeboard.org' },
-    ],
-
-    assignments: [
-      /* Add assignments like this:
-      {
-        title: 'Limits Practice Set',
-        subject: 'AP Calculus AB',
-        dueDate: 'Apr 28, 2026',
-        dueSoon: true,
-        status: 'pending',
-        desc: 'Complete problems 1–15 on the limits worksheet.'
-      },
-      */
-    ],
-
-    announcements: [
-      {
-        date: 'Apr 22, 2026',
-        title: '🚀 Welcome to Your Portal, Saisha!',
-        message: "Hey Saisha! Welcome to your Northstar Academic Prep student portal. Your AP Calculus AB exam is on May 11th — that gives us 19 days to lock in your score. This portal is where you'll track your progress, access resources, and stay on top of assignments. Let's get to work!"
-      }
-    ]
-  },
-
 };
 /* ═══════════════════════════════════════════════════════ */
 
 
-/* ─── STATE ─── */
 let currentStudent = null;
 
-/* ─── LOGIN ─── */
+/* ── LOGIN ── */
 function handleLogin(e) {
   e.preventDefault();
   const code = document.getElementById('codeInput').value.trim().toUpperCase();
@@ -1179,7 +661,6 @@ function handleLogin(e) {
     document.getElementById('codeInput').select();
   }
 }
-
 function logout() {
   sessionStorage.removeItem('portalCode');
   currentStudent = null;
@@ -1187,382 +668,482 @@ function logout() {
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('codeInput').value = '';
 }
-
-/* ─── AUTO-LOGIN (session persistence) ─── */
 window.addEventListener('DOMContentLoaded', () => {
   const saved = sessionStorage.getItem('portalCode');
-  if (saved && STUDENTS[saved]) {
-    currentStudent = STUDENTS[saved];
-    bootPortal();
-  }
-  // Set topbar date
-  document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+  if (saved && STUDENTS[saved]) { currentStudent = STUDENTS[saved]; bootPortal(); }
+  document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
 });
 
-/* ─── BOOT PORTAL ─── */
+/* ── BOOT ── */
 function bootPortal() {
   const s = currentStudent;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display = 'block';
-
-  // Sidebar student info
-  const initials = s.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('sidebarInitials').textContent = initials;
   document.getElementById('sidebarName').textContent = s.name;
-  document.getElementById('sidebarTag').textContent = s.grade + ' · ' + s.subjects.join(', ');
-
+  document.getElementById('sidebarTag').textContent = s.grade + (s.subjects.length ? ' · ' + s.subjects.join(', ') : '');
+  buildNav();
   buildDashboard();
-  buildProgress();
+  if (s.portalType === 'ap-prep') { buildProgress(); buildAssignments(); }
+  if (s.portalType === 'college-counseling') { buildColleges(); buildEssays(); buildECPlan(); }
   buildSessions();
   buildResources();
-  buildAssignments();
   buildAnnouncements();
 }
 
-/* ─── NAV ─── */
-function showSection(id, navEl) {
-  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('sec-' + id).classList.add('active');
-  if (navEl) navEl.classList.add('active');
-  const titles = { dashboard: 'Dashboard', progress: 'My Progress', sessions: 'Sessions', resources: 'Resources', assignments: 'Assignments', announcements: 'Announcements' };
-  document.getElementById('topbarTitle').textContent = titles[id] || id;
+/* ── NAV ── */
+const NAV_AP = [
+  {section:'main',items:[
+    {id:'dashboard',icon:'🏠',label:'Dashboard'},
+    {id:'progress',icon:'📈',label:'My Progress'},
+  ]},
+  {section:'schedule',items:[
+    {id:'sessions',icon:'📅',label:'Sessions',badge:'upcomingBadge'},
+  ]},
+  {section:'learning',items:[
+    {id:'resources',icon:'📚',label:'Resources'},
+    {id:'assignments',icon:'✏️',label:'Assignments',badge:'assignBadge'},
+  ]},
+  {section:'updates',items:[
+    {id:'announcements',icon:'📣',label:'Announcements'},
+  ]},
+];
+const NAV_CC = [
+  {section:'main',items:[
+    {id:'dashboard',icon:'🏠',label:'Dashboard'},
+    {id:'colleges',icon:'🏫',label:'College List'},
+  ]},
+  {section:'plan',items:[
+    {id:'sessions',icon:'📅',label:'Session Plan',badge:'upcomingBadge'},
+    {id:'essays',icon:'✍️',label:'Essay Tracker'},
+    {id:'ecplan',icon:'🏆',label:'EC Action Plan'},
+  ]},
+  {section:'resources',items:[
+    {id:'resources',icon:'📚',label:'Resources'},
+  ]},
+  {section:'updates',items:[
+    {id:'announcements',icon:'📣',label:'Announcements'},
+  ]},
+];
+function buildNav() {
+  const s = currentStudent;
+  const navDef = s.portalType === 'college-counseling' ? NAV_CC : NAV_AP;
+  const navEl = document.getElementById('sidebarNav');
+  let html = '';
+  navDef.forEach(group => {
+    html += `<div class="nav-section-label">${group.section}</div>`;
+    group.items.forEach((item,i) => {
+      const isFirst = group === navDef[0] && i === 0;
+      html += `<div class="nav-item${isFirst?' active':''}" onclick="showSection('${item.id}',this)" id="nav-${item.id}">
+        <span class="nav-icon">${item.icon}</span> ${item.label}
+        ${item.badge ? `<span class="nav-badge" id="${item.badge}" style="display:none">0</span>` : ''}
+      </div>`;
+    });
+  });
+  navEl.innerHTML = html;
+}
 
-  // Animate score bars when progress becomes visible
-  if (id === 'progress') {
-    setTimeout(animateAllBars, 100);
-  }
+function showSection(id, navEl) {
+  document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const sec = document.getElementById('sec-'+id);
+  if (sec) sec.classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  const titles = {dashboard:'Dashboard',progress:'My Progress',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements'};
+  document.getElementById('topbarTitle').textContent = titles[id]||id;
+  if (id==='progress') setTimeout(animateAllBars,100);
   closeSidebar();
 }
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('open')}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open')}
 
-/* ─── SIDEBAR MOBILE ─── */
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebarOverlay').classList.toggle('open');
-}
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebarOverlay').classList.remove('open');
-}
-
-/* ════════════════════════════════════════
+/* ══════════════════════════════════════
    BUILD SECTIONS
-   ════════════════════════════════════════ */
+══════════════════════════════════════ */
 
 /* ── DASHBOARD ── */
 function buildDashboard() {
   const s = currentStudent;
   document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + s.name.split(' ')[0] + '! 👋';
-  document.getElementById('welcomeSub').textContent = 'Here\'s your overview for today. Keep pushing — you\'re making real progress.';
+  document.getElementById('welcomeSub').textContent = s.portalType === 'college-counseling'
+    ? "Here's your college application overview. Every session gets you closer."
+    : "Here's your overview for today. Keep pushing — you're making real progress.";
   document.getElementById('welcomeTarget').textContent = s.target;
 
-  // Stats grid
+  if (s.portalType === 'ap-prep') { buildDashAP(); }
+  else { buildDashCC(); }
+}
+
+function buildDashAP() {
+  const s = currentStudent;
+  document.getElementById('welcomeBadgeLabel').textContent = 'Target';
   const statsData = [
-    { icon: '📅', bg: '#eff6ff', value: s.stats.sessionsCompleted, label: 'Sessions Completed', change: 'Total sessions', changeClass: 'gold' },
-    { icon: '⏱️', bg: '#ecfdf5', value: s.stats.hoursLearned + 'h', label: 'Hours Learned', change: 'Total hours', changeClass: 'gold' },
-    { icon: '📈', bg: '#fef9ee', value: s.stats.scoreImprovement, label: 'Score Improvement', change: 'Since baseline', changeClass: 'up' },
-    { icon: '🔥', bg: '#fff0f0', value: s.stats.currentStreak, label: 'Current Streak', change: 'Consistent work!', changeClass: 'up' },
+    {icon:'📅',bg:'#eff6ff',value:s.stats.sessionsCompleted,label:'Sessions Completed',change:'Total sessions',cls:'gold'},
+    {icon:'⏱️',bg:'#ecfdf5',value:s.stats.hoursLearned+'h',label:'Hours Learned',change:'Total hours',cls:'gold'},
+    {icon:'📈',bg:'#fef9ee',value:s.stats.scoreImprovement,label:'Score Improvement',change:'Since baseline',cls:'up'},
+    {icon:'🔥',bg:'#fff0f0',value:s.stats.currentStreak,label:'Current Streak',change:'Consistent work!',cls:'up'},
   ];
-  document.getElementById('statsGrid').innerHTML = statsData.map(st => `
+  document.getElementById('statsGrid').innerHTML = statsData.map(st=>`
     <div class="stat-card">
       <div class="stat-icon" style="background:${st.bg}">${st.icon}</div>
       <div class="stat-value">${st.value}</div>
       <div class="stat-label">${st.label}</div>
-      <div class="stat-change ${st.changeClass}">${st.change}</div>
-    </div>
-  `).join('');
+      <div class="stat-change ${st.cls}">${st.change}</div>
+    </div>`).join('');
 
-  // Next session
   const upcoming = s.upcomingSessions;
-  document.getElementById('upcomingBadge').textContent = upcoming.length;
-  if (upcoming.length > 0) {
+  const badge = document.getElementById('upcomingBadge');
+  if (badge) { badge.textContent = upcoming.length; badge.style.display = upcoming.length?'':'none'; }
+  const pending = (s.assignments||[]).filter(a=>a.status==='pending');
+  const aBadge = document.getElementById('assignBadge');
+  if (aBadge) { aBadge.textContent = pending.length; aBadge.style.display = pending.length?'':'none'; }
+
+  let dashHTML = '';
+  dashHTML += `<div class="card"><div class="card-header"><div class="card-title">📅 Next Session</div></div><div class="card-body">`;
+  if (upcoming.length) {
     const ns = upcoming[0];
-    document.getElementById('dashNextSession').innerHTML = `
-      <div class="session-item" style="border-color:var(--gold)">
-        <div class="session-date-block">
-          <div class="session-month">${ns.month}</div>
-          <div class="session-day">${ns.day}</div>
-        </div>
-        <div class="session-info">
-          <div class="session-subject">${ns.subject}</div>
-          <div class="session-topic">${ns.topic}</div>
-          <div class="session-meta">
-            <span class="session-tag time">🕐 ${ns.time}</span>
-            <span class="session-tag type">📍 ${ns.type}</span>
-          </div>
-        </div>
-      </div>
-    `;
+    dashHTML += `<div class="session-item" style="border-color:var(--gold)">
+      <div class="session-date-block"><div class="session-month">${ns.month}</div><div class="session-day">${ns.day}</div></div>
+      <div class="session-info"><div class="session-subject">${ns.subject}</div><div class="session-topic">${ns.topic}</div>
+      <div class="session-meta"><span class="session-tag time">🕐 ${ns.time}</span><span class="session-tag type">📍 ${ns.type}</span></div></div></div>`;
+  } else { dashHTML += `<div class="empty-state"><div class="empty-icon">📅</div><p>No upcoming sessions</p></div>`; }
+  dashHTML += `</div></div>`;
+  dashHTML += `<div class="card"><div class="card-header"><div class="card-title">✏️ Pending Assignments</div></div><div class="card-body">`;
+  if (pending.length) {
+    dashHTML += pending.slice(0,3).map(a=>`<div class="assignment-item" style="margin-bottom:.5rem">
+      <div class="assignment-check"></div>
+      <div class="assignment-info"><div class="assignment-title">${a.title}</div>
+      <div class="assignment-footer"><span class="assign-tag subject">${a.subject}</span><span class="assign-tag ${a.dueSoon?'due-soon':'due-ok'}">Due ${a.dueDate}</span></div></div></div>`).join('');
+  } else { dashHTML += `<div class="empty-state"><div class="empty-icon">✅</div><p>All caught up!</p></div>`; }
+  dashHTML += `</div></div>`;
+  if (s.announcements.length) {
+    const a = s.announcements[0];
+    dashHTML += `<div class="card dash-grid-full"><div class="card-header"><div class="card-title">📣 Latest from Your Tutor</div></div>
+    <div class="card-body"><div class="announcement-item">
+      <div class="announcement-header"><div class="announcement-title">${a.title}</div><div class="announcement-date">${a.date}</div></div>
+      <div class="announcement-body">${a.message}<div class="announcement-from">💬 From: Northstar Academic Prep</div></div>
+    </div></div></div>`;
   }
-
-  // Pending assignments
-  const pending = s.assignments.filter(a => a.status === 'pending');
-  document.getElementById('assignBadge').textContent = pending.length;
-  if (pending.length > 0) {
-    document.getElementById('dashAssignments').innerHTML = pending.slice(0, 3).map(a => `
-      <div class="assignment-item" style="margin-bottom:0.5rem">
-        <div class="assignment-check ${a.status === 'completed' ? 'done' : ''}">✓</div>
-        <div class="assignment-info">
-          <div class="assignment-title">${a.title}</div>
-          <div class="assignment-footer">
-            <span class="assign-tag subject">${a.subject}</span>
-            <span class="assign-tag ${a.dueSoon ? 'due-soon' : 'due-ok'}">Due ${a.dueDate}</span>
-          </div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  // Latest announcement
-  const ann = s.announcements;
-  if (ann.length > 0) {
-    document.getElementById('announceBadge').textContent = ann.length;
-    document.getElementById('announceBadge').style.display = '';
-    const a = ann[0];
-    document.getElementById('dashAnnouncement').innerHTML = `
-      <div class="announcement-item">
-        <div class="announcement-header">
-          <div class="announcement-title">${a.title}</div>
-          <div class="announcement-date">${a.date}</div>
-        </div>
-        <div class="announcement-body">
-          ${a.message}
-          <div class="announcement-from">💬 From: Northstar Academic Prep</div>
-        </div>
-      </div>
-    `;
-  }
+  document.getElementById('dashGrid').innerHTML = dashHTML;
 }
 
-/* ── PROGRESS ── */
+function buildDashCC() {
+  const s = currentStudent;
+  document.getElementById('welcomeBadgeLabel').textContent = 'Program';
+  const pct = Math.round((s.stats.sessionsCompleted/30)*100);
+  const statsData = [
+    {icon:'📅',bg:'#eff6ff',value:s.stats.sessionsCompleted+'/30',label:'Sessions Complete',change:'Phase 2 in progress',cls:'gold'},
+    {icon:'⏱️',bg:'#ecfdf5',value:s.stats.hoursRemaining+'h',label:'Hours Remaining',change:'In your 30-hr program',cls:'up'},
+    {icon:'🏫',bg:'#fef9ee',value:s.stats.schoolsOnList,label:'Schools on List',change:'Reach → Safety',cls:'gold'},
+    {icon:'📝',bg:'#fff0f0',value:s.stats.satTarget,label:'SAT Goal',change:'⚠️ June 6 retake',cls:'red'},
+  ];
+  document.getElementById('statsGrid').innerHTML = statsData.map(st=>`
+    <div class="stat-card">
+      <div class="stat-icon" style="background:${st.bg}">${st.icon}</div>
+      <div class="stat-value" style="font-size:${typeof st.value==='string'&&st.value.length>6?'1.1rem':'1.6rem'}">${st.value}</div>
+      <div class="stat-label">${st.label}</div>
+      <div class="stat-change ${st.cls}">${st.change}</div>
+    </div>`).join('');
+
+  // Phase progress
+  let dashHTML = `<div class="card dash-grid-full">
+    <div class="card-header"><div class="card-title">🗺️ Program Progress — ${pct}% Complete</div></div>
+    <div class="card-body">
+      <div style="margin-bottom:1.25rem">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:.35rem"><span>${s.stats.sessionsCompleted} sessions done</span><span>30 total</span></div>
+        <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="phases-grid">
+        ${s.phases.map(ph=>`<div class="phase-card ${ph.status}">
+          <div class="phase-badge">${ph.status==='complete'?'✅':ph.status==='active'?'🔄':'⏳'}</div>
+          <div class="phase-num">Phase ${ph.num}</div>
+          <div class="phase-name">${ph.name}</div>
+          <div class="phase-meta">${ph.hours} hrs · Sessions ${ph.sessions}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // Next session
+  const upcoming = s.upcomingSessions.filter(ss=>ss.status!=='inprog');
+  const inprog = s.upcomingSessions.find(ss=>ss.status==='inprog');
+  const badge = document.getElementById('upcomingBadge');
+  if (badge) { badge.textContent = s.upcomingSessions.length; badge.style.display = s.upcomingSessions.length?'':'none'; }
+
+  dashHTML += `<div class="card"><div class="card-header"><div class="card-title">📅 ${inprog?'In Progress':'Next Session'}</div></div><div class="card-body">`;
+  const ns = inprog || upcoming[0];
+  if (ns) {
+    dashHTML += `<div class="session-item" style="border-color:${inprog?'var(--purple)':'var(--gold)'}">
+      <div class="session-num-block"><div class="session-num-label">Session</div><div class="session-num-val">${ns.num}</div></div>
+      <div class="session-info"><div class="session-subject">${ns.subject}</div><div class="session-topic">${ns.topic}</div>
+      <div class="session-meta"><span class="session-tag phase">${ns.phase}</span>${inprog?`<span class="session-tag inprog">🔄 In Progress</span>`:''}</div>
+      ${ns.hw?`<div class="session-hw">📌 HW: ${ns.hw}</div>`:''}
+      </div></div>`;
+  } else { dashHTML += `<div class="empty-state"><div class="empty-icon">📅</div><p>No sessions scheduled yet</p></div>`; }
+  dashHTML += `</div></div>`;
+
+  // Latest announcement
+  if (s.announcements.length) {
+    const a = s.announcements[0];
+    dashHTML += `<div class="card"><div class="card-header"><div class="card-title">📣 Latest from Your Counselor</div></div>
+    <div class="card-body"><div class="announcement-item">
+      <div class="announcement-header"><div class="announcement-title">${a.title}</div><div class="announcement-date">${a.date}</div></div>
+      <div class="announcement-body">${a.message}<div class="announcement-from">💬 From: Northstar Academic Prep</div></div>
+    </div></div></div>`;
+  }
+  document.getElementById('dashGrid').innerHTML = dashHTML;
+}
+
+/* ── PROGRESS (AP) ── */
 function buildProgress() {
   const s = currentStudent;
+  if (!s.progress) return;
   const subjects = Object.keys(s.progress);
   const tabsEl = document.getElementById('subjectTabs');
   const panelsEl = document.getElementById('subjectPanels');
-  tabsEl.innerHTML = '';
-  panelsEl.innerHTML = '';
-
-  subjects.forEach((subj, i) => {
-    // Tab
+  tabsEl.innerHTML = ''; panelsEl.innerHTML = '';
+  subjects.forEach((subj,i) => {
     const tab = document.createElement('button');
-    tab.className = 'subject-tab' + (i === 0 ? ' active' : '');
+    tab.className = 'subject-tab'+(i===0?' active':'');
     tab.textContent = subj;
-    tab.onclick = () => switchSubjectTab(subj);
+    tab.onclick = ()=>switchSubjectTab(subj);
     tabsEl.appendChild(tab);
-
-    // Panel
     const entries = s.progress[subj];
-    const maxScore = Math.max(...entries.map(e => e.score), 100);
-    const ap = s.apScores[subj];
-
+    const maxScore = Math.max(...entries.map(e=>e.score),100);
+    const ap = s.apScores?.[subj];
     const panel = document.createElement('div');
-    panel.className = 'subject-panel' + (i === 0 ? ' active' : '');
-    panel.id = 'panel-' + subj.replace(/\s+/g, '-');
-    panel.innerHTML = `
-      <div class="score-timeline">
-        ${entries.map((entry, ei) => `
-          <div class="score-entry">
-            <div class="score-date">${entry.date}</div>
-            <div class="score-bar-wrap">
-              <div class="score-bar ${ei === entries.length - 1 ? 'gold' : 'navy'}"
-                   data-width="${Math.round((entry.score / maxScore) * 100)}"
-                   style="width:0%">
-                ${entry.label}
-              </div>
-            </div>
-            <div class="score-num">${entry.score}%</div>
-          </div>
-        `).join('')}
-      </div>
-      ${ap ? `
-        <div class="ap-score-wrap">
-          <div class="ap-score-label">AP Score Outlook</div>
-          <div class="ap-score-chips">
-            <span class="ap-chip ${ap.predicted >= 5 ? 'score5' : ap.predicted >= 4 ? 'score4' : 'score3'}">
-              Predicted: ${ap.predicted}
-            </span>
-            <span class="ap-chip target">🎯 Target: ${ap.target}</span>
-            ${ap.note ? `<span class="ap-chip score4">${ap.note}</span>` : ''}
-          </div>
-        </div>
-      ` : ''}
-    `;
+    panel.className = 'subject-panel'+(i===0?' active':'');
+    panel.id = 'panel-'+subj.replace(/\s+/g,'-');
+    panel.innerHTML = `<div class="score-timeline">
+      ${entries.map((e,ei)=>`<div class="score-entry">
+        <div class="score-date">${e.date}</div>
+        <div class="score-bar-wrap"><div class="score-bar ${ei===entries.length-1?'gold':'navy'}" data-width="${Math.round((e.score/maxScore)*100)}" style="width:0%">${e.label}</div></div>
+        <div class="score-num">${e.score}%</div>
+      </div>`).join('')}
+    </div>
+    ${ap?`<div class="ap-score-wrap"><div class="ap-score-label">AP Score Outlook</div><div class="ap-score-chips">
+      ${ap.predicted?`<span class="ap-chip ${ap.predicted>=5?'score5':ap.predicted>=4?'score4':'score3'}">Predicted: ${ap.predicted}</span>`:''}
+      <span class="ap-chip target">🎯 Target: ${ap.target}</span>
+      ${ap.note?`<span class="ap-chip score4">${ap.note}</span>`:''}
+    </div></div>`:''}`;
     panelsEl.appendChild(panel);
   });
-
-  // Animate first tab bars after short delay
-  setTimeout(animateAllBars, 200);
+  setTimeout(animateAllBars,200);
 }
-
 function switchSubjectTab(subj) {
-  document.querySelectorAll('.subject-tab').forEach(t => {
-    t.classList.toggle('active', t.textContent === subj);
-  });
-  document.querySelectorAll('.subject-panel').forEach(p => {
-    p.classList.toggle('active', p.id === 'panel-' + subj.replace(/\s+/g, '-'));
-  });
-  setTimeout(animateAllBars, 80);
+  document.querySelectorAll('.subject-tab').forEach(t=>t.classList.toggle('active',t.textContent===subj));
+  document.querySelectorAll('.subject-panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+subj.replace(/\s+/g,'-')));
+  setTimeout(animateAllBars,80);
 }
+function animateAllBars(){document.querySelectorAll('.score-bar').forEach(bar=>{bar.style.width=bar.getAttribute('data-width')+'%'})}
 
-function animateAllBars() {
-  document.querySelectorAll('.score-bar').forEach(bar => {
-    const target = bar.getAttribute('data-width');
-    bar.style.width = target + '%';
-  });
+/* ── COLLEGES ── */
+function buildColleges() {
+  const s = currentStudent;
+  const acGrid = document.getElementById('academicGrid');
+  acGrid.innerHTML = Object.entries(s.academic).map(([k,v])=>`
+    <div class="academic-row">
+      <div class="academic-label">${k}</div>
+      <div class="academic-val ${v.note==='warn'?'warn':v.note==='good'?'good':''}">${v.val}</div>
+    </div>`).join('');
+
+  const tierLabels = {'extreme-reach':'Extreme Reach','reach':'Reach','target':'Target','solid-target':'Solid Target','safety':'Safety'};
+  document.getElementById('collegeListBody').innerHTML = s.colleges.map(tier=>`
+    <div class="college-tier">
+      <div class="tier-header"><span class="tier-label ${tier.tier}">${tierLabels[tier.tier]||tier.tier}</span></div>
+      <div class="college-grid">${tier.schools.map(sch=>`
+        <div class="college-card">
+          <div class="college-name">${sch.name}</div>
+          <div class="college-status ${sch.status}">${sch.status==='tbd'?'TBD':sch.status==='applied'?'Applied':'Submitted'}</div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
 }
 
 /* ── SESSIONS ── */
 function buildSessions() {
   const s = currentStudent;
+  const iCC = s.portalType==='college-counseling';
   const upcoming = s.upcomingSessions;
   const past = s.pastSessions;
   let html = '';
 
-  if (upcoming.length > 0) {
-    html += `<div class="section-subtitle">Upcoming</div><div class="sessions-list">`;
-    html += upcoming.map(ses => `
-      <div class="session-item">
-        <div class="session-date-block">
-          <div class="session-month">${ses.month}</div>
-          <div class="session-day">${ses.day}</div>
-        </div>
-        <div class="session-info">
-          <div class="session-subject">${ses.subject}</div>
-          <div class="session-topic">${ses.topic}</div>
-          <div class="session-meta">
-            <span class="session-tag time">🕐 ${ses.time}</span>
-            <span class="session-tag type">📍 ${ses.type}</span>
-          </div>
-        </div>
-      </div>
-    `).join('');
-    html += `</div>`;
+  if (iCC) {
+    const inprog = upcoming.filter(ss=>ss.status==='inprog');
+    const notStarted = upcoming.filter(ss=>ss.status!=='inprog');
+    if (inprog.length) {
+      html += `<div class="section-subtitle">🔄 In Progress</div><div class="sessions-list">`;
+      html += inprog.map(ses=>sessionCardCC(ses,'inprog')).join('');
+      html += `</div>`;
+    }
+    if (notStarted.length) {
+      html += `<div class="section-subtitle" style="margin-top:${inprog.length?'1.5rem':'0'}">Upcoming</div><div class="sessions-list">`;
+      html += notStarted.map(ses=>sessionCardCC(ses,'upcoming')).join('');
+      html += `</div>`;
+    }
+    if (past.length) {
+      html += `<div class="section-subtitle" style="margin-top:1.5rem">Completed ✅</div><div class="sessions-list">`;
+      html += past.map(ses=>sessionCardCC(ses,'past')).join('');
+      html += `</div>`;
+    }
+  } else {
+    if (upcoming.length) {
+      html += `<div class="section-subtitle">Upcoming</div><div class="sessions-list">`;
+      html += upcoming.map(ses=>`<div class="session-item">
+        <div class="session-date-block"><div class="session-month">${ses.month}</div><div class="session-day">${ses.day}</div></div>
+        <div class="session-info"><div class="session-subject">${ses.subject}</div><div class="session-topic">${ses.topic}</div>
+        <div class="session-meta"><span class="session-tag time">🕐 ${ses.time}</span><span class="session-tag type">📍 ${ses.type}</span></div></div></div>`).join('');
+      html += `</div>`;
+    }
+    if (past.length) {
+      html += `<div class="section-subtitle" style="margin-top:1.5rem">Past Sessions</div><div class="sessions-list">`;
+      html += past.map(ses=>`<div class="session-item" style="opacity:.8">
+        <div class="session-date-block" style="background:var(--muted)"><div class="session-month">${ses.month}</div><div class="session-day">${ses.day}</div></div>
+        <div class="session-info"><div class="session-subject">${ses.subject}</div><div class="session-topic">${ses.topic}</div>
+        <div class="session-meta"><span class="session-tag time">🕐 ${ses.time}</span><span class="session-tag done">✓ Completed</span></div>
+        ${ses.notes?`<div class="session-notes">💬 "${ses.notes}"</div>`:''}</div></div>`).join('');
+      html += `</div>`;
+    }
   }
-
-  if (past.length > 0) {
-    html += `<div class="section-subtitle" style="margin-top:1.5rem">Past Sessions</div><div class="sessions-list">`;
-    html += past.map(ses => `
-      <div class="session-item" style="opacity:0.8">
-        <div class="session-date-block" style="background:var(--muted)">
-          <div class="session-month">${ses.month}</div>
-          <div class="session-day">${ses.day}</div>
-        </div>
-        <div class="session-info">
-          <div class="session-subject">${ses.subject}</div>
-          <div class="session-topic">${ses.topic}</div>
-          <div class="session-meta">
-            <span class="session-tag time">🕐 ${ses.time}</span>
-            <span class="session-tag done">✓ Completed</span>
-          </div>
-          ${ses.notes ? `<div class="session-notes">💬 "${ses.notes}"</div>` : ''}
-        </div>
-      </div>
-    `).join('');
-    html += `</div>`;
-  }
-
-  if (!html) {
-    html = `<div class="empty-state"><div class="empty-icon">📅</div><p>No sessions yet — check back after your first session!</p></div>`;
-  }
+  if (!html) html = `<div class="empty-state"><div class="empty-icon">📅</div><p>No sessions yet</p></div>`;
   document.getElementById('sessionsBody').innerHTML = html;
+}
+function sessionCardCC(ses, state) {
+  const borderColor = state==='inprog'?'var(--purple)':state==='past'?'var(--border)':'var(--border)';
+  const blockBg = state==='past'?'var(--muted)':'var(--navy)';
+  return `<div class="session-item" style="border-color:${borderColor};${state==='past'?'opacity:.82':''}">
+    <div class="session-num-block" style="background:${blockBg}">
+      <div class="session-num-label">Session</div><div class="session-num-val">${ses.num}</div>
+    </div>
+    <div class="session-info">
+      <div class="session-subject">${ses.subject}</div>
+      <div class="session-topic">${ses.topic}</div>
+      <div class="session-meta">
+        <span class="session-tag phase">${ses.phase}</span>
+        ${state==='inprog'?`<span class="session-tag inprog">🔄 In Progress</span>`:''}
+        ${state==='past'?`<span class="session-tag done">✅ Complete</span>`:''}
+      </div>
+      ${ses.hw&&state!=='past'?`<div class="session-hw">📌 <b>HW:</b> ${ses.hw}</div>`:''}
+      ${ses.notes?`<div class="session-notes">💬 ${ses.notes}</div>`:''}
+    </div>
+  </div>`;
+}
+
+/* ── ESSAYS ── */
+function buildEssays() {
+  const s = currentStudent;
+  const statusLabels = {'not-started':'Not Started','drafting':'Drafting','revising':'Revising','complete':'Complete'};
+  document.getElementById('essaysBody').innerHTML = s.essays.map(cat=>`
+    <div class="essay-category">
+      <div class="essay-category-label">📁 ${cat.category}</div>
+      <div class="essay-list">${cat.items.map(e=>`
+        <div class="essay-item">
+          <div class="essay-top">
+            <div class="essay-title">${e.title}</div>
+            <div class="essay-status ${e.status}">${statusLabels[e.status]||e.status}</div>
+          </div>
+          <div class="essay-topic">${e.topic}</div>
+          <div class="essay-footer">
+            <span class="essay-tag">📝 ${e.wordLimit} words</span>
+            <span class="essay-tag">Draft: ${e.draftDue}</span>
+            <span class="essay-tag">Final: ${e.finalDue}</span>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+/* ── EC ACTION PLAN ── */
+function buildECPlan() {
+  const s = currentStudent;
+  const priorityDot = {urgent:'urgent',high:'high',medium:'medium'};
+  const statusTag = {inprog:'inprog',notstarted:'notstarted',done:'done'};
+  const statusLabel = {inprog:'🔄 In Progress',notstarted:'⏳ Not Started',done:'✅ Done'};
+  document.getElementById('ecplanBody').innerHTML = s.ecActions.map(group=>`
+    <div style="margin-bottom:1.5rem">
+      <div class="section-subtitle">${group.category}</div>
+      <div class="action-list">${group.items.map(a=>`
+        <div class="action-item">
+          <div class="action-priority ${priorityDot[a.priority]||'medium'}"></div>
+          <div class="action-info">
+            <div class="action-title">${a.title}</div>
+            <div class="action-desc">${a.desc}</div>
+            <div class="action-footer">
+              <span class="action-tag ${a.status==='inprog'?'inprog':a.status==='done'?'done':'notstarted'}">${statusLabel[a.status]||a.status}</span>
+              ${a.deadline?`<span class="action-tag notstarted">📅 ${a.deadline}</span>`:''}
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
 }
 
 /* ── RESOURCES ── */
 function buildResources() {
   const s = currentStudent;
-  const resources = s.resources || [];
-  const grid = document.getElementById('resourcesGrid');
-  if (!resources.length) return;
-
-  grid.innerHTML = resources.map(r => `
+  const res = s.resources||[];
+  if (!res.length) return;
+  document.getElementById('resourcesGrid').innerHTML = res.map(r=>`
     <a class="resource-card" href="${r.url}" target="_blank" rel="noopener">
-      <div class="resource-icon" style="background:${r.iconBg || '#f3f4f6'}">${r.icon}</div>
-      <div>
-        <div class="resource-name">${r.title}</div>
-        <div class="resource-meta">${r.type} · Added ${r.date}</div>
-      </div>
-    </a>
-  `).join('');
-
-  if (resources.length > 0) {
-    document.getElementById('resourcesBadge').textContent = resources.length;
-    document.getElementById('resourcesBadge').style.display = '';
-  }
+      <div class="resource-icon" style="background:${r.iconBg||'#f3f4f6'}">${r.icon}</div>
+      <div><div class="resource-name">${r.title}</div><div class="resource-meta">${r.type} · Added ${r.date}</div></div>
+    </a>`).join('');
 }
 
-/* ── ASSIGNMENTS ── */
+/* ── ASSIGNMENTS (AP) ── */
 function buildAssignments() {
   const s = currentStudent;
-  const assignments = s.assignments || [];
+  const assignments = s.assignments||[];
   const body = document.getElementById('assignmentsBody');
   if (!assignments.length) return;
-
-  const pending = assignments.filter(a => a.status === 'pending');
-  const completed = assignments.filter(a => a.status === 'completed');
+  const pending = assignments.filter(a=>a.status==='pending');
+  const completed = assignments.filter(a=>a.status==='completed');
   let html = '';
-
   if (pending.length) {
     html += `<div class="section-subtitle">To Do (${pending.length})</div><div class="assignments-list">`;
-    html += pending.map((a, i) => assignmentHTML(a, i, false)).join('');
+    html += pending.map((a,i)=>assignmentHTML(a,i,false)).join('');
     html += `</div>`;
   }
   if (completed.length) {
     html += `<div class="section-subtitle" style="margin-top:1.5rem">Completed ✓</div><div class="assignments-list">`;
-    html += completed.map((a, i) => assignmentHTML(a, i + pending.length, true)).join('');
+    html += completed.map((a,i)=>assignmentHTML(a,i+pending.length,true)).join('');
     html += `</div>`;
   }
   body.innerHTML = html;
+  const ab = document.getElementById('assignBadge');
+  if (ab) { ab.textContent = pending.length; ab.style.display = pending.length?'':'none'; }
 }
-
-function assignmentHTML(a, idx, isDone) {
-  return `
-    <div class="assignment-item" id="assign-${idx}">
-      <div class="assignment-check ${isDone ? 'done' : ''}" onclick="toggleAssign(${idx})">${isDone ? '✓' : ''}</div>
-      <div class="assignment-info">
-        <div class="assignment-title ${isDone ? 'done-text' : ''}">${a.title}</div>
-        <div class="assignment-desc">${a.desc}</div>
-        <div class="assignment-footer">
-          <span class="assign-tag subject">${a.subject}</span>
-          ${isDone
-            ? `<span class="assign-tag done-tag">✓ Completed</span>`
-            : `<span class="assign-tag ${a.dueSoon ? 'due-soon' : 'due-ok'}">Due ${a.dueDate}</span>`
-          }
-        </div>
+function assignmentHTML(a,idx,isDone){
+  return `<div class="assignment-item" id="assign-${idx}">
+    <div class="assignment-check ${isDone?'done':''}" onclick="toggleAssign(${idx})">${isDone?'✓':''}</div>
+    <div class="assignment-info">
+      <div class="assignment-title ${isDone?'done-text':''}">${a.title}</div>
+      <div class="assignment-desc">${a.desc}</div>
+      <div class="assignment-footer">
+        <span class="assign-tag subject">${a.subject}</span>
+        ${isDone?`<span class="assign-tag done-tag">✓ Completed</span>`:`<span class="assign-tag ${a.dueSoon?'due-soon':'due-ok'}">Due ${a.dueDate}</span>`}
       </div>
     </div>
-  `;
+  </div>`;
 }
-
-function toggleAssign(idx) {
+function toggleAssign(idx){
   const check = document.querySelector(`#assign-${idx} .assignment-check`);
   const title = document.querySelector(`#assign-${idx} .assignment-title`);
   const isDone = check.classList.contains('done');
-  check.classList.toggle('done');
-  check.textContent = isDone ? '' : '✓';
-  title.classList.toggle('done-text');
+  check.classList.toggle('done'); check.textContent=isDone?'':'✓'; title.classList.toggle('done-text');
 }
 
 /* ── ANNOUNCEMENTS ── */
-function buildAnnouncements() {
+function buildAnnouncements(){
   const s = currentStudent;
-  const announcements = s.announcements || [];
-  const body = document.getElementById('announcementsBody');
-  if (!announcements.length) return;
-
-  body.innerHTML = `<div class="announcements-list">` +
-    announcements.map(a => `
-      <div class="announcement-item">
-        <div class="announcement-header">
-          <div class="announcement-title">${a.title}</div>
-          <div class="announcement-date">${a.date}</div>
-        </div>
-        <div class="announcement-body">
-          ${a.message}
-          <div class="announcement-from">💬 From: Northstar Academic Prep</div>
-        </div>
-      </div>
-    `).join('') + `</div>`;
+  const ann = s.announcements||[];
+  if (!ann.length) return;
+  document.getElementById('announcementsBody').innerHTML = `<div class="announcements-list">`+
+    ann.map(a=>`<div class="announcement-item">
+      <div class="announcement-header"><div class="announcement-title">${a.title}</div><div class="announcement-date">${a.date}</div></div>
+      <div class="announcement-body">${a.message}<div class="announcement-from">💬 From: Northstar Academic Prep</div></div>
+    </div>`).join('')+`</div>`;
 }
 </script>
 </body>
