@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Portal – Northstar Academic Prep</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── VARIABLES ─── */
+    :root {
+      --navy:       #0f2044;
+      --navy-mid:   #1a3260;
+      --navy-light: #2a4a8a;
+      --gold:       #c9a03a;
+      --gold-light: #e0b84a;
+      --white:      #ffffff;
+      --off-white:  #f7f8fc;
+      --text:       #1a1a2e;
+      --muted:      #6b7280;
+      --border:     #e5e7eb;
+      --green:      #10b981;
+      --green-bg:   #ecfdf5;
+      --red:        #ef4444;
+      --red-bg:     #fef2f2;
+      --blue:       #3b82f6;
+      --blue-bg:    #eff6ff;
+      --amber:      #f59e0b;
+      --amber-bg:   #fffbeb;
+      --font-arch:  'Josefin Sans', sans-serif;
+      --font-body:  'Inter', sans-serif;
+      --sidebar-w:  260px;
+      --radius:     12px;
+      --shadow:     0 2px 16px rgba(15,32,68,0.10);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body { font-family: var(--font-body); background: var(--off-white); color: var(--text); min-height: 100vh; }
+
+    /* ─── LOGIN SCREEN ─── */
+    #loginScreen {
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, var(--navy-light) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    #loginScreen::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      border: 1px solid rgba(201,160,58,0.12);
+      top: -200px; right: -200px;
+    }
+    #loginScreen::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      border: 1px solid rgba(201,160,58,0.08);
+      bottom: -150px; left: -100px;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(201,160,58,0.2);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    }
+    .login-logo {
+      width: 72px; height: 72px;
+      margin: 0 auto 1.25rem;
+      filter: drop-shadow(0 0 18px rgba(201,160,58,0.5));
+    }
+    .login-brand {
+      font-family: var(--font-arch);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.35rem;
+    }
+    .login-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 0.4rem;
+    }
+    .login-sub {
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 2.25rem;
+    }
+    .login-label {
+      display: block;
+      text-align: left;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 0.5rem;
+    }
+    .login-input {
+      width: 100%;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(201,160,58,0.25);
+      border-radius: 10px;
+      padding: 0.9rem 1.1rem;
+      font-size: 1.15rem;
+      font-family: var(--font-arch);
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--white);
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .login-input::placeholder { color: rgba(255,255,255,0.25); letter-spacing: 0.1em; }
+    .login-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201,160,58,0.15);
+    }
+    .login-btn {
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.95rem;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+      color: var(--navy);
+      font-family: var(--font-arch);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .login-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+    .login-btn:active { transform: translateY(0); }
+    .login-error {
+      margin-top: 1rem;
+      padding: 0.7rem 1rem;
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #fca5a5;
+      display: none;
+    }
+    .login-divider {
+      margin: 2rem 0 0;
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .login-footer {
+      margin-top: 1.25rem;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.3);
+    }
+    .login-footer a { color: var(--gold); text-decoration: none; }
+    .login-footer a:hover { text-decoration: underline; }
+
+    /* ─── APP LAYOUT ─── */
+    #appShell { display: none; min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      background: var(--navy);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease;
+    }
+    .sidebar-brand {
+      padding: 1.75rem 1.5rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .sidebar-logo { width: 36px; height: 36px; flex-shrink: 0; }
+    .sidebar-brand-text { line-height: 1.2; }
+    .sidebar-brand-name {
+      font-family: var(--font-arch);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    .sidebar-brand-sub {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.4);
+    }
+    .sidebar-student {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .sidebar-avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-arch);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 0.6rem;
+    }
+    .sidebar-student-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 0.1rem;
+    }
+    .sidebar-student-tag {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.4);
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: 1rem 0;
+      overflow-y: auto;
+    }
+    .nav-section-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+      padding: 0.75rem 1.5rem 0.35rem;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 1.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.55);
+      cursor: pointer;
+      border-radius: 0;
+      border-left: 3px solid transparent;
+      transition: all 0.18s;
+      user-select: none;
+    }
+    .nav-item:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+    .nav-item.active {
+      color: var(--gold);
+      background: rgba(201,160,58,0.1);
+      border-left-color: var(--gold);
+    }
+    .nav-icon { font-size: 1.05rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--gold);
+      color: var(--navy);
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 99px;
+    }
+    .sidebar-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.35);
+      cursor: pointer;
+      transition: color 0.18s;
+      background: none;
+      border: none;
+      padding: 0;
+      width: 100%;
+    }
+    .logout-btn:hover { color: rgba(255,255,255,0.7); }
+
+    /* MAIN CONTENT */
+    .main {
+      margin-left: var(--sidebar-w);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .topbar-date {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .topbar-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: var(--navy);
+    }
+    .content { padding: 2rem; flex: 1; }
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+
+    /* ─── CARDS & SHARED ─── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    .card-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card-body { padding: 1.5rem; }
+
+    /* ─── DASHBOARD ─── */
+    .welcome-banner {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+      border-radius: var(--radius);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .welcome-banner::after {
+      content: '⭐';
+      position: absolute;
+      font-size: 8rem;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.06;
+    }
+    .welcome-text h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 0.3rem;
+    }
+    .welcome-text p { font-size: 0.88rem; color: rgba(255,255,255,0.6); }
+    .welcome-badge {
+      background: rgba(201,160,58,0.15);
+      border: 1px solid rgba(201,160,58,0.3);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .welcome-badge-label { font-size: 0.7rem; color: rgba(255,255,255,0.5); letter-spacing: 0.06em; text-transform: uppercase; }
+    .welcome-badge-value { font-family: var(--font-arch); font-size: 1rem; font-weight: 700; color: var(--gold); margin-top: 0.1rem; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .stat-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+    }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--navy);
+      line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+    .stat-change { font-size: 0.72rem; font-weight: 600; margin-top: 0.3rem; }
+    .stat-change.up { color: var(--green); }
+    .stat-change.gold { color: var(--gold); }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .dash-grid-full { grid-column: 1 / -1; }
+
+    /* ─── PROGRESS ─── */
+    .subject-tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .subject-tab {
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      color: var(--muted);
+      border: 1px solid transparent;
+      border-bottom: none;
+      background: none;
+      transition: all 0.18s;
+      position: relative;
+      bottom: -1px;
+    }
+    .subject-tab.active {
+      color: var(--navy);
+      background: var(--white);
+      border-color: var(--border);
+      border-bottom-color: var(--white);
+    }
+    .subject-tab:hover:not(.active) { color: var(--navy); }
+    .subject-panel { display: none; padding: 1.5rem; }
+    .subject-panel.active { display: block; }
+
+    .score-timeline { display: flex; flex-direction: column; gap: 0.75rem; }
+    .score-entry {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .score-date { font-size: 0.78rem; color: var(--muted); width: 70px; flex-shrink: 0; }
+    .score-bar-wrap { flex: 1; height: 28px; background: var(--off-white); border-radius: 6px; overflow: hidden; position: relative; }
+    .score-bar {
+      height: 100%;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--white);
+      transition: width 1s cubic-bezier(0.22,1,0.36,1);
+      width: 0;
+    }
+    .score-bar.navy { background: linear-gradient(90deg, var(--navy-mid), var(--navy-light)); }
+    .score-bar.gold { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+    .score-num { font-size: 0.82rem; font-weight: 700; color: var(--navy); width: 40px; text-align: right; flex-shrink: 0; }
+
+    .ap-score-wrap { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+    .ap-score-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.6rem; }
+    .ap-score-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .ap-chip {
+      padding: 0.35rem 0.75rem;
+      border-radius: 99px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .ap-chip.score5 { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .ap-chip.score4 { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+    .ap-chip.score3 { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+    .ap-chip.target { background: rgba(201,160,58,0.12); color: var(--gold); border: 1px solid rgba(201,160,58,0.3); }
+
+    /* ─── SESSIONS ─── */
+    .sessions-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .session-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      align-items: flex-start;
+      transition: box-shadow 0.18s;
+    }
+    .session-item:hover { box-shadow: 0 4px 16px rgba(15,32,68,0.08); }
+    .session-date-block {
+      background: var(--navy);
+      color: var(--white);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      text-align: center;
+      flex-shrink: 0;
+      min-width: 52px;
+    }
+    .session-month { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); font-weight: 700; }
+    .session-day { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+    .session-info { flex: 1; }
+    .session-subject { font-size: 0.9rem; font-weight: 700; color: var(--navy); margin-bottom: 0.15rem; }
+    .session-topic { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; }
+    .session-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .session-tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 99px;
+    }
+    .session-tag.time { background: var(--blue-bg); color: var(--blue); }
+    .session-tag.type { background: var(--amber-bg); color: var(--amber); }
+    .session-tag.done { background: var(--green-bg); color: var(--green); }
+    .session-notes {
+      margin-top: 0.5rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: var(--off-white);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      border-left: 3px solid var(--gold);
+      font-style: italic;
+    }
+    .section-subtitle {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 1.25rem 0 0.6rem;
+    }
+    .section-subtitle:first-child { margin-top: 0; }
+
+    /* ─── RESOURCES ─── */
+    .resources-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .resource-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.18s, border-color 0.18s;
+      background: var(--white);
+    }
+    .resource-card:hover { box-shadow: 0 4px 16px rgba(15,32,68,0.1); border-color: var(--gold); }
+    .resource-icon {
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .resource-name { font-size: 0.88rem; font-weight: 600; color: var(--navy); margin-bottom: 0.15rem; }
+    .resource-meta { font-size: 0.72rem; color: var(--muted); }
+
+    /* ─── ASSIGNMENTS ─── */
+    .assignments-list { display: flex; flex-direction: column; gap: 0.65rem; }
+    .assignment-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      transition: box-shadow 0.18s;
+    }
+    .assignment-item:hover { box-shadow: 0 2px 12px rgba(15,32,68,0.08); }
+    .assignment-check {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      margin-top: 1px;
+      transition: all 0.18s;
+      font-size: 0.75rem;
+      color: transparent;
+    }
+    .assignment-check.done {
+      background: var(--green);
+      border-color: var(--green);
+      color: var(--white);
+    }
+    .assignment-info { flex: 1; }
+    .assignment-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 0.15rem;
+    }
+    .assignment-title.done-text { text-decoration: line-through; color: var(--muted); }
+    .assignment-desc { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.35rem; }
+    .assignment-footer { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .assign-tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.18rem 0.55rem;
+      border-radius: 99px;
+    }
+    .assign-tag.subject { background: var(--blue-bg); color: var(--blue); }
+    .assign-tag.due-soon { background: var(--amber-bg); color: var(--amber); }
+    .assign-tag.due-ok { background: var(--off-white); color: var(--muted); }
+    .assign-tag.done-tag { background: var(--green-bg); color: var(--green); }
+
+    /* ─── ANNOUNCEMENTS ─── */
+    .announcements-list { display: flex; flex-direction: column; gap: 1rem; }
+    .announcement-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .announcement-header {
+      background: linear-gradient(90deg, var(--navy) 0%, var(--navy-mid) 100%);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .announcement-title { font-size: 0.9rem; font-weight: 700; color: var(--white); }
+    .announcement-date { font-size: 0.72rem; color: rgba(255,255,255,0.5); }
+    .announcement-body {
+      padding: 1rem 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .announcement-from {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--muted);
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+    .empty-state p { font-size: 0.875rem; }
+
+    /* ─── MOBILE OVERLAY ─── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 99;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1100px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 860px) {
+      .dash-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      .main { margin-left: 0; }
+      .topbar-menu-btn { display: block; }
+      .content { padding: 1rem; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .welcome-banner::after { display: none; }
+    }
+    @media (max-width: 420px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ LOGIN SCREEN ══════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <img src="logo.png" class="login-logo" alt="Northstar logo" />
+    <div class="login-brand">Northstar Academic Prep</div>
+    <div class="login-title">Student Portal</div>
+    <div class="login-sub">Enter your personal access code to continue</div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <label class="login-label" for="codeInput">Access Code</label>
+      <input id="codeInput" class="login-input" type="text" placeholder="XXXXXX" autocomplete="off" spellcheck="false" />
+      <div id="loginError" class="login-error">Invalid access code. Please try again or contact your tutor.</div>
+      <button type="submit" class="login-btn">Enter Portal →</button>
+    </form>
+
+    <hr class="login-divider" />
+    <div class="login-footer">
+      Don't have a code? <a href="index.html#contact">Contact us</a> to get started.<br />
+      <a href="index.html" style="margin-top:0.4rem;display:inline-block;">← Back to website</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ APP SHELL ══════════════════ -->
+<div id="appShell">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <img src="logo.png" class="sidebar-logo" alt="logo" />
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">Northstar</div>
+        <div class="sidebar-brand-sub">Academic Prep</div>
+      </div>
+    </div>
+
+    <div class="sidebar-student">
+      <div class="sidebar-avatar" id="sidebarInitials">NS</div>
+      <div class="sidebar-student-name" id="sidebarName">Student</div>
+      <div class="sidebar-student-tag" id="sidebarTag">Portal Member</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <div class="nav-item active" onclick="showSection('dashboard', this)">
+        <span class="nav-icon">🏠</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showSection('progress', this)">
+        <span class="nav-icon">📈</span> My Progress
+      </div>
+      <div class="nav-section-label">Schedule</div>
+      <div class="nav-item" onclick="showSection('sessions', this)">
+        <span class="nav-icon">📅</span> Sessions
+        <span class="nav-badge" id="upcomingBadge">0</span>
+      </div>
+      <div class="nav-section-label">Learning</div>
+      <div class="nav-item" onclick="showSection('resources', this)">
+        <span class="nav-icon">📚</span> Resources
+        <span class="nav-badge" id="resourcesBadge" style="display:none"></span>
+      </div>
+      <div class="nav-item" onclick="showSection('assignments', this)">
+        <span class="nav-icon">✏️</span> Assignments
+        <span class="nav-badge" id="assignBadge">0</span>
+      </div>
+      <div class="nav-section-label">Updates</div>
+      <div class="nav-item" onclick="showSection('announcements', this)">
+        <span class="nav-icon">📣</span> Announcements
+        <span class="nav-badge" id="announceBadge" style="display:none"></span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()">
+        <span>🚪</span> Sign out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <button class="topbar-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="topbar-title" id="topbarTitle">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-date" id="topbarDate"></div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ── DASHBOARD ── -->
+      <section class="page-section active" id="sec-dashboard">
+        <div class="welcome-banner">
+          <div class="welcome-text">
+            <h2 id="welcomeMsg">Welcome back! 👋</h2>
+            <p id="welcomeSub">Here's an overview of your progress and upcoming sessions.</p>
+          </div>
+          <div class="welcome-badge">
+            <div class="welcome-badge-label">Target</div>
+            <div class="welcome-badge-value" id="welcomeTarget">Score 5</div>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+          <!-- filled by JS -->
+        </div>
+
+        <div class="dash-grid">
+          <!-- Upcoming Sessions -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📅 Next Session</div>
+            </div>
+            <div class="card-body" id="dashNextSession">
+              <div class="empty-state"><div class="empty-icon">📅</div><p>No upcoming sessions</p></div>
+            </div>
+          </div>
+
+          <!-- Pending Assignments -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">✏️ Pending Assignments</div>
+            </div>
+            <div class="card-body" id="dashAssignments">
+              <div class="empty-state"><div class="empty-icon">✅</div><p>All caught up!</p></div>
+            </div>
+          </div>
+
+          <!-- Latest Announcement -->
+          <div class="card dash-grid-full">
+            <div class="card-header">
+              <div class="card-title">📣 Latest from Your Tutor</div>
+            </div>
+            <div class="card-body" id="dashAnnouncement">
+              <div class="empty-state"><div class="empty-icon">📣</div><p>No announcements yet</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── PROGRESS ── -->
+      <section class="page-section" id="sec-progress">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📈 Score Progress</div>
+          </div>
+          <div class="subject-tabs" id="subjectTabs"></div>
+          <div id="subjectPanels"></div>
+        </div>
+      </section>
+
+      <!-- ── SESSIONS ── -->
+      <section class="page-section" id="sec-sessions">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📅 Your Sessions</div>
+          </div>
+          <div class="card-body" id="sessionsBody">
+            <div class="empty-state"><div class="empty-icon">📅</div><p>No sessions scheduled yet</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── RESOURCES ── -->
+      <section class="page-section" id="sec-resources">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📚 Study Resources</div>
+          </div>
+          <div class="card-body">
+            <div class="resources-grid" id="resourcesGrid">
+              <div class="empty-state"><div class="empty-icon">📚</div><p>No resources shared yet</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ASSIGNMENTS ── -->
+      <section class="page-section" id="sec-assignments">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">✏️ Assignments</div>
+          </div>
+          <div class="card-body" id="assignmentsBody">
+            <div class="empty-state"><div class="empty-icon">✅</div><p>No assignments yet</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ANNOUNCEMENTS ── -->
+      <section class="page-section" id="sec-announcements">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📣 Announcements</div>
+          </div>
+          <div class="card-body" id="announcementsBody">
+            <div class="empty-state"><div class="empty-icon">📣</div><p>No announcements yet</p></div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /appShell -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   ████  STUDENT DATABASE  ████
+   Add/edit students below. Each key is the ACCESS CODE
+   (case-insensitive). Students enter this on the login screen.
+   ═══════════════════════════════════════════════════════ */
+const STUDENTS = {
+
+  /* ── EXAMPLE STUDENT 1 ── */
+  'NORTH001': {
+    name: 'Alex Johnson',
+    grade: '11th Grade',
+    subjects: ['AP Calculus BC', 'AP Biology'],
+    target: 'Score 5 on both exams',
+    joined: 'January 2026',
+
+    /* Quick stats shown on dashboard */
+    stats: {
+      sessionsCompleted: 14,
+      hoursLearned: 21,
+      scoreImprovement: '+13%',
+      currentStreak: '4 weeks'
+    },
+
+    /* Progress entries per subject — score out of 100 (practice test %) */
+    progress: {
+      'AP Calculus BC': [
+        { date: 'Jan 10', score: 61, label: 'Baseline' },
+        { date: 'Feb 3',  score: 69, label: 'Unit 2 Test' },
+        { date: 'Feb 24', score: 76, label: 'Mid-Check' },
+        { date: 'Mar 17', score: 83, label: 'Practice Exam 1' },
+        { date: 'Apr 8',  score: 89, label: 'Practice Exam 2' },
+      ],
+      'AP Biology': [
+        { date: 'Jan 15', score: 58, label: 'Baseline' },
+        { date: 'Feb 10', score: 67, label: 'Unit 3 Quiz' },
+        { date: 'Mar 5',  score: 74, label: 'Mid-Check' },
+        { date: 'Apr 1',  score: 81, label: 'Practice Exam 1' },
+      ]
+    },
+
+    /* AP score predictions or past scores */
+    apScores: {
+      'AP Calculus BC': { predicted: 4, target: 5, note: 'On track for a 5!' },
+      'AP Biology':     { predicted: 4, target: 5, note: 'Strong upward trend' }
+    },
+
+    /* Upcoming sessions */
+    upcomingSessions: [
+      {
+        month: 'APR', day: '25',
+        subject: 'AP Calculus BC',
+        topic: 'Integration by Parts & U-Substitution',
+        time: '4:00 PM',
+        type: 'Virtual (Zoom)'
+      },
+      {
+        month: 'APR', day: '29',
+        subject: 'AP Biology',
+        topic: 'Genetics & Heredity Deep Dive',
+        time: '3:00 PM',
+        type: 'Virtual (Zoom)'
+      },
+      {
+        month: 'MAY', day: '2',
+        subject: 'AP Calculus BC',
+        topic: 'Full Practice Exam Review',
+        time: '4:00 PM',
+        type: 'Virtual (Zoom)'
+      }
+    ],
+
+    /* Past sessions */
+    pastSessions: [
+      {
+        month: 'APR', day: '18',
+        subject: 'AP Calculus BC',
+        topic: 'Derivatives & Related Rates',
+        time: '4:00 PM',
+        type: 'Virtual',
+        notes: 'Great work on implicit differentiation! Review problem set 3 before next session.'
+      },
+      {
+        month: 'APR', day: '14',
+        subject: 'AP Biology',
+        topic: 'Cell Division & Mitosis',
+        time: '3:00 PM',
+        type: 'Virtual',
+        notes: 'Excellent questions today. Make sure to memorize the phases of mitosis.'
+      }
+    ],
+
+    /* Study resources (use '#' for url if no link yet) */
+    resources: [
+      { icon: '📄', iconBg: '#fef2f2', title: 'AP Calc BC Formula Sheet', type: 'PDF', date: 'Apr 10', url: '#' },
+      { icon: '📝', iconBg: '#eff6ff', title: 'Integration Practice Problems', type: 'PDF', date: 'Apr 15', url: '#' },
+      { icon: '🎥', iconBg: '#f0fdf4', title: 'Related Rates Video Walkthrough', type: 'Video', date: 'Apr 18', url: '#' },
+      { icon: '📄', iconBg: '#fefce8', title: 'AP Bio Cell Division Diagrams', type: 'PDF', date: 'Apr 14', url: '#' },
+      { icon: '🔗', iconBg: '#faf5ff', title: 'Khan Academy — Genetics Unit', type: 'Link', date: 'Apr 14', url: 'https://www.khanacademy.org' },
+    ],
+
+    /* Assignments — status: 'pending' or 'completed' */
+    assignments: [
+      {
+        title: 'Integration Practice Set A',
+        subject: 'AP Calculus BC',
+        dueDate: 'Apr 26, 2026',
+        dueSoon: true,
+        status: 'pending',
+        desc: 'Complete problems 1–20 on the integration practice sheet. Show all work.'
+      },
+      {
+        title: 'Bio Chapter 14 Review',
+        subject: 'AP Biology',
+        dueDate: 'Apr 28, 2026',
+        dueSoon: false,
+        status: 'pending',
+        desc: 'Read Chapter 14 and answer end-of-chapter questions 1–15.'
+      },
+      {
+        title: 'Derivatives Problem Set',
+        subject: 'AP Calculus BC',
+        dueDate: 'Apr 18, 2026',
+        dueSoon: false,
+        status: 'completed',
+        desc: 'Completed 25 related rates problems. Great job!'
+      },
+      {
+        title: 'Mitosis Diagram Worksheet',
+        subject: 'AP Biology',
+        dueDate: 'Apr 14, 2026',
+        dueSoon: false,
+        status: 'completed',
+        desc: 'Label and explain all phases of mitosis and meiosis.'
+      }
+    ],
+
+    /* Tutor announcements */
+    announcements: [
+      {
+        date: 'Apr 20, 2026',
+        title: '🔥 AP Exams Are 3 Weeks Away — Final Push!',
+        message: "You're doing amazing, Alex! AP Calc is May 13th and AP Bio is May 15th. We're going to use the next 3 sessions for full practice exams and targeted review. Make sure you're getting enough sleep and staying consistent with daily review. You've got this!"
+      },
+      {
+        date: 'Apr 14, 2026',
+        title: '📚 New Resources Added',
+        message: "I've uploaded the AP Bio cell division diagrams and a Genetics Khan Academy link to your Resources tab. These are great for visual review — go through them before our next session."
+      }
+    ]
+  },
+
+  /* ── ADD MORE STUDENTS BELOW ── */
+  /* Copy the block above, change the code (e.g. 'NORTH002'), and fill in the student's data */
+
+};
+/* ═══════════════════════════════════════════════════════ */
+
+
+/* ─── STATE ─── */
+let currentStudent = null;
+
+/* ─── LOGIN ─── */
+function handleLogin(e) {
+  e.preventDefault();
+  const code = document.getElementById('codeInput').value.trim().toUpperCase();
+  const errEl = document.getElementById('loginError');
+  if (STUDENTS[code]) {
+    errEl.style.display = 'none';
+    currentStudent = STUDENTS[code];
+    sessionStorage.setItem('portalCode', code);
+    bootPortal();
+  } else {
+    errEl.style.display = 'block';
+    document.getElementById('codeInput').select();
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('portalCode');
+  currentStudent = null;
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('codeInput').value = '';
+}
+
+/* ─── AUTO-LOGIN (session persistence) ─── */
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('portalCode');
+  if (saved && STUDENTS[saved]) {
+    currentStudent = STUDENTS[saved];
+    bootPortal();
+  }
+  // Set topbar date
+  document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+});
+
+/* ─── BOOT PORTAL ─── */
+function bootPortal() {
+  const s = currentStudent;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'block';
+
+  // Sidebar student info
+  const initials = s.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  document.getElementById('sidebarInitials').textContent = initials;
+  document.getElementById('sidebarName').textContent = s.name;
+  document.getElementById('sidebarTag').textContent = s.grade + ' · ' + s.subjects.join(', ');
+
+  buildDashboard();
+  buildProgress();
+  buildSessions();
+  buildResources();
+  buildAssignments();
+  buildAnnouncements();
+}
+
+/* ─── NAV ─── */
+function showSection(id, navEl) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  const titles = { dashboard: 'Dashboard', progress: 'My Progress', sessions: 'Sessions', resources: 'Resources', assignments: 'Assignments', announcements: 'Announcements' };
+  document.getElementById('topbarTitle').textContent = titles[id] || id;
+
+  // Animate score bars when progress becomes visible
+  if (id === 'progress') {
+    setTimeout(animateAllBars, 100);
+  }
+  closeSidebar();
+}
+
+/* ─── SIDEBAR MOBILE ─── */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+/* ════════════════════════════════════════
+   BUILD SECTIONS
+   ════════════════════════════════════════ */
+
+/* ── DASHBOARD ── */
+function buildDashboard() {
+  const s = currentStudent;
+  document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + s.name.split(' ')[0] + '! 👋';
+  document.getElementById('welcomeSub').textContent = 'Here\'s your overview for today. Keep pushing — you\'re making real progress.';
+  document.getElementById('welcomeTarget').textContent = s.target;
+
+  // Stats grid
+  const statsData = [
+    { icon: '📅', bg: '#eff6ff', value: s.stats.sessionsCompleted, label: 'Sessions Completed', change: 'Total sessions', changeClass: 'gold' },
+    { icon: '⏱️', bg: '#ecfdf5', value: s.stats.hoursLearned + 'h', label: 'Hours Learned', change: 'Total hours', changeClass: 'gold' },
+    { icon: '📈', bg: '#fef9ee', value: s.stats.scoreImprovement, label: 'Score Improvement', change: 'Since baseline', changeClass: 'up' },
+    { icon: '🔥', bg: '#fff0f0', value: s.stats.currentStreak, label: 'Current Streak', change: 'Consistent work!', changeClass: 'up' },
+  ];
+  document.getElementById('statsGrid').innerHTML = statsData.map(st => `
+    <div class="stat-card">
+      <div class="stat-icon" style="background:${st.bg}">${st.icon}</div>
+      <div class="stat-value">${st.value}</div>
+      <div class="stat-label">${st.label}</div>
+      <div class="stat-change ${st.changeClass}">${st.change}</div>
+    </div>
+  `).join('');
+
+  // Next session
+  const upcoming = s.upcomingSessions;
+  document.getElementById('upcomingBadge').textContent = upcoming.length;
+  if (upcoming.length > 0) {
+    const ns = upcoming[0];
+    document.getElementById('dashNextSession').innerHTML = `
+      <div class="session-item" style="border-color:var(--gold)">
+        <div class="session-date-block">
+          <div class="session-month">${ns.month}</div>
+          <div class="session-day">${ns.day}</div>
+        </div>
+        <div class="session-info">
+          <div class="session-subject">${ns.subject}</div>
+          <div class="session-topic">${ns.topic}</div>
+          <div class="session-meta">
+            <span class="session-tag time">🕐 ${ns.time}</span>
+            <span class="session-tag type">📍 ${ns.type}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Pending assignments
+  const pending = s.assignments.filter(a => a.status === 'pending');
+  document.getElementById('assignBadge').textContent = pending.length;
+  if (pending.length > 0) {
+    document.getElementById('dashAssignments').innerHTML = pending.slice(0, 3).map(a => `
+      <div class="assignment-item" style="margin-bottom:0.5rem">
+        <div class="assignment-check ${a.status === 'completed' ? 'done' : ''}">✓</div>
+        <div class="assignment-info">
+          <div class="assignment-title">${a.title}</div>
+          <div class="assignment-footer">
+            <span class="assign-tag subject">${a.subject}</span>
+            <span class="assign-tag ${a.dueSoon ? 'due-soon' : 'due-ok'}">Due ${a.dueDate}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Latest announcement
+  const ann = s.announcements;
+  if (ann.length > 0) {
+    document.getElementById('announceBadge').textContent = ann.length;
+    document.getElementById('announceBadge').style.display = '';
+    const a = ann[0];
+    document.getElementById('dashAnnouncement').innerHTML = `
+      <div class="announcement-item">
+        <div class="announcement-header">
+          <div class="announcement-title">${a.title}</div>
+          <div class="announcement-date">${a.date}</div>
+        </div>
+        <div class="announcement-body">
+          ${a.message}
+          <div class="announcement-from">💬 From: Northstar Academic Prep</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+/* ── PROGRESS ── */
+function buildProgress() {
+  const s = currentStudent;
+  const subjects = Object.keys(s.progress);
+  const tabsEl = document.getElementById('subjectTabs');
+  const panelsEl = document.getElementById('subjectPanels');
+  tabsEl.innerHTML = '';
+  panelsEl.innerHTML = '';
+
+  subjects.forEach((subj, i) => {
+    // Tab
+    const tab = document.createElement('button');
+    tab.className = 'subject-tab' + (i === 0 ? ' active' : '');
+    tab.textContent = subj;
+    tab.onclick = () => switchSubjectTab(subj);
+    tabsEl.appendChild(tab);
+
+    // Panel
+    const entries = s.progress[subj];
+    const maxScore = Math.max(...entries.map(e => e.score), 100);
+    const ap = s.apScores[subj];
+
+    const panel = document.createElement('div');
+    panel.className = 'subject-panel' + (i === 0 ? ' active' : '');
+    panel.id = 'panel-' + subj.replace(/\s+/g, '-');
+    panel.innerHTML = `
+      <div class="score-timeline">
+        ${entries.map((entry, ei) => `
+          <div class="score-entry">
+            <div class="score-date">${entry.date}</div>
+            <div class="score-bar-wrap">
+              <div class="score-bar ${ei === entries.length - 1 ? 'gold' : 'navy'}"
+                   data-width="${Math.round((entry.score / maxScore) * 100)}"
+                   style="width:0%">
+                ${entry.label}
+              </div>
+            </div>
+            <div class="score-num">${entry.score}%</div>
+          </div>
+        `).join('')}
+      </div>
+      ${ap ? `
+        <div class="ap-score-wrap">
+          <div class="ap-score-label">AP Score Outlook</div>
+          <div class="ap-score-chips">
+            <span class="ap-chip ${ap.predicted >= 5 ? 'score5' : ap.predicted >= 4 ? 'score4' : 'score3'}">
+              Predicted: ${ap.predicted}
+            </span>
+            <span class="ap-chip target">🎯 Target: ${ap.target}</span>
+            ${ap.note ? `<span class="ap-chip score4">${ap.note}</span>` : ''}
+          </div>
+        </div>
+      ` : ''}
+    `;
+    panelsEl.appendChild(panel);
+  });
+
+  // Animate first tab bars after short delay
+  setTimeout(animateAllBars, 200);
+}
+
+function switchSubjectTab(subj) {
+  document.querySelectorAll('.subject-tab').forEach(t => {
+    t.classList.toggle('active', t.textContent === subj);
+  });
+  document.querySelectorAll('.subject-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'panel-' + subj.replace(/\s+/g, '-'));
+  });
+  setTimeout(animateAllBars, 80);
+}
+
+function animateAllBars() {
+  document.querySelectorAll('.score-bar').forEach(bar => {
+    const target = bar.getAttribute('data-width');
+    bar.style.width = target + '%';
+  });
+}
+
+/* ── SESSIONS ── */
+function buildSessions() {
+  const s = currentStudent;
+  const upcoming = s.upcomingSessions;
+  const past = s.pastSessions;
+  let html = '';
+
+  if (upcoming.length > 0) {
+    html += `<div class="section-subtitle">Upcoming</div><div class="sessions-list">`;
+    html += upcoming.map(ses => `
+      <div class="session-item">
+        <div class="session-date-block">
+          <div class="session-month">${ses.month}</div>
+          <div class="session-day">${ses.day}</div>
+        </div>
+        <div class="session-info">
+          <div class="session-subject">${ses.subject}</div>
+          <div class="session-topic">${ses.topic}</div>
+          <div class="session-meta">
+            <span class="session-tag time">🕐 ${ses.time}</span>
+            <span class="session-tag type">📍 ${ses.type}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    html += `</div>`;
+  }
+
+  if (past.length > 0) {
+    html += `<div class="section-subtitle" style="margin-top:1.5rem">Past Sessions</div><div class="sessions-list">`;
+    html += past.map(ses => `
+      <div class="session-item" style="opacity:0.8">
+        <div class="session-date-block" style="background:var(--muted)">
+          <div class="session-month">${ses.month}</div>
+          <div class="session-day">${ses.day}</div>
+        </div>
+        <div class="session-info">
+          <div class="session-subject">${ses.subject}</div>
+          <div class="session-topic">${ses.topic}</div>
+          <div class="session-meta">
+            <span class="session-tag time">🕐 ${ses.time}</span>
+            <span class="session-tag done">✓ Completed</span>
+          </div>
+          ${ses.notes ? `<div class="session-notes">💬 "${ses.notes}"</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+    html += `</div>`;
+  }
+
+  if (!html) {
+    html = `<div class="empty-state"><div class="empty-icon">📅</div><p>No sessions yet — check back after your first session!</p></div>`;
+  }
+  document.getElementById('sessionsBody').innerHTML = html;
+}
+
+/* ── RESOURCES ── */
+function buildResources() {
+  const s = currentStudent;
+  const resources = s.resources || [];
+  const grid = document.getElementById('resourcesGrid');
+  if (!resources.length) return;
+
+  grid.innerHTML = resources.map(r => `
+    <a class="resource-card" href="${r.url}" target="_blank" rel="noopener">
+      <div class="resource-icon" style="background:${r.iconBg || '#f3f4f6'}">${r.icon}</div>
+      <div>
+        <div class="resource-name">${r.title}</div>
+        <div class="resource-meta">${r.type} · Added ${r.date}</div>
+      </div>
+    </a>
+  `).join('');
+
+  if (resources.length > 0) {
+    document.getElementById('resourcesBadge').textContent = resources.length;
+    document.getElementById('resourcesBadge').style.display = '';
+  }
+}
+
+/* ── ASSIGNMENTS ── */
+function buildAssignments() {
+  const s = currentStudent;
+  const assignments = s.assignments || [];
+  const body = document.getElementById('assignmentsBody');
+  if (!assignments.length) return;
+
+  const pending = assignments.filter(a => a.status === 'pending');
+  const completed = assignments.filter(a => a.status === 'completed');
+  let html = '';
+
+  if (pending.length) {
+    html += `<div class="section-subtitle">To Do (${pending.length})</div><div class="assignments-list">`;
+    html += pending.map((a, i) => assignmentHTML(a, i, false)).join('');
+    html += `</div>`;
+  }
+  if (completed.length) {
+    html += `<div class="section-subtitle" style="margin-top:1.5rem">Completed ✓</div><div class="assignments-list">`;
+    html += completed.map((a, i) => assignmentHTML(a, i + pending.length, true)).join('');
+    html += `</div>`;
+  }
+  body.innerHTML = html;
+}
+
+function assignmentHTML(a, idx, isDone) {
+  return `
+    <div class="assignment-item" id="assign-${idx}">
+      <div class="assignment-check ${isDone ? 'done' : ''}" onclick="toggleAssign(${idx})">${isDone ? '✓' : ''}</div>
+      <div class="assignment-info">
+        <div class="assignment-title ${isDone ? 'done-text' : ''}">${a.title}</div>
+        <div class="assignment-desc">${a.desc}</div>
+        <div class="assignment-footer">
+          <span class="assign-tag subject">${a.subject}</span>
+          ${isDone
+            ? `<span class="assign-tag done-tag">✓ Completed</span>`
+            : `<span class="assign-tag ${a.dueSoon ? 'due-soon' : 'due-ok'}">Due ${a.dueDate}</span>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleAssign(idx) {
+  const check = document.querySelector(`#assign-${idx} .assignment-check`);
+  const title = document.querySelector(`#assign-${idx} .assignment-title`);
+  const isDone = check.classList.contains('done');
+  check.classList.toggle('done');
+  check.textContent = isDone ? '' : '✓';
+  title.classList.toggle('done-text');
+}
+
+/* ── ANNOUNCEMENTS ── */
+function buildAnnouncements() {
+  const s = currentStudent;
+  const announcements = s.announcements || [];
+  const body = document.getElementById('announcementsBody');
+  if (!announcements.length) return;
+
+  body.innerHTML = `<div class="announcements-list">` +
+    announcements.map(a => `
+      <div class="announcement-item">
+        <div class="announcement-header">
+          <div class="announcement-title">${a.title}</div>
+          <div class="announcement-date">${a.date}</div>
+        </div>
+        <div class="announcement-body">
+          ${a.message}
+          <div class="announcement-from">💬 From: Northstar Academic Prep</div>
+        </div>
+      </div>
+    `).join('') + `</div>`;
+}
+</script>
+</body>
+</html>
