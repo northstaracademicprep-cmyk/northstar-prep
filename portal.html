@@ -308,6 +308,43 @@
       .academic-val{text-align:left}
       .tier-label{font-size:.65rem}
     }
+
+    /* ── ANIMATIONS ───────────────────────────────────────── */
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes popIn{0%{opacity:0;transform:scale(.8)}65%{transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+    @keyframes slideLeft{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+
+    /* Login entrance */
+    .login-card{animation:fadeInUp .65s cubic-bezier(.22,1,.36,1) both}
+    .login-logo{animation:popIn .7s cubic-bezier(.22,1,.36,1) .1s both}
+
+    /* Section transition — every navigation */
+    .page-section.active{display:block;animation:fadeInUp .38s cubic-bezier(.22,1,.36,1) both}
+
+    /* App shell entrance */
+    #appShell{animation:fadeIn .35s ease both}
+
+    /* Hover lifts — smooth elevation */
+    .stat-card{transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s}
+    .stat-card:hover{transform:translateY(-5px);box-shadow:0 14px 36px rgba(15,32,68,.13)}
+    .session-item{transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s,border-color .18s}
+    .session-item:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(15,32,68,.1)}
+    .resource-card{transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s,border-color .18s}
+    .resource-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(15,32,68,.1)}
+    .assignment-item{transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s}
+    .assignment-item:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,32,68,.08)}
+    .announcement-item{transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s}
+    .announcement-item:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,32,68,.08)}
+    .login-btn{transition:opacity .2s,transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s}
+    .login-btn:hover{box-shadow:0 10px 28px rgba(201,160,58,.38);transform:translateY(-2px)}
+    .nav-item{transition:all .2s cubic-bezier(.22,1,.36,1)}
+    .welcome-banner{transition:box-shadow .2s}
+
+    /* Stagger helpers (applied inline) */
+    .anim-up{animation:fadeInUp .44s cubic-bezier(.22,1,.36,1) both}
+    .anim-left{animation:slideLeft .4s cubic-bezier(.22,1,.36,1) both}
+    .anim-pop{animation:popIn .45s cubic-bezier(.22,1,.36,1) both}
   </style>
 </head>
 <body>
@@ -919,7 +956,13 @@ function showSection(id, navEl) {
   document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const sec = document.getElementById('sec-'+id);
-  if (sec) sec.classList.add('active');
+  if (sec) {
+    // Force animation replay on every navigation
+    sec.style.animation = 'none';
+    void sec.offsetWidth;
+    sec.style.animation = '';
+    sec.classList.add('active');
+  }
   if (navEl) navEl.classList.add('active');
   const titles = {dashboard:'Dashboard',progress:'My Progress',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements'};
   document.getElementById('topbarTitle').textContent = titles[id]||id;
@@ -955,13 +998,14 @@ function buildDashAP() {
     {icon:'📈',bg:'#fef9ee',value:s.stats.scoreImprovement,label:'Score Improvement',change:'Since baseline',cls:'up'},
     {icon:'🔥',bg:'#fff0f0',value:s.stats.currentStreak,label:'Current Streak',change:'Consistent work!',cls:'up'},
   ];
-  document.getElementById('statsGrid').innerHTML = statsData.map(st=>`
-    <div class="stat-card">
+  document.getElementById('statsGrid').innerHTML = statsData.map((st,i)=>`
+    <div class="stat-card anim-up" style="animation-delay:${i*.08}s">
       <div class="stat-icon" style="background:${st.bg}">${st.icon}</div>
-      <div class="stat-value">${st.value}</div>
+      <div class="stat-value" data-count="${st.value}">${st.value}</div>
       <div class="stat-label">${st.label}</div>
       <div class="stat-change ${st.cls}">${st.change}</div>
     </div>`).join('');
+  setTimeout(animateStats, 150);
 
   const upcoming = s.upcomingSessions;
   const badge = document.getElementById('upcomingBadge');
@@ -1009,13 +1053,14 @@ function buildDashCC() {
     {icon:'🏫',bg:'#fef9ee',value:s.stats.schoolsOnList,label:'Schools on List',change:'Reach → Safety',cls:'gold'},
     {icon:'📝',bg:'#fff0f0',value:s.stats.satTarget,label:'SAT Goal',change:'⚠️ June 6 retake',cls:'red'},
   ];
-  document.getElementById('statsGrid').innerHTML = statsData.map(st=>`
-    <div class="stat-card">
+  document.getElementById('statsGrid').innerHTML = statsData.map((st,i)=>`
+    <div class="stat-card anim-up" style="animation-delay:${i*.08}s">
       <div class="stat-icon" style="background:${st.bg}">${st.icon}</div>
-      <div class="stat-value" style="font-size:${typeof st.value==='string'&&st.value.length>6?'1.1rem':'1.6rem'}">${st.value}</div>
+      <div class="stat-value" data-count="${st.value}" style="font-size:${typeof st.value==='string'&&st.value.length>6?'1.1rem':'1.6rem'}">${st.value}</div>
       <div class="stat-label">${st.label}</div>
       <div class="stat-change ${st.cls}">${st.change}</div>
     </div>`).join('');
+  setTimeout(animateStats, 150);
 
   // Phase progress
   let dashHTML = `<div class="card dash-grid-full">
@@ -1109,6 +1154,28 @@ function switchSubjectTab(subj) {
 }
 function animateAllBars(){document.querySelectorAll('.score-bar').forEach(bar=>{bar.style.width=bar.getAttribute('data-width')+'%'})}
 
+/* ── COUNT-UP ── */
+function countUp(el, rawVal, duration=750) {
+  const str = String(rawVal);
+  const num = parseFloat(str);
+  if (isNaN(num)) { el.style.animation='popIn .5s cubic-bezier(.22,1,.36,1) both'; return; }
+  const suffix = str.replace(/^[\d.]+/, '');
+  const isDecimal = str.includes('.');
+  let startTs = null;
+  const tick = ts => {
+    if (!startTs) startTs = ts;
+    const p = Math.min((ts - startTs) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    const cur = ease * num;
+    el.textContent = (isDecimal ? (Math.round(cur*10)/10) : Math.round(cur)) + suffix;
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+function animateStats() {
+  document.querySelectorAll('.stat-value[data-count]').forEach(el => countUp(el, el.dataset.count));
+}
+
 /* ── COLLEGES ── */
 function buildColleges() {
   const s = currentStudent;
@@ -1161,7 +1228,7 @@ function buildSessions() {
   } else {
     if (upcoming.length) {
       html += `<div class="section-subtitle">Upcoming</div><div class="sessions-list">`;
-      html += upcoming.map(ses=>`<div class="session-item">
+      html += upcoming.map((ses,i)=>`<div class="session-item anim-up" style="animation-delay:${i*.07}s">
         <div class="session-date-block"><div class="session-month">${ses.month}</div><div class="session-day">${ses.day}</div></div>
         <div class="session-info"><div class="session-subject">${ses.subject}</div><div class="session-topic">${ses.topic}</div>
         <div class="session-meta"><span class="session-tag time">🕐 ${ses.time}</span><span class="session-tag type">📍 ${ses.type}</span></div></div></div>`).join('');
@@ -1169,7 +1236,7 @@ function buildSessions() {
     }
     if (past.length) {
       html += `<div class="section-subtitle" style="margin-top:1.5rem">Past Sessions</div><div class="sessions-list">`;
-      html += past.map(ses=>`<div class="session-item" style="opacity:.8">
+      html += past.map((ses,i)=>`<div class="session-item anim-up" style="opacity:.85;animation-delay:${i*.05}s">
         <div class="session-date-block" style="background:var(--muted)"><div class="session-month">${ses.month}</div><div class="session-day">${ses.day}</div></div>
         <div class="session-info"><div class="session-subject">${ses.subject}</div><div class="session-topic">${ses.topic}</div>
         <div class="session-meta"><span class="session-tag time">🕐 ${ses.time}</span><span class="session-tag done">✓ Completed</span></div>
@@ -1311,7 +1378,7 @@ function buildAnnouncements(){
   const ann = s.announcements||[];
   if (!ann.length) return;
   document.getElementById('announcementsBody').innerHTML = `<div class="announcements-list">`+
-    ann.map(a=>`<div class="announcement-item">
+    ann.map((a,i)=>`<div class="announcement-item anim-up" style="animation-delay:${i*.09}s">
       <div class="announcement-header"><div class="announcement-title">${a.title}</div><div class="announcement-date">${a.date}</div></div>
       <div class="announcement-body">${a.message}<div class="announcement-from">💬 From: Northstar Academic Prep</div></div>
     </div>`).join('')+`</div>`;
