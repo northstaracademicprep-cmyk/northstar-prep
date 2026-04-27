@@ -485,6 +485,64 @@
       .outcomes-grid { grid-template-columns: 1fr 1fr; }
       .brand-name { font-size: 0.9rem; }
       .score-dist { padding: 24px; }
+
+      /* ── MOBILE IMPROVEMENTS ── */
+      /* Hero */
+      .hero { padding: 88px 18px 52px; }
+      .hero h1 { font-size: 2rem; line-height: 1.25; }
+      .hero-sub { font-size: 0.9rem; max-width: 100%; }
+      .hero-actions { flex-direction: column; align-items: stretch; gap: 10px; }
+      .hero-actions .btn { text-align: center; width: 100%; }
+
+      /* Stats band */
+      .stats-inner { grid-template-columns: 1fr 1fr; }
+      .stat-item:nth-child(odd) { border-right: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-200); }
+      .stat-item:nth-child(even) { border-bottom: 1px solid var(--gray-200); }
+      .stat-item:nth-last-child(-n+2) { border-bottom: none; }
+      .stat-num { font-size: 2rem; }
+
+      /* Section spacing */
+      .section-title { font-size: 1.65rem; }
+      section { padding: 52px 18px; }
+
+      /* Services */
+      .cards-grid { grid-template-columns: 1fr; gap: 16px; }
+      .service-block { padding: 48px 18px; }
+
+      /* Results */
+      .outcomes-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .outcome-card { padding: 20px 16px; }
+      .outcome-num { font-size: 2.2rem; }
+      .score-row { flex-wrap: wrap; gap: 6px; }
+      .score-bar-wrap { min-width: 100px; }
+
+      /* Testimonials */
+      .carousel-card { min-width: 280px; max-width: 88vw; }
+
+      /* FAQ */
+      .faq-grid { gap: 0; }
+      .faq-item { border-radius: 0; border-top: none; }
+      .faq-item:first-child { border-top: 1px solid var(--gray-200); border-radius: var(--radius) var(--radius) 0 0; }
+      .faq-item:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+
+      /* About */
+      .portrait-wrap { max-width: 200px; margin: 0 auto; }
+
+      /* Contact */
+      .contact-layout { gap: 28px; }
+
+      /* Footer */
+      .footer-bottom { flex-direction: column; gap: 6px; text-align: center; }
+      .footer-bottom-links { flex-wrap: wrap; justify-content: center; gap: 8px; }
+
+      /* Buttons */
+      .btn { padding: 12px 22px; font-size: 0.875rem; }
+    }
+
+    @media (max-width: 400px) {
+      .hero h1 { font-size: 1.75rem; }
+      .outcomes-grid { grid-template-columns: 1fr; }
+      .outcome-card { padding: 18px 14px; }
     }
   </style>
 </head>
@@ -1585,6 +1643,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initReveal();
   tryAnimateStats();
   initCalendar();
+  /* ── Hash-based deep linking (e.g. from portal "Contact us") ── */
+  const hash = location.hash.slice(1);
+  if (['home','services','results','about','faq','contact'].includes(hash)) {
+    showPage(hash);
+  }
 });
 window.addEventListener('scroll', tryAnimateStats, { passive: true });
 window.addEventListener('scroll', animateResultsPage, { passive: true });

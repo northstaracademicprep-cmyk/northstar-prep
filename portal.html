@@ -270,7 +270,44 @@
     .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
     @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.phases-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:860px){.dash-grid{grid-template-columns:1fr}.academic-grid{grid-template-columns:1fr}}
-    @media(max-width:700px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.main{margin-left:0}.topbar-menu-btn{display:block}.content{padding:1rem}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:700px){
+      .sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}
+      .sidebar-overlay.open{display:block}.main{margin-left:0}
+      .topbar-menu-btn{display:block}.content{padding:1rem}
+      .stats-grid{grid-template-columns:repeat(2,1fr)}
+      .phases-grid{grid-template-columns:repeat(2,1fr)}
+      .college-grid{grid-template-columns:1fr}
+      .resources-grid{grid-template-columns:1fr}
+      .welcome-banner{flex-direction:column;gap:.75rem}
+      .welcome-badge{width:100%;text-align:left}
+      .stat-value{font-size:1.3rem}
+      .essay-top{flex-direction:column;gap:.4rem}
+      .essay-status{align-self:flex-start}
+      .essay-footer{gap:.35rem}
+      .action-item{flex-wrap:nowrap}
+      .session-item{gap:.65rem}
+      .session-date-block,.session-num-block{min-width:44px;padding:.4rem .5rem}
+      .session-day,.session-num-val{font-size:1.1rem}
+      .card-header{flex-wrap:wrap;gap:.5rem}
+      .topbar{padding:.75rem 1rem}
+      .topbar-title{font-size:.95rem}
+    }
+    @media(max-width:480px){
+      .login-card{padding:2rem 1.25rem}
+      .login-title{font-size:1.35rem}
+      .login-input{font-size:1rem;letter-spacing:.15em}
+      .stats-grid{grid-template-columns:repeat(2,1fr)}
+      .phases-grid{grid-template-columns:1fr 1fr}
+      .stat-card{padding:1rem}
+      .welcome-banner{padding:1.25rem}
+      .welcome-text h2{font-size:1.2rem}
+      .college-card{flex-direction:column;align-items:flex-start;gap:.3rem}
+      .session-topic{font-size:.75rem}
+      .session-subject{font-size:.85rem}
+      .academic-row{flex-direction:column;align-items:flex-start;gap:.15rem}
+      .academic-val{text-align:left}
+      .tier-label{font-size:.65rem}
+    }
   </style>
 </head>
 <body>
