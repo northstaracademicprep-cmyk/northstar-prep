@@ -1,6 +1,13 @@
 {
   "routes": [
-    { "src": "^/$", "dest": "/portal.html" },
-    { "src": "^/(.*)$", "dest": "/$1" }
+    {
+      "src": "^/$",
+      "has": [{ "type": "host", "value": "portal.northstaracademicprep.com" }],
+      "dest": "/portal.html"
+    },
+    {
+      "src": "^/(.*)$",
+      "dest": "/$1"
+    }
   ]
 }
