@@ -448,7 +448,13 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+/* ── SUPABASE CLIENT ──────────────────────────────────── */
+const SUPABASE_URL = 'https://hqqugqfdlcinktsblupu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_eHbuUITIGOZ5ckLI03fXjQ_9h_915Hn';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 /* ═══════════════════════════════════════════════════════
    STUDENT DATABASE
    portalType: 'ap-prep' or 'college-counseling'
@@ -683,14 +689,134 @@ const STUDENTS = {
 
 let currentStudent = null;
 
+/* ── SUPABASE DATA LOADER ── */
+async function loadFromSupabase(code) {
+  try {
+    const { data: student, error } = await db
+      .from('students').select('*').eq('code', code).maybeSingle();
+    if (error || !student) return null;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const [sessRes, hwRes, annRes, filesRes] = await Promise.all([
+      db.from('sessions').select('*').eq('student_id', student.id).order('session_date', { ascending: true }),
+      db.from('homework').select('*').eq('student_id', student.id).order('due_date', { ascending: true }),
+      db.from('announcements').select('*').eq('student_id', student.id).order('created_at', { ascending: false }),
+      db.from('files').select('*').eq('student_id', student.id).order('created_at', { ascending: false }),
+    ]);
+
+    const sessions    = sessRes.data  || [];
+    const homework    = hwRes.data    || [];
+    const announcements = annRes.data || [];
+    const files       = filesRes.data || [];
+
+    const pastSessions     = sessions.filter(s => s.session_date < today);
+    const upcomingSessions = sessions.filter(s => s.session_date >= today);
+
+    function fmtDateLong(d) {
+      return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+    }
+    function fmtDateShort(iso) {
+      return new Date(iso).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    }
+    function fmtMonthAbbr(d) {
+      return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'short'}).toUpperCase();
+    }
+    function fmtDay(d) {
+      return String(new Date(d + 'T00:00:00').getDate());
+    }
+
+    const subj = (student.subjects || [])[0] || 'Session';
+    const examDateStr = student.exam_date ? fmtDateLong(student.exam_date) : null;
+
+    return {
+      portalType: student.program_type || 'ap-prep',
+      name: student.name,
+      grade: student.grade || '',
+      subjects: student.subjects || [],
+      target: (student.subjects || []).join(', ') + (examDateStr ? ' · Exam: ' + examDateStr : ''),
+      joined: new Date(student.created_at).toLocaleDateString('en-US', {month:'long', year:'numeric'}),
+      stats: {
+        sessionsCompleted: pastSessions.length,
+        hoursLearned: student.hours_used || 0,
+        scoreImprovement: pastSessions.length > 0 ? pastSessions.length + ' sessions done' : 'Getting started',
+        currentStreak: upcomingSessions.length > 0 ? 'Next: ' + fmtMonthAbbr(upcomingSessions[0].session_date) + ' ' + fmtDay(upcomingSessions[0].session_date) : 'All done!'
+      },
+      progress: null,
+      apScores: null,
+      upcomingSessions: upcomingSessions.map(s => ({
+        month: fmtMonthAbbr(s.session_date),
+        day:   fmtDay(s.session_date),
+        subject: subj,
+        topic: s.topic || '',
+        time: s.duration_hours ? s.duration_hours + ' hrs' : '',
+        type: 'With Sid'
+      })),
+      pastSessions: pastSessions.slice().reverse().map(s => ({
+        month: fmtMonthAbbr(s.session_date),
+        day:   fmtDay(s.session_date),
+        subject: subj,
+        topic: s.topic || '',
+        time: s.duration_hours ? s.duration_hours + ' hrs' : '',
+        type: 'With Sid',
+        notes: s.notes || ''
+      })),
+      resources: files.map(f => ({
+        icon: f.file_type === 'pdf' ? '📄' : f.file_type === 'video' ? '🎥' : '🔗',
+        iconBg: '#eff6ff',
+        title: f.file_name || 'Resource',
+        type: f.file_type || 'File',
+        date: fmtDateShort(f.created_at),
+        url: f.file_url || '#'
+      })),
+      assignments: homework.map(h => ({
+        title: h.title || '',
+        subject: subj,
+        dueDate: h.due_date ? fmtDateLong(h.due_date) : 'No due date',
+        dueSoon: h.due_date ? ((new Date(h.due_date) - new Date()) < 3 * 24 * 60 * 60 * 1000) : false,
+        status: (h.status === 'submitted' || h.status === 'graded') ? 'completed' : 'pending',
+        desc: h.description || '',
+        feedback: h.feedback || '',
+        submissionText: h.submission_text || ''
+      })),
+      announcements: announcements.map(a => ({
+        date: fmtDateShort(a.created_at),
+        title: a.title || '',
+        message: a.message || ''
+      }))
+    };
+  } catch (err) {
+    console.error('Supabase load error:', err);
+    return null;
+  }
+}
+
 /* ── LOGIN ── */
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   const code = document.getElementById('codeInput').value.trim().toUpperCase();
   const errEl = document.getElementById('loginError');
+  const btn = document.querySelector('.login-btn');
+
+  // Hardcoded students (demo / CC students not yet in Supabase)
   if (STUDENTS[code]) {
     errEl.style.display = 'none';
     currentStudent = STUDENTS[code];
+    sessionStorage.setItem('portalCode', code);
+    bootPortal();
+    return;
+  }
+
+  // Try Supabase
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  const data = await loadFromSupabase(code);
+  btn.textContent = 'Enter Portal →';
+  btn.disabled = false;
+
+  if (data) {
+    currentStudent = data;
     sessionStorage.setItem('portalCode', code);
     bootPortal();
   } else {
@@ -698,6 +824,7 @@ function handleLogin(e) {
     document.getElementById('codeInput').select();
   }
 }
+
 function logout() {
   sessionStorage.removeItem('portalCode');
   currentStudent = null;
@@ -705,10 +832,17 @@ function logout() {
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('codeInput').value = '';
 }
-window.addEventListener('DOMContentLoaded', () => {
-  const saved = sessionStorage.getItem('portalCode');
-  if (saved && STUDENTS[saved]) { currentStudent = STUDENTS[saved]; bootPortal(); }
+
+window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
+  const saved = sessionStorage.getItem('portalCode');
+  if (!saved) return;
+  if (STUDENTS[saved]) {
+    currentStudent = STUDENTS[saved]; bootPortal();
+  } else {
+    const data = await loadFromSupabase(saved);
+    if (data) { currentStudent = data; bootPortal(); }
+  }
 });
 
 /* ── BOOT ── */
