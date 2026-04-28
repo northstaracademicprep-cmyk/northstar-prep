@@ -734,7 +734,10 @@
         <div class="t-tutor-name" id="tTutorName">Tutor</div>
         <div class="t-tutor-sub">Northstar Academic Prep</div>
       </div>
-      <div class="t-section-label">My Students</div>
+      <div class="t-section-label" style="display:flex;align-items:center;justify-content:space-between;padding-right:1rem">
+        <span>My Students</span>
+        <button onclick="openEnrollModal()" title="Add new student" style="background:rgba(201,160,58,.18);border:1px solid rgba(201,160,58,.35);color:#c9a03a;border-radius:7px;font-size:.75rem;font-weight:700;padding:.2rem .55rem;cursor:pointer;transition:background .15s;line-height:1.4" onmouseover="this.style.background='rgba(201,160,58,.3)'" onmouseout="this.style.background='rgba(201,160,58,.18)'">+ Add</button>
+      </div>
       <div id="tStudentList"></div>
       <div class="t-sidebar-footer">
         <button class="t-logout" onclick="logout()">🚪 Sign Out</button>
@@ -749,6 +752,123 @@
         <div style="font-size:.78rem;color:#94a3b8" id="tTopbarDate"></div>
       </header>
       <div class="t-content" id="tContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ENROLLMENT MODAL ══ -->
+<div id="enrollModal" style="display:none;position:fixed;inset:0;background:rgba(10,20,45,.6);backdrop-filter:blur(4px);z-index:9999;overflow-y:auto;padding:2rem 1rem" onclick="if(event.target===this)closeEnrollModal()">
+  <div style="background:#fff;border-radius:18px;max-width:560px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,.35);overflow:hidden">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0f2044,#1a3260);padding:1.5rem 1.75rem;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-family:'Josefin Sans',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#c9a03a;margin-bottom:.3rem">Northstar Academic Prep</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#fff">Enroll New Student</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.5);margin-top:.2rem">Fill in the details — admin will review and send the access code</div>
+      </div>
+      <button onclick="closeEnrollModal()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);font-size:1.2rem;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <!-- Body -->
+    <div style="padding:1.75rem;display:flex;flex-direction:column;gap:1.1rem">
+
+      <!-- Name -->
+      <div>
+        <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Student Full Name *</label>
+        <input id="enr-name" type="text" placeholder="e.g. Naveen Sharma" oninput="updateEnrCode()" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;transition:border-color .18s" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+      </div>
+
+      <!-- Grade + Subject row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem">
+        <div>
+          <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Grade *</label>
+          <select id="enr-grade" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;background:#fff;cursor:pointer" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+            <option value="">Select grade…</option>
+            <option value="9">Grade 9</option>
+            <option value="10">Grade 10</option>
+            <option value="11">Grade 11</option>
+            <option value="12">Grade 12</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Primary Subject *</label>
+          <select id="enr-subject" oninput="updateEnrCode()" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;background:#fff;cursor:pointer" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+            <option value="">Select subject…</option>
+            <option value="AP US History">AP US History</option>
+            <option value="AP World History">AP World History</option>
+            <option value="AP European History">AP European History</option>
+            <option value="AP US Government">AP US Government</option>
+            <option value="AP English Language">AP English Language</option>
+            <option value="AP English Literature">AP English Literature</option>
+            <option value="AP Biology">AP Biology</option>
+            <option value="AP Chemistry">AP Chemistry</option>
+            <option value="AP Physics">AP Physics</option>
+            <option value="AP Calculus AB">AP Calculus AB</option>
+            <option value="AP Calculus BC">AP Calculus BC</option>
+            <option value="AP Statistics">AP Statistics</option>
+            <option value="SAT Prep">SAT Prep</option>
+            <option value="ACT Prep">ACT Prep</option>
+            <option value="General Tutoring">General Tutoring</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Exam date + Hours package -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem">
+        <div>
+          <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">AP Exam / Goal Date</label>
+          <input id="enr-examdate" type="date" oninput="updateEnrCode()" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+        </div>
+        <div>
+          <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Hours Package *</label>
+          <select id="enr-hours" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;background:#fff;cursor:pointer" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+            <option value="5">5 hours</option>
+            <option value="10" selected>10 hours</option>
+            <option value="15">15 hours</option>
+            <option value="20">20 hours</option>
+            <option value="25">25 hours</option>
+            <option value="30">30 hours</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Session frequency -->
+      <div>
+        <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Preferred Session Frequency</label>
+        <select id="enr-freq" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;background:#fff;cursor:pointer" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+          <option value="">No preference</option>
+          <option value="1x per week">1x per week</option>
+          <option value="2x per week">2x per week</option>
+          <option value="3x per week">3x per week</option>
+          <option value="Biweekly">Biweekly (every 2 weeks)</option>
+          <option value="As needed">As needed / Flexible</option>
+        </select>
+      </div>
+
+      <!-- Learning goals / notes -->
+      <div>
+        <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Learning Goals & Notes</label>
+        <textarea id="enr-notes" rows="3" placeholder="e.g. Struggling with DBQ writing, needs vocabulary support, aiming for a 4 on the AP exam…" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.88rem;outline:none;resize:vertical;font-family:'Inter',sans-serif" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+      </div>
+
+      <!-- Generated code preview -->
+      <div style="background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:10px;padding:1rem 1.1rem;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem">Generated Access Code</div>
+          <div id="enr-code-preview" style="font-family:'Josefin Sans',sans-serif;font-size:1.2rem;font-weight:800;color:#0f2044;letter-spacing:.12em">—</div>
+        </div>
+        <div style="font-size:.72rem;color:#94a3b8;max-width:160px;text-align:right;line-height:1.5">Admin will activate this code after review</div>
+      </div>
+
+      <!-- Error message -->
+      <div id="enr-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:8px;padding:.65rem .9rem;font-size:.83rem"></div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:.75rem;margin-top:.25rem">
+        <button onclick="closeEnrollModal()" style="flex:1;padding:.75rem;background:#f1f5f9;border:none;border-radius:9px;font-size:.85rem;font-weight:600;color:#374151;cursor:pointer">Cancel</button>
+        <button onclick="submitEnrollment()" id="enr-submit-btn" style="flex:2;padding:.75rem;background:linear-gradient(135deg,#0f2044,#1a3260);border:none;border-radius:9px;font-size:.85rem;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.5rem">
+          <span>📤</span> Submit Enrollment Request
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -2574,6 +2694,93 @@ function renderTutorStudentList() {
     </button>`).join('');
 }
 
+/* ── ENROLLMENT MODAL ── */
+function openEnrollModal() {
+  // Clear previous inputs
+  ['enr-name','enr-grade','enr-subject','enr-examdate','enr-freq','enr-notes'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('enr-hours').value='10';
+  document.getElementById('enr-code-preview').textContent='—';
+  document.getElementById('enr-error').style.display='none';
+  const btn=document.getElementById('enr-submit-btn');
+  btn.textContent=''; btn.innerHTML='<span>📤</span> Submit Enrollment Request'; btn.disabled=false;
+  document.getElementById('enrollModal').style.display='block';
+  document.body.style.overflow='hidden';
+}
+function closeEnrollModal() {
+  document.getElementById('enrollModal').style.display='none';
+  document.body.style.overflow='';
+}
+function updateEnrCode() {
+  const name    = document.getElementById('enr-name').value.trim();
+  const subj    = document.getElementById('enr-subject').value;
+  const examRaw = document.getElementById('enr-examdate').value;
+  if (!name) { document.getElementById('enr-code-preview').textContent='—'; return; }
+  // Build initials from first name
+  const initials = name.split(' ').map(w=>w[0]?.toUpperCase()||'').filter(Boolean).slice(0,3).join('');
+  // Subject abbreviation
+  const subjMap = {
+    'AP US History':'APUSH','AP World History':'APWH','AP European History':'APEH',
+    'AP US Government':'APGOV','AP English Language':'APLANG','AP English Literature':'APLIT',
+    'AP Biology':'APBIO','AP Chemistry':'APCHEM','AP Physics':'APPHY',
+    'AP Calculus AB':'APCAB','AP Calculus BC':'APCBC','AP Statistics':'APSTAT',
+    'SAT Prep':'SAT','ACT Prep':'ACT','General Tutoring':'GEN'
+  };
+  const subjCode = subj ? (subjMap[subj]||subj.replace(/[^A-Z]/g,'').slice(0,6)) : 'NAP';
+  // Year suffix from exam date or current year
+  const yr = examRaw ? examRaw.slice(2,4) : String(new Date().getFullYear()).slice(2);
+  document.getElementById('enr-code-preview').textContent = `${initials}-${subjCode}${yr}`;
+}
+async function submitEnrollment() {
+  const name    = document.getElementById('enr-name').value.trim();
+  const grade   = document.getElementById('enr-grade').value;
+  const subj    = document.getElementById('enr-subject').value;
+  const examdate= document.getElementById('enr-examdate').value || null;
+  const hours   = parseInt(document.getElementById('enr-hours').value)||10;
+  const freq    = document.getElementById('enr-freq').value||null;
+  const notes   = document.getElementById('enr-notes').value.trim()||null;
+  const codeEl  = document.getElementById('enr-code-preview');
+  const errEl   = document.getElementById('enr-error');
+  errEl.style.display='none';
+
+  if (!name||!subj) {
+    errEl.textContent='Please fill in Student Name and Subject.';
+    errEl.style.display='block'; return;
+  }
+  updateEnrCode();
+  const generatedCode = codeEl.textContent.trim();
+
+  const btn = document.getElementById('enr-submit-btn');
+  btn.disabled=true; btn.innerHTML='Submitting…';
+
+  const payload = {
+    tutor_id: currentTutor?.id || null,
+    student_name: name,
+    grade: grade||null,
+    subjects: subj ? [subj] : [],
+    exam_date: examdate,
+    hours_package: hours,
+    session_frequency: freq,
+    notes,
+    generated_code: generatedCode,
+    status: 'pending'
+  };
+
+  const { error } = await db.from('enrollment_requests').insert(payload);
+  if (error) {
+    errEl.textContent = 'Error submitting request: '+error.message;
+    errEl.style.display='block';
+    btn.disabled=false; btn.innerHTML='<span>📤</span> Submit Enrollment Request';
+    return;
+  }
+
+  // Success state
+  btn.innerHTML='✅ Submitted!';
+  showToast(`Enrollment request for ${name} sent to admin! 🎉`,'success');
+  setTimeout(()=>closeEnrollModal(), 1800);
+}
+
 function renderTutorDashboard() {
   selectedStudent = null;
   document.getElementById('tTopbarTitle').textContent = 'My Students';
@@ -3380,19 +3587,25 @@ let currentAdmin = true; // just a flag — admin has no DB record
 async function bootAdminPortal() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('adminShell').style.display  = 'block';
+  // Load pending enrollment badge in background
+  db.from('enrollment_requests').select('id').eq('status','pending').then(({data})=>{
+    const badge = document.getElementById('admEnrBadge');
+    if (badge && data?.length) { badge.textContent=data.length; badge.style.display='inline'; }
+  });
   showAdminSection('approvals');
 }
 
 function showAdminSection(id) {
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
-    {approvals:'Pending Approvals', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing'}[id] || id;
+    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing'}[id] || id;
   const body = document.getElementById('admBody');
   body.innerHTML = '<div style="text-align:center;padding:3rem;color:#64748b">Loading…</div>';
-  if      (id === 'approvals') buildAdminApprovals();
-  else if (id === 'students')  buildAdminStudents();
-  else if (id === 'tutors')    buildAdminTutors();
-  else if (id === 'billing')   buildAdminBilling();
+  if      (id === 'approvals')   buildAdminApprovals();
+  else if (id === 'enrollments') buildAdminEnrollments();
+  else if (id === 'students')    buildAdminStudents();
+  else if (id === 'tutors')      buildAdminTutors();
+  else if (id === 'billing')     buildAdminBilling();
 }
 
 /* ── APPROVALS ── */
@@ -3460,6 +3673,121 @@ async function adminRejectSession(sessionId) {
   if (error) { showToast('Error: '+error.message,'error'); return; }
   showToast('Session rejected and removed.','success');
   buildAdminApprovals();
+}
+
+/* ── ENROLLMENT REQUESTS ── */
+async function buildAdminEnrollments() {
+  const body = document.getElementById('admBody');
+  const { data: requests, error } = await db.from('enrollment_requests')
+    .select('*, tutors(name)')
+    .order('created_at', {ascending:false});
+  if (error) { body.innerHTML = `<div class="adm-error">Error: ${error.message}</div>`; return; }
+
+  const pending  = (requests||[]).filter(r=>r.status==='pending');
+  const reviewed = (requests||[]).filter(r=>r.status!=='pending');
+
+  // Update badge
+  const badge = document.getElementById('admEnrBadge');
+  if (badge) { if(pending.length){badge.textContent=pending.length;badge.style.display='inline';}else{badge.style.display='none';} }
+
+  if (!requests?.length) {
+    body.innerHTML = `<div class="adm-empty">📋<br>No enrollment requests yet.<br><span style="font-size:.8rem">Tutors can submit requests from their portal.</span></div>`;
+    return;
+  }
+
+  function enrCard(r) {
+    const subj    = (r.subjects||[]).join(', ')||'—';
+    const tutor   = r.tutors?.name || 'Unknown Tutor';
+    const submits = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    const isPending = r.status === 'pending';
+    const statusChip = isPending
+      ? `<span style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;font-size:.7rem;font-weight:700;padding:.2rem .65rem;border-radius:99px">⏳ Pending</span>`
+      : r.status === 'approved'
+        ? `<span style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:.7rem;font-weight:700;padding:.2rem .65rem;border-radius:99px">✅ Approved</span>`
+        : `<span style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;font-size:.7rem;font-weight:700;padding:.2rem .65rem;border-radius:99px">✗ Rejected</span>`;
+    return `<div class="adm-card" id="enrcard-${r.id}">
+      <div class="adm-card-top">
+        <div class="adm-card-avatar">${r.student_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+        <div class="adm-card-info">
+          <div class="adm-card-name">${r.student_name}</div>
+          <div class="adm-card-meta">${subj}${r.grade?' · Grade '+r.grade:''} · ${r.hours_package||10}h package</div>
+        </div>
+        <div class="adm-card-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">
+          ${statusChip}
+          <div style="font-size:.68rem;color:#94a3b8">Submitted ${submits}</div>
+        </div>
+      </div>
+      <div class="adm-card-detail">
+        <div class="adm-detail-row"><span class="adm-detail-label">Tutor</span><span>${tutor}</span></div>
+        ${r.exam_date?`<div class="adm-detail-row"><span class="adm-detail-label">Exam</span><span>${r.exam_date}</span></div>`:''}
+        ${r.session_frequency?`<div class="adm-detail-row"><span class="adm-detail-label">Freq.</span><span>${r.session_frequency}</span></div>`:''}
+        ${r.notes?`<div class="adm-detail-row"><span class="adm-detail-label">Notes</span><span style="font-style:italic;color:#374151">${r.notes}</span></div>`:''}
+      </div>
+      <!-- Code preview box -->
+      <div style="margin:.85rem 0 .65rem;background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:9px;padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.15rem">Access Code</div>
+          <div style="font-family:'Josefin Sans',sans-serif;font-size:1.1rem;font-weight:800;color:#0f2044;letter-spacing:.12em">${r.generated_code||'—'}</div>
+        </div>
+        ${isPending?`<div style="font-size:.72rem;color:#64748b">Activates on approval</div>`
+          :r.status==='approved'?`<button onclick="copyCode('${r.generated_code||''}')" style="background:#0f2044;color:#c9a03a;border:none;border-radius:7px;padding:.35rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer">📋 Copy</button>`:''}
+      </div>
+      ${isPending?`<div class="adm-card-actions">
+        <button class="adm-btn adm-btn-approve" onclick="adminApproveEnrollment('${r.id}')">✓ Approve & Activate</button>
+        <button class="adm-btn adm-btn-reject"  onclick="adminRejectEnrollment('${r.id}','${r.student_name.replace(/'/g,"\\'")}')">✗ Reject</button>
+      </div>`:''}
+    </div>`;
+  }
+
+  body.innerHTML = `
+    ${pending.length ? `
+      <div class="adm-section-header"><span class="adm-badge-count">${pending.length}</span> pending enrollment${pending.length>1?'s':''}</div>
+      <div class="adm-list" style="margin-bottom:1.75rem">${pending.map(enrCard).join('')}</div>` : ''}
+    ${reviewed.length ? `
+      <div class="adm-section-header" style="margin-top:${pending.length?'':'0'}">Previously reviewed (${reviewed.length})</div>
+      <div class="adm-list">${reviewed.map(enrCard).join('')}</div>` : ''}`;
+}
+
+async function adminApproveEnrollment(requestId) {
+  const card = document.getElementById('enrcard-'+requestId);
+  if (card) card.style.opacity='0.55';
+
+  // Fetch the request
+  const { data: req, error: re } = await db.from('enrollment_requests').select('*').eq('id', requestId).maybeSingle();
+  if (re||!req) { showToast('Could not load enrollment request.','error'); if(card)card.style.opacity='1'; return; }
+
+  // 1. Create the student record
+  const studentPayload = {
+    name: req.student_name,
+    code: req.generated_code,
+    grade: req.grade||null,
+    subjects: req.subjects||[],
+    exam_date: req.exam_date||null,
+    hours_total: req.hours_package||10,
+    hours_used: 0,
+    tutor_id: req.tutor_id||null
+  };
+  const { data: newStudent, error: se } = await db.from('students').insert(studentPayload).select().maybeSingle();
+  if (se) { showToast('Error creating student: '+se.message,'error'); if(card)card.style.opacity='1'; return; }
+
+  // 2. Mark request as approved
+  await db.from('enrollment_requests').update({status:'approved'}).eq('id', requestId);
+
+  showToast(`✅ ${req.student_name} enrolled! Code: ${req.generated_code}`,'success');
+  buildAdminEnrollments();
+}
+
+async function adminRejectEnrollment(requestId, studentName) {
+  if (!confirm(`Reject enrollment request for ${studentName}?`)) return;
+  const { error } = await db.from('enrollment_requests').update({status:'rejected'}).eq('id', requestId);
+  if (error) { showToast('Error: '+error.message,'error'); return; }
+  showToast(`Enrollment for ${studentName} rejected.`,'success');
+  buildAdminEnrollments();
+}
+
+function copyCode(code) {
+  if (!code) return;
+  navigator.clipboard.writeText(code).then(()=>showToast(`Code "${code}" copied to clipboard! 📋`,'success'));
 }
 
 /* ── STUDENTS ── */
@@ -3665,6 +3993,7 @@ async function buildAdminBilling() {
       <nav class="adm-nav">
         <div class="adm-nav-label">Actions</div>
         <div class="adm-nav-item active" data-id="approvals" onclick="showAdminSection('approvals')"><span class="adm-nav-icon">⏳</span> Pending Approvals</div>
+        <div class="adm-nav-item" data-id="enrollments" onclick="showAdminSection('enrollments')"><span class="adm-nav-icon">📋</span> Enrollment Requests <span id="admEnrBadge" style="display:none;margin-left:auto;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;padding:.1rem .45rem;border-radius:99px"></span></div>
         <div class="adm-nav-label">People</div>
         <div class="adm-nav-item" data-id="students" onclick="showAdminSection('students')"><span class="adm-nav-icon">🎓</span> My Students</div>
         <div class="adm-nav-item" data-id="tutors" onclick="showAdminSection('tutors')"><span class="adm-nav-icon">👨‍🏫</span> My Tutors</div>
