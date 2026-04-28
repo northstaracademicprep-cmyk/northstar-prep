@@ -2630,10 +2630,11 @@ async function selectTutorStudent(studentId, keepTab=false) {
   const initials = (selectedStudent.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const pendingHW = homework.filter(h=>h.status==='submitted').length;
   const tabs = [
-    {id:'materials', label:'📚 Materials'},
+    {id:'materials',   label:'📚 Materials'},
     {id:'assignments', label:`✏️ Assignments${pendingHW?` <span class="new-badge">${pendingHW}</span>`:''}`, raw:true},
-    {id:'sessions', label:'📅 Sessions'},
-    {id:'announce', label:'📣 Announcements'},
+    {id:'progress',    label:'📊 Progress'},
+    {id:'sessions',    label:'📅 Sessions'},
+    {id:'announce',    label:'📣 Announcements'},
   ];
 
   document.getElementById('tContent').innerHTML = `
@@ -2657,10 +2658,13 @@ async function selectTutorStudent(studentId, keepTab=false) {
     </div>
     <div id="ttab-panel-materials" class="t-tab-panel">${buildMaterialsPanel(materials, studentId)}</div>
     <div id="ttab-panel-assignments" class="t-tab-panel">${buildTutorAssignmentsPanel(homework, studentId, subj)}</div>
+    <div id="ttab-panel-progress" class="t-tab-panel"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading progress…</div></div>
     <div id="ttab-panel-sessions" class="t-tab-panel">${buildTutorSessionsPanel(sessions, studentId)}</div>
     <div id="ttab-panel-announce" class="t-tab-panel">${buildTutorAnnouncePanel(announcements, studentId)}</div>`;
   // Restore whichever tab was active (defaults to materials on first load)
   switchTutorTab(tutorActiveTab);
+  // Async-load the progress panel in the background
+  buildTutorProgressPanel(homework, studentId, subj);
 }
 
 function switchTutorTab(id) {
@@ -3086,6 +3090,211 @@ async function postAnnouncement(studentId) {
   document.getElementById('annMsg').value='';
   btn.disabled=false; btn.textContent='📣 Post Announcement';
   await selectTutorStudent(studentId, true);
+}
+
+/* ── TUTOR PROGRESS PANEL ── */
+async function buildTutorProgressPanel(homework, studentId, subject) {
+  const panel = document.getElementById('ttab-panel-progress');
+  if (!panel) return;
+
+  // Load practice attempts for this student
+  const { data: attempts } = await db.from('practice_attempts')
+    .select('*').eq('student_id', studentId).order('attempted_at', {ascending: false});
+  const pvAttempts = attempts || [];
+
+  // ── Homework stats ──────────────────────────────────
+  const graded    = homework.filter(h => h.status === 'graded' && h.score != null);
+  const submitted = homework.filter(h => h.status === 'submitted');
+  const pending   = homework.filter(h => h.status === 'pending');
+  const hwAvg     = graded.length ? Math.round(graded.reduce((s,h)=>s+Number(h.score),0)/graded.length) : null;
+
+  // ── Practice stats ───────────────────────────────────
+  // Best score per period
+  const pvByPeriod = {};
+  pvAttempts.forEach(a => {
+    const pct = Math.round((a.score/a.total)*100);
+    if (!pvByPeriod[a.period_key] || pct > pvByPeriod[a.period_key].best)
+      pvByPeriod[a.period_key] = { best: pct, attempts: 0, total: a.total };
+    pvByPeriod[a.period_key].attempts++;
+  });
+  const pvAvg = pvAttempts.length
+    ? Math.round(pvAttempts.reduce((s,a)=>s+Math.round((a.score/a.total)*100),0)/pvAttempts.length)
+    : null;
+
+  // ── Helpers ──────────────────────────────────────────
+  const col  = p => p >= 85 ? '#10b981' : p >= 70 ? '#f59e0b' : '#ef4444';
+  const bg   = p => p >= 85 ? '#ecfdf5' : p >= 70 ? '#fffbeb' : '#fef2f2';
+  const ltr  = p => p >= 90 ? 'A' : p >= 80 ? 'B' : p >= 70 ? 'C' : p >= 60 ? 'D' : 'F';
+  const star = p => p >= 85 ? '🟢' : p >= 70 ? '🟡' : '🔴';
+
+  // ── Recommendations engine ───────────────────────────
+  const recs = generateAPUSHRecommendations(graded, pvByPeriod, pvAttempts.length, subject);
+
+  // ── Render ──────────────────────────────────────────
+  panel.innerHTML = `
+  <!-- Overview cards -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;margin-bottom:1.5rem">
+    <div class="t-card" style="padding:1rem;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${hwAvg!=null?col(hwAvg):'#94a3b8'};line-height:1">${hwAvg!=null?hwAvg+'%':'—'}</div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-top:.3rem">HW Average</div>
+      ${hwAvg!=null?`<div style="font-size:.75rem;font-weight:700;color:${col(hwAvg)};margin-top:.2rem">${ltr(hwAvg)}</div>`:''}
+    </div>
+    <div class="t-card" style="padding:1rem;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${pvAvg!=null?col(pvAvg):'#94a3b8'};line-height:1">${pvAvg!=null?pvAvg+'%':'—'}</div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-top:.3rem">Practice Avg</div>
+      ${pvAvg!=null?`<div style="font-size:.75rem;color:#64748b;margin-top:.2rem">${pvAttempts.length} attempt${pvAttempts.length!==1?'s':''}</div>`:''}
+    </div>
+    <div class="t-card" style="padding:1rem;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:#0f2044;line-height:1">${graded.length}</div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-top:.3rem">Graded</div>
+      <div style="font-size:.75rem;color:#64748b;margin-top:.2rem">${submitted.length} awaiting · ${pending.length} pending</div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="t-card" style="margin-bottom:1.25rem">
+    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
+      <h3 style="margin:0;font-size:.92rem">📋 Sid's Recommendations for ${selectedStudent?.name?.split(' ')[0]||'Student'}</h3>
+      <span style="font-size:.7rem;background:#eff6ff;color:#1e40af;padding:.2rem .6rem;border-radius:99px;font-weight:700">${subject}</span>
+    </div>
+    <div style="padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:.75rem">
+      ${recs.map(r => `
+        <div style="display:flex;gap:.85rem;padding:.85rem;border-radius:10px;background:${r.bg};border:1px solid ${r.border}">
+          <div style="font-size:1.2rem;flex-shrink:0">${r.icon}</div>
+          <div>
+            <div style="font-size:.83rem;font-weight:700;color:#0f2044;margin-bottom:.2rem">${r.title}</div>
+            <div style="font-size:.78rem;color:#374151;line-height:1.55">${r.body}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Homework grades -->
+  <div class="t-card" style="margin-bottom:1.25rem">
+    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0"><h3 style="margin:0;font-size:.92rem">📝 Homework Grades</h3></div>
+    <div style="padding:1rem 1.25rem">
+      ${graded.length ? `<div style="display:flex;flex-direction:column;gap:.5rem">
+        ${graded.map(h => {
+          const pct = Math.round((Number(h.score)/Number(h.max_score||100))*100);
+          return `<div style="display:flex;align-items:center;gap:.85rem;padding:.65rem .85rem;border-radius:8px;border:1px solid #e5e7eb;background:#fff">
+            <div style="flex:1">
+              <div style="font-size:.82rem;font-weight:600;color:#0f2044">${h.title}</div>
+              ${h.feedback?`<div style="font-size:.72rem;color:#64748b;margin-top:.15rem">💬 ${h.feedback}</div>`:''}
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:.85rem;font-weight:800;color:${col(pct)}">${h.score}/${h.max_score||100}</div>
+              <div style="font-size:.7rem;font-weight:700;background:${bg(pct)};color:${col(pct)};padding:.1rem .45rem;border-radius:6px;display:inline-block;margin-top:.15rem">${ltr(pct)}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div style="text-align:center;padding:1.5rem;color:#94a3b8;font-size:.85rem">No graded assignments yet.</div>`}
+    </div>
+  </div>
+
+  <!-- Practice by period -->
+  <div class="t-card">
+    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0"><h3 style="margin:0;font-size:.92rem">🎯 Practice Performance by Period</h3></div>
+    <div style="padding:1rem 1.25rem">
+      ${Object.keys(pvByPeriod).length ? `<div style="display:flex;flex-direction:column;gap:.5rem">
+        ${APUSH_BANK.filter(b => pvByPeriod[b.key]).map(b => {
+          const d = pvByPeriod[b.key];
+          return `<div style="display:flex;align-items:center;gap:.85rem;padding:.6rem .85rem;border-radius:8px;border:1px solid #e5e7eb;background:#fff">
+            <div style="font-size:1.1rem">${b.icon}</div>
+            <div style="flex:1">
+              <div style="font-size:.8rem;font-weight:600;color:#0f2044">${b.label}</div>
+              <div style="font-size:.7rem;color:#64748b">${d.attempts} attempt${d.attempts!==1?'s':''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <div style="background:#e2e8f0;border-radius:99px;height:6px;width:80px;overflow:hidden">
+                <div style="height:100%;width:${d.best}%;background:${col(d.best)};border-radius:99px"></div>
+              </div>
+              <div style="font-size:.82rem;font-weight:800;color:${col(d.best)};width:38px;text-align:right">${d.best}%</div>
+              <div style="font-size:.9rem">${star(d.best)}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div style="text-align:center;padding:1.5rem;color:#94a3b8;font-size:.85rem">No practice attempts yet. Encourage ${selectedStudent?.name?.split(' ')[0]||'the student'} to try the Practice Vault!</div>`}
+    </div>
+  </div>`;
+}
+
+function generateAPUSHRecommendations(graded, pvByPeriod, pvTotal, subject) {
+  const recs = [];
+  const isAPUSH = subject.toLowerCase().includes('history') || subject.toLowerCase().includes('apush') || subject.toLowerCase().includes('us');
+
+  // 1. Identify weak practice periods (below 70%)
+  const weakPeriods = APUSH_BANK.filter(b => pvByPeriod[b.key] && pvByPeriod[b.key].best < 70);
+  const okPeriods   = APUSH_BANK.filter(b => pvByPeriod[b.key] && pvByPeriod[b.key].best >= 70);
+
+  if (weakPeriods.length) {
+    const names = weakPeriods.map(b=>`Period ${b.period} (${b.label.split('(')[1]?.replace(')','') || b.label})`).join(', ');
+    recs.push({
+      icon:'🔴', bg:'#fef2f2', border:'#fecaca',
+      title:`Priority Review: ${weakPeriods.map(b=>'Period '+b.period).join(', ')}`,
+      body:`${selectedStudent?.name?.split(' ')[0]||'The student'} scored below 70% on ${names}. Dedicate at least one session to drilling key events, themes, and causation for these periods before moving on. Focus on both content knowledge and how to connect events to the AP exam\'s key concepts.`
+    });
+  }
+
+  // 2. Low homework average
+  const hwAvg = graded.length ? Math.round(graded.reduce((s,h)=>s+Number(h.score),0)/graded.length) : null;
+  if (hwAvg !== null && hwAvg < 75) {
+    recs.push({
+      icon:'📝', bg:'#fff7ed', border:'#fed7aa',
+      title:'Written Work Needs Attention',
+      body:`Homework average is ${hwAvg}%. Consider focusing sessions on structuring written responses — especially thesis formation and evidence integration, which are critical for both the SAQ and DBQ sections of the AP exam.`
+    });
+  }
+
+  // 3. No practice yet — encourage it
+  if (pvTotal === 0) {
+    recs.push({
+      icon:'🎯', bg:'#eff6ff', border:'#bfdbfe',
+      title:'Start Practice Vault Drills',
+      body:`No practice attempts yet. Assign 1–2 periods per week in the Practice Vault as homework — consistent MCQ practice is one of the highest-leverage activities for AP score improvement. Aim for at least one period set before each tutoring session.`
+    });
+  }
+
+  // 4. Good on practice, push harder
+  if (pvTotal > 0 && weakPeriods.length === 0 && okPeriods.length >= 4) {
+    recs.push({
+      icon:'🔥', bg:'#ecfdf5', border:'#a7f3d0',
+      title:'Strong Practice Foundation — Level Up',
+      body:`Great MCQ consistency across practiced periods. Now push into timed full-section practice: 55 MCQs in 55 minutes. Also shift focus toward written sections — SAQ and DBQ responses are often where points are won or lost at this stage.`
+    });
+  }
+
+  // 5. APUSH-specific: exam strategy (always show)
+  if (isAPUSH) {
+    recs.push({
+      icon:'📖', bg:'#f5f3ff', border:'#ddd6fe',
+      title:'AP Exam Structure to Keep in Mind',
+      body:`APUSH exam = 55 MCQ (55 min) + 3 SAQ (40 min) + 1 DBQ (60 min) + 1 LEQ (40 min). MCQ and SAQ are Section I (55%), DBQ and LEQ are Section II (45%). The biggest leverage point: a 5-paragraph DBQ with a strong thesis, 6+ sourced documents, and one outside piece of evidence. Make sure at least one session covers document analysis.`
+    });
+  }
+
+  // 6. Period-specific deep dives for untouched periods
+  const untouched = APUSH_BANK.filter(b => !pvByPeriod[b.key]);
+  if (untouched.length >= 4 && pvTotal > 0) {
+    const urgentPeriods = [5,7,8].map(n=>APUSH_BANK.find(b=>b.period===n)).filter(Boolean).filter(b=>!pvByPeriod[b.key]);
+    if (urgentPeriods.length) {
+      recs.push({
+        icon:'⚡', bg:'#fffbeb', border:'#fde68a',
+        title:`High-Yield Untouched Periods: ${urgentPeriods.map(b=>'P'+b.period).join(', ')}`,
+        body:`Periods ${urgentPeriods.map(b=>b.period).join(', ')} (${urgentPeriods.map(b=>b.label.split('(')[1]?.replace(')','')?.trim()).join('; ')}) are heavily tested on the AP exam and haven\'t been practiced yet. These typically account for 40–45% of the MCQ section. Prioritize these in the Practice Vault and in session.`
+      });
+    }
+  }
+
+  // 7. If no recs yet (fresh student), give a starting plan
+  if (recs.length === 0) {
+    recs.push({
+      icon:'🚀', bg:'#f0fdf4', border:'#bbf7d0',
+      title:'Ready to Build the Plan',
+      body:`No assignment grades or practice data yet. Suggested start: begin with Period 3–5 content (most tested), assign 2 SAQ prompts as written homework, and have the student run through Periods 3 and 5 in the Practice Vault before the next session. Establish a baseline score now to track growth.`
+    });
+  }
+
+  return recs;
 }
 
 /* ── TUTOR EDIT / DELETE HELPERS ── */
