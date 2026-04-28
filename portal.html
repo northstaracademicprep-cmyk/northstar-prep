@@ -1693,46 +1693,78 @@ function hwFileSelected(id, input) {
   if (label && input.files[0]) label.textContent = '✓ ' + input.files[0].name;
 }
 
+/* ── IMAGE UTILS ── */
+function resizeImageToBase64(file, maxW=1200, quality=0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ── HOMEWORK SUBMISSION ── */
 async function submitHomework(hwId, studentId) {
-  const textEl = document.getElementById('hwtext-'+hwId);
-  const zoneEl = document.getElementById('hwzone-'+hwId);
+  const textEl  = document.getElementById('hwtext-'+hwId);
+  const zoneEl  = document.getElementById('hwzone-'+hwId);
+  const linkEl  = document.getElementById('hwlink-'+hwId);
   const fileInput = zoneEl ? zoneEl.querySelector('input[type="file"]') : null;
-  const text = textEl ? textEl.value.trim() : '';
-  const file = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
-  if (!text && !file) { showToast('Please write a response or upload a photo.','error'); return; }
+  const text      = textEl ? textEl.value.trim() : '';
+  const file      = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
+  const pastedLink= linkEl ? linkEl.value.trim() : '';
+  if (!text && !file && !pastedLink) { showToast('Please write a response, upload a photo, or paste a link.','error'); return; }
+
   const btn = document.getElementById('hwsubmit-'+hwId);
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
-  // Check for pasted link as fallback
-  const linkEl = document.getElementById('hwlink-'+hwId);
-  const pastedLink = linkEl ? linkEl.value.trim() : '';
-
   let submissionUrl = pastedLink || null;
 
-  // Try direct file upload (preferred over pasted link)
+  // Convert image to base64 (stored directly in DB — no storage bucket needed)
   if (file) {
-    try {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      const path = `${studentId}/${hwId}_${Date.now()}_${safeName}`;
-      const { error: upErr } = await db.storage.from('submissions').upload(path, file, { upsert: true });
-      if (upErr) {
-        console.warn('Storage upload failed:', upErr.message);
-        if (!pastedLink) {
-          showToast(`File upload failed: ${upErr.message}. Try pasting a Google Drive link instead.`, 'error');
+    const isImage = file.type.startsWith('image/');
+    if (isImage) {
+      try {
+        if (file.size > 10 * 1024 * 1024) {
+          showToast('Photo is too large (max 10MB). Please compress it or paste a Google Drive link.','error');
+          if (btn) { btn.disabled=false; btn.textContent='Submit Assignment →'; }
+          return;
         }
-        // Keep pastedLink as fallback if available
-      } else {
-        const { data: urlData } = db.storage.from('submissions').getPublicUrl(path);
-        submissionUrl = urlData.publicUrl; // override pasted link with actual upload
+        if (btn) btn.textContent = 'Processing photo…';
+        submissionUrl = await resizeImageToBase64(file);
+      } catch(imgErr) {
+        console.warn('Image conversion failed:', imgErr);
+        showToast('Could not process image. Try pasting a Google Drive link instead.','error');
       }
-    } catch(upEx) {
-      console.warn('Storage error:', upEx);
+    } else {
+      // Non-image file (PDF etc) — try storage, fall back to telling user to use a link
+      try {
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+        const path = `${studentId}/${hwId}_${Date.now()}_${safeName}`;
+        const { error: upErr } = await db.storage.from('submissions').upload(path, file, {upsert:true});
+        if (!upErr) {
+          const { data: urlData } = db.storage.from('submissions').getPublicUrl(path);
+          submissionUrl = urlData.publicUrl;
+        } else {
+          if (!pastedLink) showToast('PDF upload failed. Please paste a Google Drive link to your PDF instead.','error');
+        }
+      } catch(e) { console.warn('PDF upload error:', e); }
     }
   }
 
-  // Always save the text submission to DB
   try {
+    if (btn) btn.textContent = 'Saving…';
     const { error } = await db.from('homework').update({
       status: 'submitted',
       submission_text: text || null,
@@ -1740,14 +1772,15 @@ async function submitHomework(hwId, studentId) {
       submitted_at: new Date().toISOString()
     }).eq('id', hwId);
     if (error) throw error;
-    const photoLabel = file && submissionUrl && !pastedLink ? 'with uploaded photo' : pastedLink ? 'with link' : 'text only';
-    showToast(`Assignment submitted (${photoLabel})! ✅`,'success');
+    const hasPhoto = submissionUrl && submissionUrl.startsWith('data:');
+    const hasLink  = submissionUrl && !submissionUrl.startsWith('data:');
+    showToast(hasPhoto ? 'Submitted with photo! Sid will see it. ✅' : hasLink ? 'Submitted with link! ✅' : 'Submitted! ✅','success');
     const fresh = await loadFromSupabase(sessionStorage.getItem('portalCode'));
     if (fresh) { currentStudent = fresh; buildAssignments(); }
   } catch(err) {
-    console.error('DB submit error:', err);
-    showToast('Could not save submission: ' + err.message,'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit Assignment →'; }
+    console.error('DB error:', err);
+    showToast('Could not save: '+err.message,'error');
+    if (btn) { btn.disabled=false; btn.textContent='Submit Assignment →'; }
   }
 }
 
@@ -2043,7 +2076,7 @@ function buildTutorAssignmentsPanel(homework, studentId, subject) {
           ${h.status==='submitted'?`
           <div class="t-grade-expand">
             ${h.submission_text?`<div class="t-submission-text">${h.submission_text}</div>`:''}
-            ${h.submission_url?`<a href="${h.submission_url}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-bottom:.75rem">📷 View submitted work</a>`:''}
+            ${h.submission_url?(h.submission_url.startsWith('data:image')?`<div style="margin-bottom:.75rem"><img src="${h.submission_url}" alt="Student submission" style="max-width:100%;max-height:320px;border-radius:8px;border:1px solid #e5e7eb;display:block"></div>`:`<a href="${h.submission_url}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-bottom:.75rem">📷 View submitted work</a>`):''}
             <div style="display:flex;gap:.65rem;align-items:center;flex-wrap:wrap">
               <input type="number" min="0" max="100" placeholder="Score /100" class="t-input" id="grade-score-${h.id}" style="width:110px">
               <input type="text" placeholder="Feedback for student…" class="t-input" id="grade-fb-${h.id}" style="flex:1;min-width:180px">
