@@ -345,6 +345,153 @@
     .anim-up{animation:fadeInUp .44s cubic-bezier(.22,1,.36,1) both}
     .anim-left{animation:slideLeft .4s cubic-bezier(.22,1,.36,1) both}
     .anim-pop{animation:popIn .45s cubic-bezier(.22,1,.36,1) both}
+
+    /* ── TUTOR PORTAL ───────────────────────────────────── */
+    #tutorShell{display:none;min-height:100vh;background:var(--bg)}
+    .t-layout{display:flex;min-height:100vh}
+    .t-sidebar{width:260px;background:linear-gradient(180deg,#0b1e3d 0%,#0f2044 60%,#1a3a6e 100%);min-height:100vh;position:fixed;left:0;top:0;bottom:0;z-index:100;display:flex;flex-direction:column;overflow-y:auto;transition:transform .3s cubic-bezier(.22,1,.36,1)}
+    .t-sidebar-header{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.1)}
+    .t-role-badge{display:inline-block;background:rgba(59,130,246,.25);color:#93c5fd;font-size:.62rem;font-weight:700;letter-spacing:.1em;padding:.2rem .65rem;border-radius:20px;border:1px solid rgba(59,130,246,.35);margin-bottom:.5rem;text-transform:uppercase}
+    .t-tutor-name{color:#fff;font-size:1rem;font-weight:700;margin-bottom:.1rem}
+    .t-tutor-sub{color:rgba(255,255,255,.5);font-size:.75rem}
+    .t-section-label{color:rgba(255,255,255,.38);font-size:.62rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:.75rem 1.25rem .35rem}
+    .t-student-btn{display:flex;align-items:center;gap:.75rem;padding:.65rem 1.25rem;cursor:pointer;transition:all .2s;border:none;background:none;width:100%;text-align:left}
+    .t-student-btn:hover{background:rgba(255,255,255,.08)}
+    .t-student-btn.active{background:rgba(201,160,58,.18);border-left:3px solid var(--gold)}
+    .t-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#c9a03a,#f0d980);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:#0f2044;flex-shrink:0}
+    .t-student-info{flex:1;min-width:0}
+    .t-s-name{color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .t-s-course{color:rgba(255,255,255,.48);font-size:.72rem;margin-top:.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .t-sidebar-footer{margin-top:auto;padding:1rem 1.25rem;border-top:1px solid rgba(255,255,255,.1)}
+    .t-logout{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:.6rem 1rem;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s}
+    .t-logout:hover{background:rgba(255,255,255,.15)}
+    .t-main{flex:1;margin-left:260px;display:flex;flex-direction:column;min-height:100vh}
+    .t-topbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+    .t-topbar-left{display:flex;align-items:center;gap:.75rem}
+    .t-menu-btn{background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;padding:.25rem;border-radius:6px;display:none}
+    .t-topbar-title{font-weight:700;color:#1a2540;font-size:1rem}
+    .t-content{flex:1;padding:1.5rem;max-width:860px}
+    /* tutor welcome */
+    .t-welcome{margin-bottom:1.75rem}
+    .t-welcome h2{font-size:1.45rem;font-weight:700;color:#1a2540;margin-bottom:.2rem}
+    .t-welcome p{color:#64748b;font-size:.88rem}
+    /* student summary cards */
+    .t-students-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;margin-bottom:2rem}
+    .t-student-card{background:#fff;border:2px solid #e2e8f0;border-radius:14px;padding:1.25rem;cursor:pointer;transition:all .2s cubic-bezier(.22,1,.36,1)}
+    .t-student-card:hover{border-color:#c9a03a;transform:translateY(-3px);box-shadow:0 10px 28px rgba(15,32,68,.1)}
+    .tsc-name{font-size:1rem;font-weight:700;color:#1a2540;margin-bottom:.2rem}
+    .tsc-course{font-size:.78rem;color:#64748b;margin-bottom:1rem}
+    .tsc-hours{display:flex;gap:.75rem}
+    .tsc-hour{flex:1;background:#f5f6fa;border-radius:8px;padding:.5rem .65rem}
+    .tsc-h-label{font-size:.62rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}
+    .tsc-h-val{font-size:1.05rem;font-weight:700;color:#1a2540}
+    /* student mgmt view */
+    .t-back-btn{display:flex;align-items:center;gap:.4rem;background:none;border:none;color:#64748b;cursor:pointer;font-size:.85rem;padding:.35rem .5rem;border-radius:8px;margin-bottom:1rem;transition:all .15s}
+    .t-back-btn:hover{background:#f0f2f8;color:#1a2540}
+    .t-student-header{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;padding:.85rem 1.1rem;background:#fff;border-radius:12px;border:1px solid #e2e8f0}
+    .t-student-header .t-avatar{width:44px;height:44px;font-size:1rem}
+    .tsh-name{font-size:1.1rem;font-weight:700;color:#1a2540}
+    .tsh-meta{font-size:.78rem;color:#64748b;margin-top:.15rem}
+    .tsh-hours{margin-left:auto;text-align:right}
+    .tsh-hours-val{font-size:1.15rem;font-weight:700;color:#0f2044}
+    .tsh-hours-label{font-size:.7rem;color:#94a3b8}
+    /* mgmt tabs */
+    .t-tabs{display:flex;gap:.2rem;border-bottom:2px solid #e2e8f0;margin-bottom:1.5rem;overflow-x:auto}
+    .t-tab{padding:.6rem 1rem;font-size:.84rem;font-weight:600;color:#64748b;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:.3rem}
+    .t-tab.active{color:#0f2044;border-bottom-color:#c9a03a}
+    .t-tab:hover:not(.active){color:#1a2540;background:#f5f6fa;border-radius:6px 6px 0 0}
+    .t-tab-panel{display:none}.t-tab-panel.active{display:block;animation:fadeInUp .35s cubic-bezier(.22,1,.36,1) both}
+    /* upload card */
+    .t-card{background:#fff;border-radius:14px;padding:1.35rem;border:1px solid #e2e8f0;margin-bottom:1.1rem}
+    .t-card h3{font-size:.95rem;font-weight:700;color:#1a2540;margin-bottom:1rem;display:flex;align-items:center;gap:.4rem}
+    .t-form-group{margin-bottom:.9rem}
+    .t-label{display:block;font-size:.78rem;font-weight:600;color:#374151;margin-bottom:.3rem}
+    .t-input,.t-select,.t-textarea{width:100%;padding:.6rem .85rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.88rem;color:#1a2540;background:#fff;transition:border-color .15s;font-family:inherit;box-sizing:border-box}
+    .t-input:focus,.t-select:focus,.t-textarea:focus{outline:none;border-color:#c9a03a}
+    .t-textarea{resize:vertical;min-height:80px}
+    .t-file-zone{border:2px dashed #e2e8f0;border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:all .2s;background:#fafafa;position:relative;overflow:hidden}
+    .t-file-zone:hover,.t-file-zone.over{border-color:#c9a03a;background:#fffdf0}
+    .t-file-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .t-file-icon{font-size:1.75rem;margin-bottom:.35rem}
+    .t-file-text{font-size:.82rem;color:#64748b}
+    .t-file-hint{font-size:.72rem;color:#94a3b8;margin-top:.2rem}
+    .t-file-selected{font-size:.78rem;color:#10b981;font-weight:600;margin-top:.4rem}
+    .t-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.65rem 1.35rem;border-radius:10px;font-weight:700;font-size:.87rem;cursor:pointer;border:none;transition:all .2s}
+    .t-btn-primary{background:linear-gradient(135deg,#c9a03a,#e8b84b);color:#0f2044}
+    .t-btn-primary:hover{box-shadow:0 6px 18px rgba(201,160,58,.35);transform:translateY(-1px)}
+    .t-btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+    .t-btn-sm{padding:.4rem .85rem;font-size:.78rem}
+    .t-btn-ghost{background:#f0f2f8;color:#374151}
+    .t-btn-ghost:hover{background:#e2e8f0}
+    .t-btn-danger{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+    .t-btn-danger:hover{background:#fee2e2}
+    /* material/session item rows */
+    .t-list{display:flex;flex-direction:column;gap:.6rem}
+    .t-item{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:.85rem 1.1rem;display:flex;align-items:center;gap:.9rem;transition:border-color .2s}
+    .t-item:hover{border-color:#c9a03a}
+    .t-item-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .t-item-info{flex:1;min-width:0}
+    .t-item-name{font-size:.87rem;font-weight:600;color:#1a2540;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .t-item-meta{font-size:.73rem;color:#64748b;margin-top:.1rem}
+    .t-item-actions{display:flex;gap:.4rem;flex-shrink:0}
+    .t-status-badge{font-size:.7rem;padding:.2rem .6rem;border-radius:20px;font-weight:600}
+    .t-status-pending{background:#fef3c7;color:#92400e}
+    .t-status-submitted{background:#dbeafe;color:#1e40af}
+    .t-status-graded{background:#d1fae5;color:#065f46}
+    .t-status-approved{background:#d1fae5;color:#065f46}
+    /* grade form */
+    .t-grade-expand{border-top:1px solid #e2e8f0;margin-top:.75rem;padding-top:.75rem}
+    .t-submission-text{background:#f5f6fa;border-radius:8px;padding:.75rem;font-size:.83rem;color:#374151;line-height:1.65;white-space:pre-wrap;margin-bottom:.75rem;max-height:200px;overflow-y:auto}
+    /* NEW badge */
+    .new-badge{display:inline-flex;align-items:center;background:#ef4444;color:#fff;font-size:.58rem;font-weight:700;padding:.15rem .45rem;border-radius:20px;margin-left:.4rem;animation:popIn .3s cubic-bezier(.22,1,.36,1) both;vertical-align:middle}
+    /* student assignment submission */
+    .hw-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;margin-bottom:.85rem;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+    .hw-card:hover{border-color:#c9a03a;box-shadow:0 4px 16px rgba(15,32,68,.07)}
+    .hw-card.is-new{border-color:#f59e0b}
+    .hw-header{padding:1rem 1.1rem;display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;cursor:pointer}
+    .hw-title-row{flex:1}
+    .hw-title{font-size:.92rem;font-weight:700;color:#1a2540;margin-bottom:.2rem}
+    .hw-meta{font-size:.75rem;color:#64748b}
+    .hw-badges{display:flex;align-items:center;gap:.4rem;flex-shrink:0}
+    .hw-status{font-size:.7rem;padding:.2rem .6rem;border-radius:20px;font-weight:700}
+    .hw-status.pending{background:#fef3c7;color:#92400e}
+    .hw-status.submitted{background:#dbeafe;color:#1e40af}
+    .hw-status.graded{background:#d1fae5;color:#065f46}
+    .hw-body{border-top:1px solid #f0f2f8;padding:1rem 1.1rem;animation:fadeInUp .3s cubic-bezier(.22,1,.36,1) both}
+    .hw-desc{font-size:.85rem;color:#374151;line-height:1.7;margin-bottom:1rem}
+    .hw-attach-link{display:inline-flex;align-items:center;gap:.35rem;color:#3b82f6;font-size:.82rem;font-weight:600;text-decoration:none;padding:.35rem .75rem;background:#eff6ff;border-radius:8px;margin-bottom:.85rem}
+    .hw-attach-link:hover{background:#dbeafe}
+    .hw-submit-area{background:#f8fafc;border:1px dashed #e2e8f0;border-radius:10px;padding:1.1rem;margin-top:.5rem}
+    .hw-submit-area h4{font-size:.82rem;font-weight:700;color:#1a2540;margin-bottom:.85rem}
+    .hw-textarea{width:100%;padding:.65rem .85rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.85rem;color:#1a2540;font-family:inherit;resize:vertical;min-height:80px;box-sizing:border-box;transition:border-color .15s}
+    .hw-textarea:focus{outline:none;border-color:#c9a03a}
+    .hw-or{text-align:center;font-size:.75rem;color:#94a3b8;font-weight:600;margin:.65rem 0}
+    .hw-file-zone{border:2px dashed #e2e8f0;border-radius:8px;padding:.85rem;text-align:center;cursor:pointer;position:relative;overflow:hidden;transition:all .2s}
+    .hw-file-zone:hover{border-color:#c9a03a;background:#fffdf0}
+    .hw-file-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .hw-file-zone-text{font-size:.8rem;color:#64748b}
+    .hw-file-selected{font-size:.77rem;color:#10b981;font-weight:600;margin-top:.3rem}
+    .hw-submit-btn{margin-top:.85rem;width:100%;padding:.65rem;background:linear-gradient(135deg,#c9a03a,#e8b84b);color:#0f2044;border:none;border-radius:8px;font-weight:700;font-size:.88rem;cursor:pointer;transition:all .2s}
+    .hw-submit-btn:hover{box-shadow:0 6px 16px rgba(201,160,58,.35);transform:translateY(-1px)}
+    .hw-submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+    .hw-submitted-view{background:#f0fdf4;border-radius:8px;padding:.85rem;margin-top:.5rem}
+    .hw-submitted-view .hs-label{font-size:.72rem;font-weight:700;color:#065f46;margin-bottom:.4rem}
+    .hw-feedback-box{background:#fff;border:1px solid #d1fae5;border-radius:8px;padding:.75rem;font-size:.84rem;color:#374151;line-height:1.65;margin-top:.65rem}
+    .hw-score-badge{display:inline-flex;align-items:center;gap:.3rem;background:#0f2044;color:#c9a03a;font-size:.8rem;font-weight:700;padding:.3rem .75rem;border-radius:20px;margin-bottom:.5rem}
+    /* toast */
+    #toastContainer{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+    .toast{background:#1a2540;color:#fff;padding:.8rem 1.1rem;border-radius:12px;font-size:.83rem;font-weight:600;animation:fadeInUp .3s cubic-bezier(.22,1,.36,1) both;box-shadow:0 8px 24px rgba(0,0,0,.18);max-width:300px;pointer-events:auto;border-left:4px solid #c9a03a}
+    .toast.error{border-left-color:#ef4444}
+    .toast.success{border-left-color:#10b981}
+    /* tutor mobile */
+    @media(max-width:768px){
+      .t-sidebar{transform:translateX(-100%)}
+      .t-sidebar.open{transform:translateX(0)}
+      .t-main{margin-left:0}
+      .t-menu-btn{display:block}
+      .t-content{padding:1rem}
+      .t-students-grid{grid-template-columns:1fr}
+    }
   </style>
 </head>
 <body>
@@ -481,6 +628,38 @@
         </div>
       </section>
 
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toastContainer"></div>
+
+<!-- TUTOR SHELL -->
+<div id="tutorShell">
+  <div class="t-layout">
+    <div id="tSidebarOverlay" onclick="closeTutorSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99"></div>
+    <aside class="t-sidebar" id="tSidebar">
+      <div class="t-sidebar-header">
+        <div class="t-role-badge">TUTOR PORTAL</div>
+        <div class="t-tutor-name" id="tTutorName">Tutor</div>
+        <div class="t-tutor-sub">Northstar Academic Prep</div>
+      </div>
+      <div class="t-section-label">My Students</div>
+      <div id="tStudentList"></div>
+      <div class="t-sidebar-footer">
+        <button class="t-logout" onclick="logout()">🚪 Sign Out</button>
+      </div>
+    </aside>
+    <div class="t-main">
+      <header class="t-topbar">
+        <div class="t-topbar-left">
+          <button class="t-menu-btn" onclick="toggleTutorSidebar()">☰</button>
+          <span class="t-topbar-title" id="tTopbarTitle">My Students</span>
+        </div>
+        <div style="font-size:.78rem;color:#94a3b8" id="tTopbarDate"></div>
+      </header>
+      <div class="t-content" id="tContent"></div>
     </div>
   </div>
 </div>
@@ -725,6 +904,7 @@ const STUDENTS = {
 
 
 let currentStudent = null;
+let currentTutor   = null;
 
 /* ── SUPABASE DATA LOADER ── */
 async function loadFromSupabase(code) {
@@ -798,23 +978,34 @@ async function loadFromSupabase(code) {
         type: 'With Sid',
         notes: s.notes || ''
       })),
+      studentId: student.id,
       resources: files.map(f => ({
-        icon: f.file_type === 'pdf' ? '📄' : f.file_type === 'video' ? '🎥' : '🔗',
-        iconBg: '#eff6ff',
+        id: f.id,
+        icon: f.file_type === 'slide-deck' ? '📊' : f.file_type === 'notes' ? '📝' : f.file_type === 'worksheet' ? '📋' : '📄',
+        iconBg: f.file_type === 'slide-deck' ? '#eff6ff' : f.file_type === 'notes' ? '#f0fdf4' : '#fef9ee',
         title: f.file_name || 'Resource',
         type: f.file_type || 'File',
         date: fmtDateShort(f.created_at),
-        url: f.file_url || '#'
+        url: f.file_url || '#',
+        description: f.description || '',
+        isNew: (Date.now() - new Date(f.created_at).getTime()) < 3 * 24 * 60 * 60 * 1000
       })),
       assignments: homework.map(h => ({
+        id: h.id,
         title: h.title || '',
         subject: subj,
         dueDate: h.due_date ? fmtDateLong(h.due_date) : 'No due date',
         dueSoon: h.due_date ? ((new Date(h.due_date) - new Date()) < 3 * 24 * 60 * 60 * 1000) : false,
-        status: (h.status === 'submitted' || h.status === 'graded') ? 'completed' : 'pending',
+        isOverdue: h.due_date ? (new Date(h.due_date) < new Date()) : false,
+        status: h.status || 'pending',
         desc: h.description || '',
         feedback: h.feedback || '',
-        submissionText: h.submission_text || ''
+        score: h.score || null,
+        maxScore: h.max_score || 100,
+        submissionText: h.submission_text || '',
+        submissionUrl: h.submission_url || '',
+        attachmentUrl: h.attachment_url || '',
+        isNew: (Date.now() - new Date(h.created_at).getTime()) < 3 * 24 * 60 * 60 * 1000
       })),
       announcements: announcements.map(a => ({
         date: fmtDateShort(a.created_at),
@@ -835,19 +1026,33 @@ async function handleLogin(e) {
   const errEl = document.getElementById('loginError');
   const btn = document.querySelector('.login-btn');
 
-  // Hardcoded students (demo / CC students not yet in Supabase)
+  errEl.style.display = 'none';
+
+  // 1. Hardcoded students (demo / CC students)
   if (STUDENTS[code]) {
-    errEl.style.display = 'none';
     currentStudent = STUDENTS[code];
     sessionStorage.setItem('portalCode', code);
+    sessionStorage.setItem('portalRole', 'student');
     bootPortal();
     return;
   }
 
-  // Try Supabase
   btn.textContent = 'Loading…';
   btn.disabled = true;
-  errEl.style.display = 'none';
+
+  // 2. Check if tutor code
+  const { data: tutorData } = await db.from('tutors').select('*').eq('code', code).maybeSingle();
+  if (tutorData) {
+    currentTutor = tutorData;
+    sessionStorage.setItem('portalCode', code);
+    sessionStorage.setItem('portalRole', 'tutor');
+    btn.textContent = 'Enter Portal →';
+    btn.disabled = false;
+    await bootTutorPortal();
+    return;
+  }
+
+  // 3. Try student in Supabase
   const data = await loadFromSupabase(code);
   btn.textContent = 'Enter Portal →';
   btn.disabled = false;
@@ -855,6 +1060,7 @@ async function handleLogin(e) {
   if (data) {
     currentStudent = data;
     sessionStorage.setItem('portalCode', code);
+    sessionStorage.setItem('portalRole', 'student');
     bootPortal();
   } else {
     errEl.style.display = 'block';
@@ -864,22 +1070,35 @@ async function handleLogin(e) {
 
 function logout() {
   sessionStorage.removeItem('portalCode');
+  sessionStorage.removeItem('portalRole');
   currentStudent = null;
+  currentTutor   = null;
   document.getElementById('appShell').style.display = 'none';
+  document.getElementById('tutorShell').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('codeInput').value = '';
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
+  const dateStr = new Date().toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
+  const tDate = document.getElementById('tTopbarDate');
+  if (tDate) tDate.textContent = dateStr;
+  const topbarDate = document.getElementById('topbarDate');
+  if (topbarDate) topbarDate.textContent = dateStr;
+
   const saved = sessionStorage.getItem('portalCode');
+  const role  = sessionStorage.getItem('portalRole');
   if (!saved) return;
-  if (STUDENTS[saved]) {
-    currentStudent = STUDENTS[saved]; bootPortal();
-  } else {
-    const data = await loadFromSupabase(saved);
-    if (data) { currentStudent = data; bootPortal(); }
+
+  if (role === 'tutor') {
+    const { data: tutorData } = await db.from('tutors').select('*').eq('code', saved).maybeSingle();
+    if (tutorData) { currentTutor = tutorData; await bootTutorPortal(); return; }
   }
+  if (STUDENTS[saved]) {
+    currentStudent = STUDENTS[saved]; bootPortal(); return;
+  }
+  const data = await loadFromSupabase(saved);
+  if (data) { currentStudent = data; bootPortal(); }
 });
 
 /* ── BOOT ── */
@@ -910,7 +1129,7 @@ const NAV_AP = [
     {id:'sessions',icon:'📅',label:'Sessions',badge:'upcomingBadge'},
   ]},
   {section:'learning',items:[
-    {id:'resources',icon:'📚',label:'Resources'},
+    {id:'resources',icon:'📚',label:'Resources',badge:'resourcesBadge'},
     {id:'assignments',icon:'✏️',label:'Assignments',badge:'assignBadge'},
   ]},
   {section:'updates',items:[
@@ -1321,11 +1540,23 @@ function buildECPlan() {
 function buildResources() {
   const s = currentStudent;
   const res = s.resources||[];
-  if (!res.length) return;
-  document.getElementById('resourcesGrid').innerHTML = res.map(r=>`
-    <a class="resource-card" href="${r.url}" target="_blank" rel="noopener">
+  const grid = document.getElementById('resourcesGrid');
+  if (!res.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📚</div><p>No materials yet. Sid will upload resources here after each session.</p></div>`;
+    return;
+  }
+  const newCount = res.filter(r=>r.isNew).length;
+  const rb = document.getElementById('resourcesBadge');
+  if (rb) { rb.textContent = newCount; rb.style.display = newCount ? '' : 'none'; }
+  grid.innerHTML = res.map((r,i)=>`
+    <a class="resource-card anim-up" href="${r.url}" target="_blank" rel="noopener" style="animation-delay:${i*.06}s;text-decoration:none">
       <div class="resource-icon" style="background:${r.iconBg||'#f3f4f6'}">${r.icon}</div>
-      <div><div class="resource-name">${r.title}</div><div class="resource-meta">${r.type} · Added ${r.date}</div></div>
+      <div style="flex:1;min-width:0">
+        <div class="resource-name">${r.title}${r.isNew?'<span class="new-badge">NEW</span>':''}</div>
+        <div class="resource-meta">${r.type.replace('-',' ')} · Added ${r.date}</div>
+        ${r.description?`<div class="resource-meta" style="margin-top:.2rem;color:#374151">${r.description}</div>`:''}
+      </div>
+      <div style="color:#c9a03a;font-size:.8rem;font-weight:600;flex-shrink:0">Open →</div>
     </a>`).join('');
 }
 
@@ -1334,42 +1565,135 @@ function buildAssignments() {
   const s = currentStudent;
   const assignments = s.assignments||[];
   const body = document.getElementById('assignmentsBody');
-  if (!assignments.length) return;
-  const pending = assignments.filter(a=>a.status==='pending');
-  const completed = assignments.filter(a=>a.status==='completed');
-  let html = '';
-  if (pending.length) {
-    html += `<div class="section-subtitle">To Do (${pending.length})</div><div class="assignments-list">`;
-    html += pending.map((a,i)=>assignmentHTML(a,i,false)).join('');
-    html += `</div>`;
+  if (!assignments.length) {
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">✏️</div><p>No assignments yet. Sid will assign work here after each session.</p></div>`;
+    return;
   }
-  if (completed.length) {
-    html += `<div class="section-subtitle" style="margin-top:1.5rem">Completed ✓</div><div class="assignments-list">`;
-    html += completed.map((a,i)=>assignmentHTML(a,i+pending.length,true)).join('');
-    html += `</div>`;
-  }
-  body.innerHTML = html;
+  const pending   = assignments.filter(a=>a.status==='pending');
+  const submitted = assignments.filter(a=>a.status==='submitted');
+  const graded    = assignments.filter(a=>a.status==='graded');
+  const newCount  = assignments.filter(a=>a.isNew && a.status==='pending').length;
   const ab = document.getElementById('assignBadge');
   if (ab) { ab.textContent = pending.length; ab.style.display = pending.length?'':'none'; }
+  let html = '';
+  if (pending.length) {
+    html += `<div class="section-subtitle">To Do (${pending.length})</div>`;
+    html += pending.map(a=>homeworkCardHTML(a,s.studentId)).join('');
+  }
+  if (submitted.length) {
+    html += `<div class="section-subtitle" style="margin-top:1.5rem">Submitted — Awaiting Grade</div>`;
+    html += submitted.map(a=>homeworkCardHTML(a,s.studentId)).join('');
+  }
+  if (graded.length) {
+    html += `<div class="section-subtitle" style="margin-top:1.5rem">Graded ✓</div>`;
+    html += graded.map(a=>homeworkCardHTML(a,s.studentId)).join('');
+  }
+  body.innerHTML = html;
 }
-function assignmentHTML(a,idx,isDone){
-  return `<div class="assignment-item" id="assign-${idx}">
-    <div class="assignment-check ${isDone?'done':''}" onclick="toggleAssign(${idx})">${isDone?'✓':''}</div>
-    <div class="assignment-info">
-      <div class="assignment-title ${isDone?'done-text':''}">${a.title}</div>
-      <div class="assignment-desc">${a.desc}</div>
-      <div class="assignment-footer">
-        <span class="assign-tag subject">${a.subject}</span>
-        ${isDone?`<span class="assign-tag done-tag">✓ Completed</span>`:`<span class="assign-tag ${a.dueSoon?'due-soon':'due-ok'}">Due ${a.dueDate}</span>`}
+
+function homeworkCardHTML(a, studentId) {
+  const isPending   = a.status === 'pending';
+  const isSubmitted = a.status === 'submitted';
+  const isGraded    = a.status === 'graded';
+  const dueCls = a.isOverdue && isPending ? 'color:#ef4444;font-weight:700' : '';
+  return `<div class="hw-card${a.isNew && isPending?' is-new':''}" id="hwcard-${a.id}">
+    <div class="hw-header" onclick="toggleHWCard('${a.id}')">
+      <div class="hw-title-row">
+        <div class="hw-title">${a.title}${a.isNew && isPending?'<span class="new-badge">NEW</span>':''}</div>
+        <div class="hw-meta" style="${dueCls}">Due ${a.dueDate}${a.isOverdue && isPending?' · OVERDUE':''} · ${a.subject}</div>
       </div>
+      <div class="hw-badges">
+        <span class="hw-status ${a.status}">${isPending?'Pending':isSubmitted?'Submitted':'Graded ✓'}</span>
+        <span style="color:#94a3b8;font-size:.85rem" id="hwchev-${a.id}">▼</span>
+      </div>
+    </div>
+    <div class="hw-body" id="hwbody-${a.id}" style="display:none">
+      <div class="hw-desc">${a.desc||'No description provided.'}</div>
+      ${a.attachmentUrl?`<a class="hw-attach-link" href="${a.attachmentUrl}" target="_blank">📎 View Attachment</a>`:''}
+      ${isPending ? `
+        <div class="hw-submit-area">
+          <h4>📤 Submit Your Work</h4>
+          <textarea class="hw-textarea" id="hwtext-${a.id}" placeholder="Type your written response here…"></textarea>
+          <div class="hw-or">— or upload a photo of your handwritten work —</div>
+          <div class="hw-file-zone" id="hwzone-${a.id}">
+            <input type="file" accept="image/*,.pdf" onchange="hwFileSelected('${a.id}',this)">
+            <div class="hw-file-zone-text">📷 Click to upload photo or PDF</div>
+            <div class="hw-file-selected" id="hwfile-label-${a.id}"></div>
+          </div>
+          <button class="hw-submit-btn" id="hwsubmit-${a.id}" onclick="submitHomework('${a.id}','${studentId}')">Submit Assignment →</button>
+        </div>` : ''}
+      ${isSubmitted ? `
+        <div class="hw-submitted-view">
+          <div class="hs-label">✅ Submitted — waiting for Sid to grade</div>
+          ${a.submissionText?`<div style="font-size:.83rem;color:#374151;margin-top:.4rem">${a.submissionText}</div>`:''}
+          ${a.submissionUrl?`<a href="${a.submissionUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-top:.5rem">📷 View your uploaded work</a>`:''}
+        </div>` : ''}
+      ${isGraded ? `
+        <div class="hw-submitted-view">
+          ${a.score!=null?`<div class="hw-score-badge">Score: ${a.score} / ${a.maxScore}</div>`:''}
+          <div class="hs-label" style="margin-top:.35rem">Sid's Feedback:</div>
+          <div class="hw-feedback-box">${a.feedback||'No feedback yet.'}</div>
+          ${a.submissionUrl?`<a href="${a.submissionUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-top:.5rem">📷 Your submitted work</a>`:''}
+        </div>` : ''}
     </div>
   </div>`;
 }
-function toggleAssign(idx){
-  const check = document.querySelector(`#assign-${idx} .assignment-check`);
-  const title = document.querySelector(`#assign-${idx} .assignment-title`);
-  const isDone = check.classList.contains('done');
-  check.classList.toggle('done'); check.textContent=isDone?'':'✓'; title.classList.toggle('done-text');
+function toggleHWCard(id) {
+  const body = document.getElementById('hwbody-'+id);
+  const chev = document.getElementById('hwchev-'+id);
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if (chev) chev.textContent = open ? '▲' : '▼';
+}
+function hwFileSelected(id, input) {
+  const label = document.getElementById('hwfile-label-'+id);
+  if (label && input.files[0]) label.textContent = '✓ ' + input.files[0].name;
+}
+
+/* ── HOMEWORK SUBMISSION ── */
+async function submitHomework(hwId, studentId) {
+  const textEl = document.getElementById('hwtext-'+hwId);
+  const zoneEl = document.getElementById('hwzone-'+hwId);
+  const fileInput = zoneEl ? zoneEl.querySelector('input[type="file"]') : null;
+  const text = textEl ? textEl.value.trim() : '';
+  const file = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
+  if (!text && !file) { showToast('Please write a response or upload a photo.','error'); return; }
+  const btn = document.getElementById('hwsubmit-'+hwId);
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  try {
+    let submissionUrl = null;
+    if (file) {
+      const path = `${studentId}/${hwId}_${Date.now()}_${file.name}`;
+      const { data: upData, error: upErr } = await db.storage.from('submissions').upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = db.storage.from('submissions').getPublicUrl(path);
+      submissionUrl = urlData.publicUrl;
+    }
+    const { error } = await db.from('homework').update({
+      status: 'submitted',
+      submission_text: text || null,
+      submission_url: submissionUrl,
+      submitted_at: new Date().toISOString()
+    }).eq('id', hwId);
+    if (error) throw error;
+    showToast('Assignment submitted! ✅','success');
+    // Refresh assignments from Supabase
+    const fresh = await loadFromSupabase(sessionStorage.getItem('portalCode'));
+    if (fresh) { currentStudent = fresh; buildAssignments(); }
+  } catch(err) {
+    console.error(err);
+    showToast('Upload failed. Please try again.','error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Assignment →'; }
+  }
+}
+
+/* ── TOAST ── */
+function showToast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(()=>el.remove(), 3500);
 }
 
 /* ── ANNOUNCEMENTS ── */
@@ -1382,6 +1706,467 @@ function buildAnnouncements(){
       <div class="announcement-header"><div class="announcement-title">${a.title}</div><div class="announcement-date">${a.date}</div></div>
       <div class="announcement-body">${a.message}<div class="announcement-from">💬 From: Northstar Academic Prep</div></div>
     </div>`).join('')+`</div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TUTOR PORTAL
+══════════════════════════════════════════════════════════ */
+let tutorStudents = [];
+let selectedStudent = null;
+
+async function bootTutorPortal() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('tutorShell').style.display = 'block';
+  document.getElementById('tTutorName').textContent = currentTutor.name || 'Tutor';
+  document.getElementById('tTopbarDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric'});
+
+  // Load tutor's students
+  const { data: students } = await db.from('students').select('*').eq('tutor_id', currentTutor.id).order('name');
+  tutorStudents = students || [];
+  renderTutorStudentList();
+  renderTutorDashboard();
+}
+
+function renderTutorStudentList() {
+  const listEl = document.getElementById('tStudentList');
+  if (!tutorStudents.length) {
+    listEl.innerHTML = `<div style="padding:.75rem 1.25rem;color:rgba(255,255,255,.4);font-size:.8rem">No students assigned yet.</div>`;
+    return;
+  }
+  listEl.innerHTML = tutorStudents.map(s=>`
+    <button class="t-student-btn${selectedStudent && selectedStudent.id===s.id?' active':''}" onclick="selectTutorStudent('${s.id}')">
+      <div class="t-avatar">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+      <div class="t-student-info">
+        <div class="t-s-name">${s.name}</div>
+        <div class="t-s-course">${(s.subjects||[''])[0]||s.program_type||'AP Prep'}</div>
+      </div>
+    </button>`).join('');
+}
+
+function renderTutorDashboard() {
+  selectedStudent = null;
+  document.getElementById('tTopbarTitle').textContent = 'My Students';
+  renderTutorStudentList();
+  const firstName = (currentTutor.name||'Tutor').split(' ')[0];
+  document.getElementById('tContent').innerHTML = `
+    <div class="t-welcome anim-up">
+      <h2>Welcome back, ${firstName}! 👋</h2>
+      <p>Here are your current students. Click any student to manage their materials, sessions, and assignments.</p>
+    </div>
+    <div class="t-students-grid">
+      ${tutorStudents.length ? tutorStudents.map((s,i)=>`
+        <div class="t-student-card anim-up" style="animation-delay:${i*.08}s" onclick="selectTutorStudent('${s.id}')">
+          <div class="tsc-name">${s.name}</div>
+          <div class="tsc-course">${(s.subjects||[''])[0]||s.program_type||'AP Prep'} · Exam: ${s.exam_date||'TBD'}</div>
+          <div class="tsc-hours">
+            <div class="tsc-hour"><div class="tsc-h-label">Purchased</div><div class="tsc-h-val">${s.hours_total||0}h</div></div>
+            <div class="tsc-hour"><div class="tsc-h-label">Completed</div><div class="tsc-h-val">${s.hours_used||0}h</div></div>
+            <div class="tsc-hour"><div class="tsc-h-label">Remaining</div><div class="tsc-h-val">${((s.hours_total||0)-(s.hours_used||0)).toFixed(1)}h</div></div>
+          </div>
+        </div>`).join('') : `<div class="empty-state"><div class="empty-icon">👤</div><p>No students assigned yet.</p></div>`}
+    </div>`;
+}
+
+async function selectTutorStudent(studentId) {
+  selectedStudent = tutorStudents.find(s=>s.id===studentId) || null;
+  if (!selectedStudent) return;
+  renderTutorStudentList();
+  document.getElementById('tTopbarTitle').textContent = selectedStudent.name;
+  document.getElementById('tContent').innerHTML = `<div style="text-align:center;padding:2rem;color:#64748b">Loading…</div>`;
+
+  // Load student data
+  const [matRes, hwRes, sessRes, annRes] = await Promise.all([
+    db.from('files').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
+    db.from('homework').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
+    db.from('sessions').select('*').eq('student_id', studentId).order('session_date',{ascending:false}),
+    db.from('announcements').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
+  ]);
+  const materials = matRes.data||[];
+  const homework  = hwRes.data||[];
+  const sessions  = sessRes.data||[];
+  const announcements = annRes.data||[];
+
+  const subj = (selectedStudent.subjects||[''])[0]||'AP Prep';
+  const hoursLeft = ((selectedStudent.hours_total||0)-(selectedStudent.hours_used||0)).toFixed(1);
+  const initials = (selectedStudent.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const pendingHW = homework.filter(h=>h.status==='submitted').length;
+  const tabs = [
+    {id:'materials', label:'📚 Materials'},
+    {id:'assignments', label:`✏️ Assignments${pendingHW?` <span class="new-badge">${pendingHW}</span>`:''}`, raw:true},
+    {id:'sessions', label:'📅 Sessions'},
+    {id:'announce', label:'📣 Announcements'},
+  ];
+
+  document.getElementById('tContent').innerHTML = `
+    <button class="t-back-btn" onclick="renderTutorDashboard()">← All Students</button>
+    <div class="t-student-header anim-up">
+      <div class="t-avatar">${initials}</div>
+      <div>
+        <div class="tsh-name">${selectedStudent.name}</div>
+        <div class="tsh-meta">${subj} · Grade ${selectedStudent.grade||''}</div>
+      </div>
+      <div class="tsh-hours">
+        <div class="tsh-hours-val">${hoursLeft}h</div>
+        <div class="tsh-hours-label">remaining</div>
+      </div>
+    </div>
+    <div class="t-tabs">
+      ${tabs.map(t=>`<button class="t-tab${t.id==='materials'?' active':''}" id="ttab-${t.id}" onclick="switchTutorTab('${t.id}')">${t.raw?t.label:t.label}</button>`).join('')}
+    </div>
+    <div id="ttab-panel-materials" class="t-tab-panel active">${buildMaterialsPanel(materials, studentId)}</div>
+    <div id="ttab-panel-assignments" class="t-tab-panel">${buildTutorAssignmentsPanel(homework, studentId, subj)}</div>
+    <div id="ttab-panel-sessions" class="t-tab-panel">${buildTutorSessionsPanel(sessions, studentId)}</div>
+    <div id="ttab-panel-announce" class="t-tab-panel">${buildTutorAnnouncePanel(announcements, studentId)}</div>`;
+}
+
+function switchTutorTab(id) {
+  document.querySelectorAll('.t-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.t-tab-panel').forEach(p=>p.classList.remove('active'));
+  const tab = document.getElementById('ttab-'+id);
+  const panel = document.getElementById('ttab-panel-'+id);
+  if (tab) tab.classList.add('active');
+  if (panel) panel.classList.add('active');
+}
+
+/* ── MATERIALS PANEL ── */
+function buildMaterialsPanel(materials, studentId) {
+  const typeIcon = t=>t==='slide-deck'?'📊':t==='notes'?'📝':t==='worksheet'?'📋':'📄';
+  const typeBg   = t=>t==='slide-deck'?'#eff6ff':t==='notes'?'#f0fdf4':'#fef9ee';
+  return `
+    <div class="t-card">
+      <h3>⬆️ Upload New Material</h3>
+      <div class="t-form-group">
+        <label class="t-label">Title *</label>
+        <input class="t-input" id="matTitle" placeholder="e.g. Period 3 Lecture Slides" />
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Type *</label>
+        <select class="t-select" id="matType">
+          <option value="slide-deck">📊 Slide Deck</option>
+          <option value="notes">📝 Notes</option>
+          <option value="worksheet">📋 Worksheet / Homework</option>
+          <option value="other">📄 Other</option>
+        </select>
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Description (optional)</label>
+        <input class="t-input" id="matDesc" placeholder="Brief description for the student" />
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Upload File (PDF, PPT, etc.) *</label>
+        <div class="t-file-zone" id="matFileZone">
+          <input type="file" accept=".pdf,.ppt,.pptx,.doc,.docx,.png,.jpg" onchange="tutorFileSelected('matFileZone',this,'matFileLabel')">
+          <div class="t-file-icon">📁</div>
+          <div class="t-file-text">Click to browse or drag & drop</div>
+          <div class="t-file-hint">PDF, PPT, PPTX, DOC, images accepted</div>
+          <div class="t-file-selected" id="matFileLabel"></div>
+        </div>
+      </div>
+      <button class="t-btn t-btn-primary" id="matUploadBtn" onclick="uploadMaterial('${studentId}')">⬆️ Upload Material</button>
+    </div>
+    <div class="t-card">
+      <h3>📂 Uploaded Materials (${materials.length})</h3>
+      ${materials.length ? `<div class="t-list">${materials.map(m=>`
+        <div class="t-item">
+          <div class="t-item-icon" style="background:${typeBg(m.file_type)}">${typeIcon(m.file_type)}</div>
+          <div class="t-item-info">
+            <div class="t-item-name">${m.file_name||'File'}</div>
+            <div class="t-item-meta">${m.file_type||'file'} · ${fmtDateShort(m.created_at)}${m.description?' · '+m.description:''}</div>
+          </div>
+          <div class="t-item-actions">
+            <a href="${m.file_url}" target="_blank" class="t-btn t-btn-ghost t-btn-sm">Open</a>
+          </div>
+        </div>`).join('')}</div>`
+      : `<div class="empty-state"><div class="empty-icon">📂</div><p>No materials uploaded yet.</p></div>`}
+    </div>`;
+}
+
+async function uploadMaterial(studentId) {
+  const title = (document.getElementById('matTitle').value||'').trim();
+  const type  = document.getElementById('matType').value;
+  const desc  = (document.getElementById('matDesc').value||'').trim();
+  const zone  = document.getElementById('matFileZone');
+  const file  = zone ? zone.querySelector('input[type="file"]').files[0] : null;
+  if (!title) { showToast('Please enter a title.','error'); return; }
+  if (!file)  { showToast('Please select a file to upload.','error'); return; }
+  const btn = document.getElementById('matUploadBtn');
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  try {
+    const path = `${studentId}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await db.storage.from('materials').upload(path, file, {upsert:true});
+    if (upErr) throw upErr;
+    const { data: urlData } = db.storage.from('materials').getPublicUrl(path);
+    const { error: dbErr } = await db.from('files').insert({
+      student_id: studentId,
+      tutor_id: currentTutor.id,
+      file_name: title,
+      file_url: urlData.publicUrl,
+      file_type: type,
+      description: desc || null
+    });
+    if (dbErr) throw dbErr;
+    showToast('Material uploaded! Nav will see it in Resources. ✅','success');
+    document.getElementById('matTitle').value='';
+    document.getElementById('matDesc').value='';
+    zone.querySelector('input[type="file"]').value='';
+    document.getElementById('matFileLabel').textContent='';
+    btn.disabled=false; btn.textContent='⬆️ Upload Material';
+    await selectTutorStudent(studentId);
+  } catch(err) {
+    console.error(err);
+    showToast('Upload failed: '+err.message,'error');
+    btn.disabled=false; btn.textContent='⬆️ Upload Material';
+  }
+}
+
+/* ── ASSIGNMENTS PANEL ── */
+function buildTutorAssignmentsPanel(homework, studentId, subject) {
+  const pending   = homework.filter(h=>h.status==='pending');
+  const submitted = homework.filter(h=>h.status==='submitted');
+  const graded    = homework.filter(h=>h.status==='graded');
+  const statusCls = s=>s==='pending'?'t-status-pending':s==='submitted'?'t-status-submitted':'t-status-graded';
+  const statusLbl = s=>s==='pending'?'Pending':s==='submitted'?'Submitted ⚡':'Graded ✓';
+  return `
+    <div class="t-card">
+      <h3>✏️ Assign New Homework</h3>
+      <div class="t-form-group">
+        <label class="t-label">Assignment Title *</label>
+        <input class="t-input" id="hwTitle" placeholder="e.g. DBQ Essay — Period 4" />
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Description / Instructions *</label>
+        <textarea class="t-textarea" id="hwDesc" placeholder="What should the student do? Include any instructions…"></textarea>
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Due Date *</label>
+        <input class="t-input" id="hwDue" type="date" />
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Attach a File (optional)</label>
+        <div class="t-file-zone" id="hwFileZone">
+          <input type="file" accept=".pdf,.doc,.docx,.png,.jpg" onchange="tutorFileSelected('hwFileZone',this,'hwFileLabel')">
+          <div class="t-file-icon">📎</div>
+          <div class="t-file-text">Click to attach a file (optional)</div>
+          <div class="t-file-selected" id="hwFileLabel"></div>
+        </div>
+      </div>
+      <button class="t-btn t-btn-primary" id="hwAssignBtn" onclick="assignHomework('${studentId}','${subject}')">📤 Assign to Student</button>
+    </div>
+    <div class="t-card">
+      <h3>📋 All Assignments (${homework.length})</h3>
+      ${submitted.length?`<div style="margin-bottom:1rem"><div class="section-subtitle" style="color:#1e40af;background:#dbeafe;padding:.3rem .75rem;border-radius:8px;display:inline-block;font-size:.75rem">⚡ ${submitted.length} waiting to be graded</div></div>`:''}
+      ${homework.length ? `<div class="t-list">${homework.map(h=>`
+        <div class="t-item" style="flex-direction:column;align-items:stretch">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <div class="t-item-icon" style="background:#fef9ee">✏️</div>
+            <div class="t-item-info">
+              <div class="t-item-name">${h.title}</div>
+              <div class="t-item-meta">Due ${h.due_date||'TBD'}</div>
+            </div>
+            <span class="t-status-badge ${statusCls(h.status)}">${statusLbl(h.status)}</span>
+          </div>
+          ${h.status==='submitted'?`
+          <div class="t-grade-expand">
+            ${h.submission_text?`<div class="t-submission-text">${h.submission_text}</div>`:''}
+            ${h.submission_url?`<a href="${h.submission_url}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-bottom:.75rem">📷 View submitted work</a>`:''}
+            <div style="display:flex;gap:.65rem;align-items:center;flex-wrap:wrap">
+              <input type="number" min="0" max="100" placeholder="Score /100" class="t-input" id="grade-score-${h.id}" style="width:110px">
+              <input type="text" placeholder="Feedback for student…" class="t-input" id="grade-fb-${h.id}" style="flex:1;min-width:180px">
+              <button class="t-btn t-btn-primary t-btn-sm" onclick="gradeHomework('${h.id}','${studentId}')">Save Grade</button>
+            </div>
+          </div>`:''}
+          ${h.status==='graded'?`<div class="t-grade-expand" style="font-size:.8rem;color:#065f46">Score: ${h.score||'—'}/100 · ${h.feedback||'No feedback'}</div>`:''}
+        </div>`).join('')}</div>`
+      : `<div class="empty-state"><div class="empty-icon">✏️</div><p>No assignments yet.</p></div>`}
+    </div>`;
+}
+
+async function assignHomework(studentId, subject) {
+  const title = (document.getElementById('hwTitle').value||'').trim();
+  const desc  = (document.getElementById('hwDesc').value||'').trim();
+  const due   = document.getElementById('hwDue').value;
+  const zone  = document.getElementById('hwFileZone');
+  const file  = zone ? zone.querySelector('input[type="file"]').files[0] : null;
+  if (!title||!desc||!due) { showToast('Please fill in title, description, and due date.','error'); return; }
+  const btn = document.getElementById('hwAssignBtn');
+  btn.disabled=true; btn.textContent='Assigning…';
+  try {
+    let attachUrl = null;
+    if (file) {
+      const path = `${studentId}/hw_${Date.now()}_${file.name}`;
+      const { error: upErr } = await db.storage.from('materials').upload(path, file, {upsert:true});
+      if (upErr) throw upErr;
+      const { data: urlData } = db.storage.from('materials').getPublicUrl(path);
+      attachUrl = urlData.publicUrl;
+    }
+    const { error } = await db.from('homework').insert({
+      student_id: studentId,
+      tutor_id: currentTutor.id,
+      title, description: desc,
+      due_date: due,
+      attachment_url: attachUrl,
+      status: 'pending',
+      max_score: 100
+    });
+    if (error) throw error;
+    showToast(`Assignment sent to ${selectedStudent.name}! ✅`,'success');
+    document.getElementById('hwTitle').value='';
+    document.getElementById('hwDesc').value='';
+    document.getElementById('hwDue').value='';
+    if (zone) { zone.querySelector('input[type="file"]').value=''; document.getElementById('hwFileLabel').textContent=''; }
+    btn.disabled=false; btn.textContent='📤 Assign to Student';
+    await selectTutorStudent(studentId);
+  } catch(err) {
+    console.error(err);
+    showToast('Error: '+err.message,'error');
+    btn.disabled=false; btn.textContent='📤 Assign to Student';
+  }
+}
+
+async function gradeHomework(hwId, studentId) {
+  const score = document.getElementById('grade-score-'+hwId)?.value;
+  const feedback = document.getElementById('grade-fb-'+hwId)?.value||'';
+  if (!score) { showToast('Please enter a score.','error'); return; }
+  const { error } = await db.from('homework').update({
+    status:'graded', score:parseFloat(score), feedback, graded_at: new Date().toISOString()
+  }).eq('id',hwId);
+  if (error) { showToast('Error saving grade.','error'); return; }
+  showToast('Grade saved! ✅','success');
+  await selectTutorStudent(studentId);
+}
+
+/* ── SESSIONS PANEL ── */
+function buildTutorSessionsPanel(sessions, studentId) {
+  const approved = sessions.filter(s=>s.approved);
+  const pending  = sessions.filter(s=>!s.approved);
+  return `
+    <div class="t-card">
+      <h3>📅 Log a Session</h3>
+      <div class="t-form-group">
+        <label class="t-label">Session Date *</label>
+        <input class="t-input" id="sessDate" type="date" value="${new Date().toISOString().split('T')[0]}" />
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Duration (hours) *</label>
+        <input class="t-input" id="sessDur" type="number" step="0.5" min="0.5" max="8" placeholder="e.g. 1.5" />
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Topic Covered *</label>
+        <input class="t-input" id="sessTopic" placeholder="e.g. DBQ Writing — Period 4" />
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Session Notes (shown to student)</label>
+        <textarea class="t-textarea" id="sessNotes" placeholder="What did you cover? Any key takeaways or homework reminders?"></textarea>
+      </div>
+      <button class="t-btn t-btn-primary" id="sessLogBtn" onclick="logSession('${studentId}')">📝 Log Session</button>
+      <p style="font-size:.74rem;color:#94a3b8;margin-top:.65rem">Hours will appear as pending until approved by admin.</p>
+    </div>
+    <div class="t-card">
+      <h3>📋 Session History</h3>
+      ${pending.length?`<div style="margin-bottom:.75rem;font-size:.8rem;font-weight:600;color:#92400e;background:#fef3c7;padding:.4rem .75rem;border-radius:8px">⏳ ${pending.length} pending admin approval</div>`:''}
+      ${sessions.length ? `<div class="t-list">${sessions.map(s=>`
+        <div class="t-item">
+          <div class="t-item-icon" style="background:#eff6ff">📅</div>
+          <div class="t-item-info">
+            <div class="t-item-name">${s.topic||'Session'} <span style="font-weight:400;color:#64748b">(${s.duration_hours}h)</span></div>
+            <div class="t-item-meta">${s.session_date||''}${s.notes?' · '+s.notes.substring(0,60)+'…':''}</div>
+          </div>
+          <span class="t-status-badge ${s.approved?'t-status-approved':'t-status-pending'}">${s.approved?'Approved':'Pending'}</span>
+        </div>`).join('')}</div>`
+      : `<div class="empty-state"><div class="empty-icon">📅</div><p>No sessions logged yet.</p></div>`}
+    </div>`;
+}
+
+async function logSession(studentId) {
+  const date     = document.getElementById('sessDate').value;
+  const duration = document.getElementById('sessDur').value;
+  const topic    = (document.getElementById('sessTopic').value||'').trim();
+  const notes    = (document.getElementById('sessNotes').value||'').trim();
+  if (!date||!duration||!topic) { showToast('Please fill in date, duration, and topic.','error'); return; }
+  const btn = document.getElementById('sessLogBtn');
+  btn.disabled=true; btn.textContent='Logging…';
+  const { error } = await db.from('sessions').insert({
+    student_id: studentId,
+    tutor_id: currentTutor.id,
+    session_date: date,
+    duration_hours: parseFloat(duration),
+    topic, notes: notes||null,
+    approved: false
+  });
+  if (error) { showToast('Error: '+error.message,'error'); btn.disabled=false; btn.textContent='📝 Log Session'; return; }
+  showToast('Session logged! Awaiting your admin approval. ✅','success');
+  document.getElementById('sessDur').value='';
+  document.getElementById('sessTopic').value='';
+  document.getElementById('sessNotes').value='';
+  btn.disabled=false; btn.textContent='📝 Log Session';
+  await selectTutorStudent(studentId);
+}
+
+/* ── ANNOUNCEMENTS PANEL ── */
+function buildTutorAnnouncePanel(announcements, studentId) {
+  return `
+    <div class="t-card">
+      <h3>📣 Post Announcement</h3>
+      <div class="t-form-group">
+        <label class="t-label">Title *</label>
+        <input class="t-input" id="annTitle" placeholder="e.g. 🔥 AP Exam is 2 weeks away!" />
+      </div>
+      <div class="t-form-group">
+        <label class="t-label">Message *</label>
+        <textarea class="t-textarea" id="annMsg" placeholder="Write your message to ${selectedStudent?selectedStudent.name:'the student'}…" style="min-height:100px"></textarea>
+      </div>
+      <button class="t-btn t-btn-primary" id="annPostBtn" onclick="postAnnouncement('${studentId}')">📣 Post Announcement</button>
+    </div>
+    <div class="t-card">
+      <h3>📋 Past Announcements</h3>
+      ${announcements.length ? `<div class="t-list">${announcements.map(a=>`
+        <div class="t-item" style="flex-direction:column;align-items:flex-start">
+          <div style="display:flex;width:100%;align-items:center;gap:.75rem">
+            <div class="t-item-icon" style="background:#fef9ee">📣</div>
+            <div class="t-item-info">
+              <div class="t-item-name">${a.title}</div>
+              <div class="t-item-meta">${fmtDateShort(a.created_at)}</div>
+            </div>
+          </div>
+          <div style="font-size:.8rem;color:#374151;margin-top:.4rem;padding-left:.1rem;line-height:1.6">${a.message}</div>
+        </div>`).join('')}</div>`
+      : `<div class="empty-state"><div class="empty-icon">📣</div><p>No announcements yet.</p></div>`}
+    </div>`;
+}
+
+async function postAnnouncement(studentId) {
+  const title = (document.getElementById('annTitle').value||'').trim();
+  const msg   = (document.getElementById('annMsg').value||'').trim();
+  if (!title||!msg) { showToast('Please fill in both fields.','error'); return; }
+  const btn = document.getElementById('annPostBtn');
+  btn.disabled=true; btn.textContent='Posting…';
+  const { error } = await db.from('announcements').insert({
+    student_id: studentId,
+    tutor_id: currentTutor.id,
+    title, message: msg
+  });
+  if (error) { showToast('Error: '+error.message,'error'); btn.disabled=false; btn.textContent='📣 Post Announcement'; return; }
+  showToast('Announcement posted! ✅','success');
+  document.getElementById('annTitle').value='';
+  document.getElementById('annMsg').value='';
+  btn.disabled=false; btn.textContent='📣 Post Announcement';
+  await selectTutorStudent(studentId);
+}
+
+/* ── TUTOR UTILS ── */
+function tutorFileSelected(zoneId, input, labelId) {
+  const label = document.getElementById(labelId);
+  if (label && input.files[0]) label.textContent = '✓ ' + input.files[0].name;
+}
+function toggleTutorSidebar() {
+  const sb = document.getElementById('tSidebar');
+  const ov = document.getElementById('tSidebarOverlay');
+  sb.classList.toggle('open');
+  ov.style.display = sb.classList.contains('open') ? 'block' : 'none';
+}
+function closeTutorSidebar() {
+  document.getElementById('tSidebar').classList.remove('open');
+  document.getElementById('tSidebarOverlay').style.display = 'none';
 }
 </script>
 </body>
