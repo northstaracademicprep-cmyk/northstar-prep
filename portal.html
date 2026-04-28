@@ -1133,7 +1133,16 @@ async function handleLogin(e) {
   btn.textContent = 'Loading…';
   btn.disabled = true;
 
-  // 2. Check if tutor code
+  // 2. Admin code
+  if (code === 'NAP-ADMIN') {
+    sessionStorage.setItem('portalCode', code);
+    sessionStorage.setItem('portalRole', 'admin');
+    btn.textContent = 'Enter Portal →'; btn.disabled = false;
+    await bootAdminPortal();
+    return;
+  }
+
+  // 3. Check if tutor code
   const { data: tutorData } = await db.from('tutors').select('*').eq('code', code).maybeSingle();
   if (tutorData) {
     currentTutor = tutorData;
@@ -1166,11 +1175,13 @@ function logout() {
   sessionStorage.removeItem('portalRole');
   currentStudent = null;
   currentTutor   = null;
-  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('appShell').style.display   = 'none';
   document.getElementById('tutorShell').style.display = 'none';
+  document.getElementById('adminShell').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('codeInput').value = '';
 }
+function adminLogout() { logout(); }
 
 window.addEventListener('DOMContentLoaded', async () => {
   const dateStr = new Date().toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
@@ -1183,6 +1194,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   const role  = sessionStorage.getItem('portalRole');
   if (!saved) return;
 
+  if (role === 'admin') { await bootAdminPortal(); return; }
   if (role === 'tutor') {
     const { data: tutorData } = await db.from('tutors').select('*').eq('code', saved).maybeSingle();
     if (tutorData) { currentTutor = tutorData; await bootTutorPortal(); return; }
@@ -2531,6 +2543,7 @@ function buildAnnouncements(){
 ══════════════════════════════════════════════════════════ */
 let tutorStudents = [];
 let selectedStudent = null;
+let tutorActiveTab = 'materials'; // remembers which tab was open across reloads
 
 async function bootTutorPortal() {
   document.getElementById('loginScreen').style.display = 'none';
@@ -2585,9 +2598,10 @@ function renderTutorDashboard() {
     </div>`;
 }
 
-async function selectTutorStudent(studentId) {
+async function selectTutorStudent(studentId, keepTab=false) {
   selectedStudent = tutorStudents.find(s=>s.id===studentId) || null;
   if (!selectedStudent) return;
+  if (!keepTab) tutorActiveTab = 'materials'; // fresh nav = start at materials
   renderTutorStudentList();
   document.getElementById('tTopbarTitle').textContent = selectedStudent.name;
   document.getElementById('tContent').innerHTML = `<div style="text-align:center;padding:2rem;color:#64748b">Loading…</div>`;
@@ -2641,13 +2655,16 @@ async function selectTutorStudent(studentId) {
     <div class="t-tabs">
       ${tabs.map(t=>`<button class="t-tab${t.id==='materials'?' active':''}" id="ttab-${t.id}" onclick="switchTutorTab('${t.id}')">${t.raw?t.label:t.label}</button>`).join('')}
     </div>
-    <div id="ttab-panel-materials" class="t-tab-panel active">${buildMaterialsPanel(materials, studentId)}</div>
+    <div id="ttab-panel-materials" class="t-tab-panel">${buildMaterialsPanel(materials, studentId)}</div>
     <div id="ttab-panel-assignments" class="t-tab-panel">${buildTutorAssignmentsPanel(homework, studentId, subj)}</div>
     <div id="ttab-panel-sessions" class="t-tab-panel">${buildTutorSessionsPanel(sessions, studentId)}</div>
     <div id="ttab-panel-announce" class="t-tab-panel">${buildTutorAnnouncePanel(announcements, studentId)}</div>`;
+  // Restore whichever tab was active (defaults to materials on first load)
+  switchTutorTab(tutorActiveTab);
 }
 
 function switchTutorTab(id) {
+  tutorActiveTab = id;
   document.querySelectorAll('.t-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.t-tab-panel').forEach(p=>p.classList.remove('active'));
   const tab = document.getElementById('ttab-'+id);
@@ -2760,7 +2777,7 @@ async function uploadMaterial(studentId) {
     zone.querySelector('input[type="file"]').value='';
     document.getElementById('matFileLabel').textContent='';
     btn.disabled=false; btn.textContent='⬆️ Upload Material';
-    await selectTutorStudent(studentId);
+    await selectTutorStudent(studentId, true);
   } catch(err) {
     console.error(err);
     showToast('Upload failed: '+err.message,'error');
@@ -2891,7 +2908,7 @@ async function assignHomework(studentId, subject) {
     document.getElementById('hwDue').value='';
     if (zone) { zone.querySelector('input[type="file"]').value=''; document.getElementById('hwFileLabel').textContent=''; }
     btn.disabled=false; btn.textContent='📤 Assign to Student';
-    await selectTutorStudent(studentId);
+    await selectTutorStudent(studentId, true);
   } catch(err) {
     console.error(err);
     showToast('Error: '+err.message,'error');
@@ -2908,7 +2925,7 @@ async function gradeHomework(hwId, studentId) {
   }).eq('id',hwId);
   if (error) { showToast('Error saving grade.','error'); return; }
   showToast('Grade saved! ✅','success');
-  await selectTutorStudent(studentId);
+  await selectTutorStudent(studentId, true);
 }
 
 async function regradeHomework(hwId, studentId) {
@@ -2920,7 +2937,7 @@ async function regradeHomework(hwId, studentId) {
   }).eq('id', hwId);
   if (error) { showToast('Error updating grade.','error'); return; }
   showToast('Grade updated! ✅','success');
-  await selectTutorStudent(studentId);
+  await selectTutorStudent(studentId, true);
 }
 
 /* ── SESSIONS PANEL ── */
@@ -3005,7 +3022,7 @@ async function logSession(studentId) {
   document.getElementById('sessTopic').value='';
   document.getElementById('sessNotes').value='';
   btn.disabled=false; btn.textContent='📝 Log Session';
-  await selectTutorStudent(studentId);
+  await selectTutorStudent(studentId, true);
 }
 
 /* ── ANNOUNCEMENTS PANEL ── */
@@ -3068,7 +3085,7 @@ async function postAnnouncement(studentId) {
   document.getElementById('annTitle').value='';
   document.getElementById('annMsg').value='';
   btn.disabled=false; btn.textContent='📣 Post Announcement';
-  await selectTutorStudent(studentId);
+  await selectTutorStudent(studentId, true);
 }
 
 /* ── TUTOR EDIT / DELETE HELPERS ── */
@@ -3083,7 +3100,7 @@ async function tutorDeleteItem(table, id, studentId, label) {
   const { error } = await db.from(table).delete().eq('id', id);
   if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
   showToast(`${label.charAt(0).toUpperCase()+label.slice(1)} deleted. ✅`, 'success');
-  await selectTutorStudent(studentId);
+  await selectTutorStudent(studentId, true);
 }
 
 async function tutorSaveMaterial(id, studentId) {
@@ -3094,7 +3111,7 @@ async function tutorSaveMaterial(id, studentId) {
   const { error } = await db.from('files').update({ file_name:name, file_type:type, description:desc||null }).eq('id', id);
   if (error) { showToast('Save failed: '+error.message,'error'); return; }
   showToast('Material updated! ✅','success');
-  await selectTutorStudent(studentId);
+  await selectTutorStudent(studentId, true);
 }
 
 async function tutorSaveHomework(id, studentId) {
@@ -3105,7 +3122,7 @@ async function tutorSaveHomework(id, studentId) {
   const { error } = await db.from('homework').update({ title, description:desc||null, due_date:due }).eq('id', id);
   if (error) { showToast('Save failed: '+error.message,'error'); return; }
   showToast('Assignment updated! ✅','success');
-  await selectTutorStudent(studentId);
+  await selectTutorStudent(studentId, true);
 }
 
 async function tutorSaveSession(id, studentId) {
@@ -3117,7 +3134,7 @@ async function tutorSaveSession(id, studentId) {
   const { error } = await db.from('sessions').update({ session_date:date, duration_hours:parseFloat(duration), topic, notes:notes||null }).eq('id', id);
   if (error) { showToast('Save failed: '+error.message,'error'); return; }
   showToast('Session updated! ✅','success');
-  await selectTutorStudent(studentId);
+  await selectTutorStudent(studentId, true);
 }
 
 async function tutorSaveAnnouncement(id, studentId) {
@@ -3127,7 +3144,7 @@ async function tutorSaveAnnouncement(id, studentId) {
   const { error } = await db.from('announcements').update({ title, message:msg }).eq('id', id);
   if (error) { showToast('Save failed: '+error.message,'error'); return; }
   showToast('Announcement updated! ✅','success');
-  await selectTutorStudent(studentId);
+  await selectTutorStudent(studentId, true);
 }
 
 /* ── TUTOR UTILS ── */
@@ -3145,6 +3162,320 @@ function closeTutorSidebar() {
   document.getElementById('tSidebar').classList.remove('open');
   document.getElementById('tSidebarOverlay').style.display = 'none';
 }
+
+/* ══════════════════════════════════════════════════════════
+   ADMIN PORTAL
+══════════════════════════════════════════════════════════ */
+let currentAdmin = true; // just a flag — admin has no DB record
+
+async function bootAdminPortal() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('adminShell').style.display  = 'block';
+  showAdminSection('approvals');
+}
+
+function showAdminSection(id) {
+  document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
+  document.getElementById('admTopbarTitle').textContent =
+    {approvals:'Pending Approvals', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing'}[id] || id;
+  const body = document.getElementById('admBody');
+  body.innerHTML = '<div style="text-align:center;padding:3rem;color:#64748b">Loading…</div>';
+  if      (id === 'approvals') buildAdminApprovals();
+  else if (id === 'students')  buildAdminStudents();
+  else if (id === 'tutors')    buildAdminTutors();
+  else if (id === 'billing')   buildAdminBilling();
+}
+
+/* ── APPROVALS ── */
+async function buildAdminApprovals() {
+  const body = document.getElementById('admBody');
+  const { data: sessions, error } = await db
+    .from('sessions').select('*, students(name, subjects, grade)')
+    .eq('approved', false).order('session_date', {ascending:false});
+  if (error) { body.innerHTML = `<div class="adm-error">Error: ${error.message}</div>`; return; }
+
+  if (!sessions.length) {
+    body.innerHTML = `<div class="adm-empty">✅<br>No pending approvals — you're all caught up!</div>`;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="adm-section-header">
+      <span class="adm-badge-count">${sessions.length}</span> session${sessions.length>1?'s':''} waiting for approval
+    </div>
+    <div class="adm-list">
+      ${sessions.map(s => {
+        const studentName = s.students?.name || 'Unknown Student';
+        const subj = (s.students?.subjects||[''])[0] || '';
+        return `<div class="adm-card" id="admcard-${s.id}">
+          <div class="adm-card-top">
+            <div class="adm-card-avatar">${studentName.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+            <div class="adm-card-info">
+              <div class="adm-card-name">${studentName}</div>
+              <div class="adm-card-meta">${subj}${s.students?.grade ? ' · Grade '+s.students.grade : ''}</div>
+            </div>
+            <div class="adm-card-right">
+              <div class="adm-hours-badge">${s.duration_hours}h</div>
+            </div>
+          </div>
+          <div class="adm-card-detail">
+            <div class="adm-detail-row"><span class="adm-detail-label">Date</span><span>${s.session_date||'—'}</span></div>
+            <div class="adm-detail-row"><span class="adm-detail-label">Topic</span><span>${s.topic||'—'}</span></div>
+            ${s.notes?`<div class="adm-detail-row"><span class="adm-detail-label">Notes</span><span style="font-style:italic">${s.notes}</span></div>`:''}
+          </div>
+          <div class="adm-card-actions">
+            <button class="adm-btn adm-btn-approve" onclick="adminApproveSession('${s.id}','${s.student_id}',${s.duration_hours})">✓ Approve</button>
+            <button class="adm-btn adm-btn-reject"  onclick="adminRejectSession('${s.id}')">✗ Reject</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+async function adminApproveSession(sessionId, studentId, hours) {
+  const card = document.getElementById('admcard-'+sessionId);
+  if (card) card.style.opacity = '0.5';
+  const { error: e1 } = await db.from('sessions').update({approved:true}).eq('id', sessionId);
+  if (e1) { showToast('Error approving session: '+e1.message,'error'); if(card)card.style.opacity='1'; return; }
+  // Add hours to student's hours_used
+  const { data: stu } = await db.from('students').select('hours_used').eq('id', studentId).maybeSingle();
+  const newHours = ((stu?.hours_used||0) + hours);
+  await db.from('students').update({hours_used: newHours}).eq('id', studentId);
+  showToast(`Session approved! +${hours}h added to student. ✅`,'success');
+  buildAdminApprovals();
+}
+
+async function adminRejectSession(sessionId) {
+  if (!confirm('Reject and delete this session? This cannot be undone.')) return;
+  const { error } = await db.from('sessions').delete().eq('id', sessionId);
+  if (error) { showToast('Error: '+error.message,'error'); return; }
+  showToast('Session rejected and removed.','success');
+  buildAdminApprovals();
+}
+
+/* ── STUDENTS ── */
+async function buildAdminStudents() {
+  const body = document.getElementById('admBody');
+  const { data: students, error } = await db.from('students').select('*').order('name');
+  if (error) { body.innerHTML = `<div class="adm-error">Error: ${error.message}</div>`; return; }
+
+  body.innerHTML = `
+    <div class="adm-section-header">${students.length} student${students.length!==1?'s':''} enrolled</div>
+    <div class="adm-students-grid">
+      ${students.map(s => {
+        const subj = (s.subjects||[]).join(', ') || '—';
+        const hoursUsed  = s.hours_used || 0;
+        const hoursTotal = s.hours_total || 0;
+        const pct = hoursTotal ? Math.min(Math.round((hoursUsed/hoursTotal)*100),100) : 0;
+        const hoursLeft  = (hoursTotal - hoursUsed).toFixed(1);
+        const initials   = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        return `<div class="adm-student-card">
+          <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1rem">
+            <div class="adm-card-avatar" style="width:46px;height:46px;font-size:1rem">${initials}</div>
+            <div>
+              <div style="font-weight:700;color:#0f2044;font-size:.95rem">${s.name}</div>
+              <div style="font-size:.75rem;color:#64748b">${subj} · Grade ${s.grade||'—'}</div>
+            </div>
+          </div>
+          <div style="margin-bottom:.5rem">
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;margin-bottom:.3rem">
+              <span style="color:#64748b">Hours used</span>
+              <span style="color:#0f2044">${hoursUsed} / ${hoursTotal}h</span>
+            </div>
+            <div style="background:#e2e8f0;border-radius:99px;height:6px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#c9a03a,#e0b84a);border-radius:99px;transition:width 1s ease"></div>
+            </div>
+            <div style="font-size:.72rem;color:${parseFloat(hoursLeft)<=2?'#ef4444':'#10b981'};font-weight:700;margin-top:.25rem">${hoursLeft}h remaining</div>
+          </div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem">
+            <span style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#eff6ff;color:#2563eb">Code: ${s.code||'—'}</span>
+            ${s.exam_date?`<span style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#fef9ee;color:#92400e">Exam: ${s.exam_date}</span>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+/* ── TUTORS ── */
+async function buildAdminTutors() {
+  const body = document.getElementById('admBody');
+  const { data: tutors, error } = await db.from('tutors').select('*').order('name');
+  if (error) { body.innerHTML = `<div class="adm-error">Error: ${error.message}</div>`; return; }
+
+  // For each tutor grab session count and total hours approved
+  const tutorIds = tutors.map(t=>t.id);
+  const { data: sessData } = await db.from('sessions').select('tutor_id, duration_hours, approved').in('tutor_id', tutorIds);
+  const sessionsByTutor = {};
+  (sessData||[]).forEach(s => {
+    if (!sessionsByTutor[s.tutor_id]) sessionsByTutor[s.tutor_id] = [];
+    sessionsByTutor[s.tutor_id].push(s);
+  });
+
+  body.innerHTML = `
+    <div class="adm-section-header">${tutors.length} tutor${tutors.length!==1?'s':''} on staff</div>
+    <div class="adm-list">
+      ${tutors.map(t => {
+        const sessions  = sessionsByTutor[t.id] || [];
+        const approved  = sessions.filter(s=>s.approved);
+        const pending   = sessions.filter(s=>!s.approved);
+        const totalHrs  = approved.reduce((sum,s)=>sum+(s.duration_hours||0),0);
+        const initials  = t.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        return `<div class="adm-card">
+          <div class="adm-card-top">
+            <div class="adm-card-avatar" style="background:linear-gradient(135deg,#1a3260,#2a4a8a)">${initials}</div>
+            <div class="adm-card-info">
+              <div class="adm-card-name">${t.name}</div>
+              <div class="adm-card-meta">Code: ${t.code||'—'}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.6rem;margin-top:.85rem;flex-wrap:wrap">
+            <div class="adm-stat-chip" style="background:#ecfdf5;color:#065f46">${approved.length} sessions approved</div>
+            <div class="adm-stat-chip" style="background:#eff6ff;color:#1e40af">${totalHrs.toFixed(1)}h total logged</div>
+            ${pending.length?`<div class="adm-stat-chip" style="background:#fffbeb;color:#92400e">⏳ ${pending.length} pending approval</div>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+/* ── BILLING / HOURS ── */
+async function buildAdminBilling() {
+  const body = document.getElementById('admBody');
+  const { data: students } = await db.from('students').select('*').order('name');
+  const { data: sessions  } = await db.from('sessions').select('*').eq('approved', true);
+
+  const sessMap = {};
+  (sessions||[]).forEach(s => {
+    if (!sessMap[s.student_id]) sessMap[s.student_id] = 0;
+    sessMap[s.student_id] += (s.duration_hours||0);
+  });
+
+  body.innerHTML = `
+    <div class="adm-section-header">Hours & package status for all students</div>
+    <div class="adm-list">
+      ${(students||[]).map(s => {
+        const used  = s.hours_used || 0;
+        const total = s.hours_total || 0;
+        const left  = (total - used).toFixed(1);
+        const pct   = total ? Math.min(Math.round((used/total)*100),100) : 0;
+        const lowBg = parseFloat(left) <= 2 ? '#fef2f2' : parseFloat(left) <= 5 ? '#fffbeb' : '#f0fdf4';
+        const lowTxt= parseFloat(left) <= 2 ? '#dc2626' : parseFloat(left) <= 5 ? '#92400e' : '#065f46';
+        const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        return `<div class="adm-card">
+          <div class="adm-card-top">
+            <div class="adm-card-avatar">${initials}</div>
+            <div class="adm-card-info">
+              <div class="adm-card-name">${s.name}</div>
+              <div class="adm-card-meta">${(s.subjects||[]).join(', ')||'—'}</div>
+            </div>
+            <div class="adm-card-right">
+              <div style="font-size:1.3rem;font-weight:800;color:#0f2044;line-height:1">${left}h</div>
+              <div style="font-size:.65rem;color:#64748b;text-align:right">remaining</div>
+            </div>
+          </div>
+          <div style="margin-top:.85rem">
+            <div style="display:flex;justify-content:space-between;font-size:.73rem;font-weight:600;margin-bottom:.35rem">
+              <span style="color:#64748b">${used}h used of ${total}h package</span>
+              <span style="color:${lowTxt};font-weight:700">${pct}%</span>
+            </div>
+            <div style="background:#e2e8f0;border-radius:99px;height:8px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${pct>=80?'#ef4444':pct>=60?'#f59e0b':'#10b981'};border-radius:99px"></div>
+            </div>
+          </div>
+          <div style="margin-top:.6rem;padding:.45rem .75rem;border-radius:8px;background:${lowBg};font-size:.78rem;font-weight:700;color:${lowTxt}">
+            ${parseFloat(left)<=0?'⚠️ Package exhausted — renewal needed':parseFloat(left)<=2?'⚠️ Low — renew soon':parseFloat(left)<=5?'📋 Getting low':'✅ Good standing'}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
 </script>
+
+<!-- ══════════════════════════════════════════════════════
+     ADMIN SHELL CSS  (inline so it stays in one file)
+════════════════════════════════════════════════════════ -->
+<style>
+#adminShell{display:none;min-height:100vh;background:#f1f5f9;font-family:'Inter',sans-serif}
+.adm-layout{display:flex;min-height:100vh}
+.adm-sidebar{width:240px;background:#0f2044;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+.adm-sidebar-brand{padding:1.5rem;border-bottom:1px solid rgba(255,255,255,.08)}
+.adm-sidebar-logo{font-family:'Josefin Sans',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#c9a03a;margin-bottom:.2rem}
+.adm-sidebar-title{font-size:1rem;font-weight:700;color:#fff}
+.adm-sidebar-sub{font-size:.72rem;color:rgba(255,255,255,.4);margin-top:.15rem}
+.adm-nav{flex:1;padding:1rem 0}
+.adm-nav-label{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);padding:.75rem 1.25rem .3rem}
+.adm-nav-item{display:flex;align-items:center;gap:.7rem;padding:.6rem 1.25rem;font-size:.85rem;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border-left:3px solid transparent;transition:all .18s;user-select:none}
+.adm-nav-item:hover{color:#fff;background:rgba(255,255,255,.05)}
+.adm-nav-item.active{color:#c9a03a;background:rgba(201,160,58,.1);border-left-color:#c9a03a}
+.adm-nav-icon{font-size:1.05rem;width:20px;text-align:center;flex-shrink:0}
+.adm-sidebar-footer{padding:1rem 1.25rem;border-top:1px solid rgba(255,255,255,.07)}
+.adm-logout{display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:rgba(255,255,255,.35);cursor:pointer;background:none;border:none;width:100%}
+.adm-logout:hover{color:rgba(255,255,255,.7)}
+.adm-main{margin-left:240px;display:flex;flex-direction:column;min-height:100vh}
+.adm-topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:.9rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.adm-topbar-title{font-size:1rem;font-weight:700;color:#0f2044}
+.adm-topbar-tag{font-size:.72rem;font-weight:700;padding:.25rem .7rem;border-radius:99px;background:rgba(201,160,58,.15);color:#92400e;border:1px solid rgba(201,160,58,.3)}
+.adm-content{padding:1.75rem;flex:1}
+/* cards & list */
+.adm-list{display:flex;flex-direction:column;gap:.85rem}
+.adm-students-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.adm-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;box-shadow:0 1px 8px rgba(15,32,68,.06)}
+.adm-card-top{display:flex;align-items:center;gap:.85rem}
+.adm-card-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#c9a03a,#e0b84a);color:#0f2044;font-family:'Josefin Sans',sans-serif;font-size:.9rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.adm-card-info{flex:1}
+.adm-card-name{font-size:.92rem;font-weight:700;color:#0f2044;margin-bottom:.1rem}
+.adm-card-meta{font-size:.74rem;color:#64748b}
+.adm-card-right{text-align:right}
+.adm-card-detail{margin-top:.85rem;display:flex;flex-direction:column;gap:.35rem}
+.adm-detail-row{display:flex;gap:.75rem;font-size:.8rem;color:#374151}
+.adm-detail-label{font-weight:700;color:#64748b;min-width:48px}
+.adm-card-actions{display:flex;gap:.6rem;margin-top:1rem}
+.adm-btn{padding:.5rem 1.1rem;border-radius:8px;font-size:.8rem;font-weight:700;border:none;cursor:pointer;transition:opacity .15s}
+.adm-btn:hover{opacity:.85}
+.adm-btn-approve{background:#10b981;color:#fff}
+.adm-btn-reject{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.adm-hours-badge{background:#0f2044;color:#c9a03a;font-size:1.1rem;font-weight:800;padding:.3rem .8rem;border-radius:8px;font-family:'Josefin Sans',sans-serif}
+.adm-section-header{font-size:.82rem;font-weight:700;color:#64748b;margin-bottom:1rem;padding-bottom:.65rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:.5rem}
+.adm-badge-count{background:#ef4444;color:#fff;font-size:.7rem;font-weight:800;padding:.15rem .5rem;border-radius:99px}
+.adm-student-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;box-shadow:0 1px 8px rgba(15,32,68,.06)}
+.adm-stat-chip{font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:99px}
+.adm-empty{text-align:center;padding:3.5rem 1rem;color:#64748b;font-size:.9rem;line-height:2}
+.adm-error{padding:1.5rem;background:#fef2f2;color:#dc2626;border-radius:12px;font-size:.85rem}
+@media(max-width:700px){.adm-sidebar{transform:translateX(-100%)}.adm-main{margin-left:0}.adm-students-grid{grid-template-columns:1fr}}
+</style>
+
+<!-- ADMIN SHELL HTML -->
+<div id="adminShell">
+  <div class="adm-layout">
+    <aside class="adm-sidebar">
+      <div class="adm-sidebar-brand">
+        <div class="adm-sidebar-logo">Northstar Academic Prep</div>
+        <div class="adm-sidebar-title">Admin Portal</div>
+        <div class="adm-sidebar-sub">NAP-ADMIN</div>
+      </div>
+      <nav class="adm-nav">
+        <div class="adm-nav-label">Actions</div>
+        <div class="adm-nav-item active" data-id="approvals" onclick="showAdminSection('approvals')"><span class="adm-nav-icon">⏳</span> Pending Approvals</div>
+        <div class="adm-nav-label">People</div>
+        <div class="adm-nav-item" data-id="students" onclick="showAdminSection('students')"><span class="adm-nav-icon">🎓</span> My Students</div>
+        <div class="adm-nav-item" data-id="tutors" onclick="showAdminSection('tutors')"><span class="adm-nav-icon">👨‍🏫</span> My Tutors</div>
+        <div class="adm-nav-label">Finance</div>
+        <div class="adm-nav-item" data-id="billing" onclick="showAdminSection('billing')"><span class="adm-nav-icon">💰</span> Hours &amp; Billing</div>
+      </nav>
+      <div class="adm-sidebar-footer">
+        <button class="adm-logout" onclick="adminLogout()">↩ Sign Out</button>
+      </div>
+    </aside>
+    <div class="adm-main">
+      <header class="adm-topbar">
+        <div class="adm-topbar-title" id="admTopbarTitle">Pending Approvals</div>
+        <div class="adm-topbar-tag">🔐 Admin</div>
+      </header>
+      <div class="adm-content">
+        <div id="admBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
