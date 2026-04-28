@@ -1169,6 +1169,7 @@ async function loadFromSupabase(code) {
       stats: {
         sessionsCompleted: pastSessions.length,
         hoursLearned: student.hours_used || 0,
+        hoursTotal: student.hours_total || 0,
         scoreImprovement: pastSessions.length > 0 ? pastSessions.length + ' sessions done' : 'Getting started',
         currentStreak: upcomingSessions.length > 0 ? 'Next: ' + fmtMonthAbbr(upcomingSessions[0].session_date) + ' ' + fmtDay(upcomingSessions[0].session_date) : 'All done!'
       },
@@ -1473,19 +1474,47 @@ function buildDashboard() {
 function buildDashAP() {
   const s = currentStudent;
   document.getElementById('welcomeBadgeLabel').textContent = 'Target';
-  const statsData = [
-    {icon:'📅',bg:'#eff6ff',value:s.stats.sessionsCompleted,label:'Sessions Completed',change:'Total sessions',cls:'gold'},
-    {icon:'⏱️',bg:'#ecfdf5',value:s.stats.hoursLearned+'h',label:'Hours Learned',change:'Total hours',cls:'gold'},
-    {icon:'📈',bg:'#fef9ee',value:s.stats.scoreImprovement,label:'Score Improvement',change:'Since baseline',cls:'up'},
-    {icon:'🔥',bg:'#fff0f0',value:s.stats.currentStreak,label:'Current Streak',change:'Consistent work!',cls:'up'},
-  ];
-  document.getElementById('statsGrid').innerHTML = statsData.map((st,i)=>`
-    <div class="stat-card anim-up" style="animation-delay:${i*.08}s">
-      <div class="stat-icon" style="background:${st.bg}">${st.icon}</div>
-      <div class="stat-value" data-count="${st.value}">${st.value}</div>
-      <div class="stat-label">${st.label}</div>
-      <div class="stat-change ${st.cls}">${st.change}</div>
-    </div>`).join('');
+
+  // Hours card
+  const hoursUsed  = s.stats.hoursLearned;
+  const hoursTotal = s.stats.hoursTotal;
+  const hoursLeft  = Math.max(0, hoursTotal - hoursUsed);
+  const hoursPct   = hoursTotal ? Math.min(Math.round((hoursUsed/hoursTotal)*100),100) : 0;
+
+  // Grade overview (rough estimate from subjects/sessions)
+  const subj = (s.subjects||[])[0]||'';
+  const gradeOverview = subj.startsWith('AP') ? 'In Progress' : 'In Progress';
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card anim-up" style="animation-delay:0s;cursor:pointer" onclick="showSection('sessions',document.getElementById('nav-sessions'))" title="View past sessions">
+      <div class="stat-icon" style="background:#eff6ff">📅</div>
+      <div class="stat-value">${s.stats.sessionsCompleted}</div>
+      <div class="stat-label">Past Sessions</div>
+      <div class="stat-change gold" style="display:flex;align-items:center;gap:.3rem">
+        <span>View past sessions</span><span style="font-size:.85em">→</span>
+      </div>
+    </div>
+    <div class="stat-card anim-up" style="animation-delay:.08s">
+      <div class="stat-icon" style="background:#ecfdf5">⏱️</div>
+      <div class="stat-value" style="font-size:1.25rem">${hoursUsed}h <span style="font-size:.9rem;font-weight:500;color:var(--muted)">/ ${hoursTotal}h</span></div>
+      <div class="stat-label">Hours Learned</div>
+      <div style="margin-top:.4rem;background:#e5e7eb;border-radius:99px;height:5px;overflow:hidden">
+        <div style="height:100%;width:${hoursPct}%;background:#10b981;border-radius:99px;transition:width 1s ease"></div>
+      </div>
+      <div class="stat-change up" style="margin-top:.3rem">${hoursLeft}h remaining in package</div>
+    </div>
+    <div class="stat-card anim-up" style="animation-delay:.16s">
+      <div class="stat-icon" style="background:#fef9ee">📈</div>
+      <div class="stat-value" style="font-size:1rem;line-height:1.3">In Progress</div>
+      <div class="stat-label">Class Performance</div>
+      <div class="stat-change up">Improving each session</div>
+    </div>
+    <div class="stat-card anim-up" style="animation-delay:.24s">
+      <div class="stat-icon" style="background:#fff0f0">🔥</div>
+      <div class="stat-value" style="font-size:1rem;line-height:1.3">${s.stats.currentStreak}</div>
+      <div class="stat-label">Next Session</div>
+      <div class="stat-change up">Consistent work!</div>
+    </div>`;
   setTimeout(animateStats, 150);
 
   const upcoming = s.upcomingSessions;
