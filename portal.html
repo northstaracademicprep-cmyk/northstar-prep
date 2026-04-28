@@ -2813,10 +2813,11 @@ function buildTutorAssignmentsPanel(homework, studentId, subject) {
               <div class="t-item-meta">Due ${h.due_date||'TBD'}${h.description?' · '+h.description.substring(0,50)+'…':''}</div>
             </div>
             <span class="t-status-badge ${statusCls(h.status)}">${statusLbl(h.status)}</span>
-            ${h.status==='pending'?`<div style="display:flex;gap:.3rem;flex-shrink:0">
-              <button class="t-btn t-btn-ghost t-btn-sm" onclick="tutorEditToggle('ehw-${h.id}')">✏️ Edit</button>
+            <div style="display:flex;gap:.3rem;flex-shrink:0">
+              ${h.status==='pending'?`<button class="t-btn t-btn-ghost t-btn-sm" onclick="tutorEditToggle('ehw-${h.id}')">✏️ Edit</button>`:''}
+              ${h.status==='graded'?`<button class="t-btn t-btn-ghost t-btn-sm" onclick="tutorEditToggle('ehw-grade-${h.id}')">✏️ Edit Grade</button>`:''}
               <button class="t-btn t-btn-ghost t-btn-sm" style="color:#ef4444" onclick="tutorDeleteItem('homework','${h.id}','${studentId}','assignment')">🗑️</button>
-            </div>`:''}
+            </div>
           </div>
           ${h.status==='pending'?`<div id="ehw-${h.id}" style="display:none;padding:.85rem;margin-top:.5rem;background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb">
             <div class="t-form-group" style="margin-bottom:.5rem"><label class="t-label">Title</label><input class="t-input" id="ehw-title-${h.id}" value="${(h.title||'').replace(/"/g,'&quot;')}"></div>
@@ -2837,7 +2838,19 @@ function buildTutorAssignmentsPanel(homework, studentId, subject) {
               <button class="t-btn t-btn-primary t-btn-sm" onclick="gradeHomework('${h.id}','${studentId}')">Save Grade</button>
             </div>
           </div>`:''}
-          ${h.status==='graded'?`<div class="t-grade-expand" style="font-size:.8rem;color:#065f46">Score: ${h.score||'—'}/100 · ${h.feedback||'No feedback'}</div>`:''}
+          ${h.status==='graded'?`
+          <div class="t-grade-expand" style="font-size:.8rem;color:#065f46">
+            Score: ${h.score||'—'}/100 · ${h.feedback||'No feedback'}
+          </div>
+          <div id="ehw-grade-${h.id}" style="display:none;padding:.85rem;margin-top:.35rem;background:#f0fdf4;border-radius:8px;border:1px solid #a7f3d0">
+            <div style="font-size:.72rem;font-weight:700;color:#065f46;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.06em">Edit Grade</div>
+            <div style="display:flex;gap:.65rem;align-items:center;flex-wrap:wrap">
+              <input type="number" min="0" max="100" placeholder="Score /100" class="t-input" id="regrade-score-${h.id}" value="${h.score||''}" style="width:110px">
+              <input type="text" placeholder="Feedback for student…" class="t-input" id="regrade-fb-${h.id}" value="${(h.feedback||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:180px">
+              <button class="t-btn t-btn-primary t-btn-sm" onclick="regradeHomework('${h.id}','${studentId}')">Update Grade</button>
+              <button class="t-btn t-btn-ghost t-btn-sm" onclick="tutorEditToggle('ehw-grade-${h.id}')">Cancel</button>
+            </div>
+          </div>`:''}
         </div>`).join('')}</div>`
       : `<div class="empty-state"><div class="empty-icon">✏️</div><p>No assignments yet.</p></div>`}
     </div>`;
@@ -2895,6 +2908,18 @@ async function gradeHomework(hwId, studentId) {
   }).eq('id',hwId);
   if (error) { showToast('Error saving grade.','error'); return; }
   showToast('Grade saved! ✅','success');
+  await selectTutorStudent(studentId);
+}
+
+async function regradeHomework(hwId, studentId) {
+  const score = document.getElementById('regrade-score-'+hwId)?.value;
+  const feedback = document.getElementById('regrade-fb-'+hwId)?.value||'';
+  if (!score) { showToast('Please enter a score.','error'); return; }
+  const { error } = await db.from('homework').update({
+    score: parseFloat(score), feedback, graded_at: new Date().toISOString()
+  }).eq('id', hwId);
+  if (error) { showToast('Error updating grade.','error'); return; }
+  showToast('Grade updated! ✅','success');
   await selectTutorStudent(studentId);
 }
 
