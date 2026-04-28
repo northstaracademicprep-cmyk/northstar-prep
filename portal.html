@@ -2348,8 +2348,10 @@ function buildSessions() {
       html += `</div>`;
     }
     if (past.length) {
-      html += `<div class="section-subtitle" style="margin-top:1.5rem">Past Sessions</div><div class="sessions-list">`;
-      html += past.map((ses,i)=>`<div class="session-item anim-up" style="opacity:.85;animation-delay:${i*.05}s">
+      const recentPast = past.slice(0,3);
+      html += `<div class="section-subtitle" style="margin-top:1.5rem">Past Sessions${past.length>3?` <span style="font-size:.75rem;font-weight:500;color:var(--muted)">(showing 3 most recent)</span>`:''}
+      </div><div class="sessions-list">`;
+      html += recentPast.map((ses,i)=>`<div class="session-item anim-up" style="opacity:.85;animation-delay:${i*.05}s">
         <div class="session-date-block" style="background:var(--muted)"><div class="session-month">${ses.month}</div><div class="session-day">${ses.day}</div></div>
         <div class="session-info"><div class="session-subject">${ses.subject}</div><div class="session-topic">${ses.topic}</div>
         <div class="session-meta"><span class="session-tag time">🕐 ${ses.time}</span><span class="session-tag done">✓ Completed</span></div>
