@@ -671,6 +671,21 @@ const SUPABASE_URL = 'https://hqqugqfdlcinktsblupu.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_eHbuUITIGOZ5ckLI03fXjQ_9h_915Hn';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+/* ── GLOBAL DATE HELPERS ── */
+function fmtDateLong(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+}
+function fmtDateShort(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+}
+function fmtMonthAbbr(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'short'}).toUpperCase();
+}
+function fmtDay(d) {
+  return String(new Date(d + 'T00:00:00').getDate());
+}
+
 /* ═══════════════════════════════════════════════════════
    STUDENT DATABASE
    portalType: 'ap-prep' or 'college-counseling'
@@ -930,18 +945,7 @@ async function loadFromSupabase(code) {
     const pastSessions     = sessions.filter(s => s.session_date < today);
     const upcomingSessions = sessions.filter(s => s.session_date >= today);
 
-    function fmtDateLong(d) {
-      return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
-    }
-    function fmtDateShort(iso) {
-      return new Date(iso).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-    }
-    function fmtMonthAbbr(d) {
-      return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'short'}).toUpperCase();
-    }
-    function fmtDay(d) {
-      return String(new Date(d + 'T00:00:00').getDate());
-    }
+    // date helpers are global — defined at top of script
 
     const subj = (student.subjects || [])[0] || 'Session';
     const examDateStr = student.exam_date ? fmtDateLong(student.exam_date) : null;
@@ -1660,15 +1664,29 @@ async function submitHomework(hwId, studentId) {
   if (!text && !file) { showToast('Please write a response or upload a photo.','error'); return; }
   const btn = document.getElementById('hwsubmit-'+hwId);
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
-  try {
-    let submissionUrl = null;
-    if (file) {
-      const path = `${studentId}/${hwId}_${Date.now()}_${file.name}`;
-      const { data: upData, error: upErr } = await db.storage.from('submissions').upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      const { data: urlData } = db.storage.from('submissions').getPublicUrl(path);
-      submissionUrl = urlData.publicUrl;
+
+  let submissionUrl = null;
+
+  // Try file upload — but don't block submission if it fails
+  if (file) {
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path = `${studentId}/${hwId}_${Date.now()}_${safeName}`;
+      const { error: upErr } = await db.storage.from('submissions').upload(path, file, { upsert: true });
+      if (upErr) {
+        console.warn('File upload failed (bucket may not be set up yet):', upErr.message);
+        showToast('Note: file upload skipped — submitting text only.','error');
+      } else {
+        const { data: urlData } = db.storage.from('submissions').getPublicUrl(path);
+        submissionUrl = urlData.publicUrl;
+      }
+    } catch(upEx) {
+      console.warn('Storage error:', upEx);
     }
+  }
+
+  // Always save the text submission to DB
+  try {
     const { error } = await db.from('homework').update({
       status: 'submitted',
       submission_text: text || null,
@@ -1676,13 +1694,12 @@ async function submitHomework(hwId, studentId) {
       submitted_at: new Date().toISOString()
     }).eq('id', hwId);
     if (error) throw error;
-    showToast('Assignment submitted! ✅','success');
-    // Refresh assignments from Supabase
+    showToast(submissionUrl ? 'Assignment submitted with photo! ✅' : 'Assignment submitted! ✅','success');
     const fresh = await loadFromSupabase(sessionStorage.getItem('portalCode'));
     if (fresh) { currentStudent = fresh; buildAssignments(); }
   } catch(err) {
-    console.error(err);
-    showToast('Upload failed. Please try again.','error');
+    console.error('DB submit error:', err);
+    showToast('Could not save submission: ' + err.message,'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Submit Assignment →'; }
   }
 }
@@ -1775,16 +1792,23 @@ async function selectTutorStudent(studentId) {
   document.getElementById('tContent').innerHTML = `<div style="text-align:center;padding:2rem;color:#64748b">Loading…</div>`;
 
   // Load student data
-  const [matRes, hwRes, sessRes, annRes] = await Promise.all([
-    db.from('files').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
-    db.from('homework').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
-    db.from('sessions').select('*').eq('student_id', studentId).order('session_date',{ascending:false}),
-    db.from('announcements').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
-  ]);
-  const materials = matRes.data||[];
-  const homework  = hwRes.data||[];
-  const sessions  = sessRes.data||[];
-  const announcements = annRes.data||[];
+  let materials=[], homework=[], sessions=[], announcements=[];
+  try {
+    const [matRes, hwRes, sessRes, annRes] = await Promise.all([
+      db.from('files').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
+      db.from('homework').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
+      db.from('sessions').select('*').eq('student_id', studentId).order('session_date',{ascending:false}),
+      db.from('announcements').select('*').eq('student_id', studentId).order('created_at',{ascending:false}),
+    ]);
+    materials    = matRes.data||[];
+    homework     = hwRes.data||[];
+    sessions     = sessRes.data||[];
+    announcements= annRes.data||[];
+  } catch(err) {
+    console.error('Error loading student data:', err);
+    document.getElementById('tContent').innerHTML = `<div style="padding:2rem;color:#dc2626">Error loading data: ${err.message}. Please try again.</div>`;
+    return;
+  }
 
   const subj = (selectedStudent.subjects||[''])[0]||'AP Prep';
   const hoursLeft = ((selectedStudent.hours_total||0)-(selectedStudent.hours_used||0)).toFixed(1);
