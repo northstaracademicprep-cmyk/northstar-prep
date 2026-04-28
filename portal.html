@@ -471,6 +471,8 @@
     .hw-file-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
     .hw-file-zone-text{font-size:.8rem;color:#64748b}
     .hw-file-selected{font-size:.77rem;color:#10b981;font-weight:600;margin-top:.3rem}
+    .hw-link-input{width:100%;padding:.55rem .85rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.83rem;color:#1a2540;font-family:inherit;box-sizing:border-box;transition:border-color .15s;margin-top:.5rem}
+    .hw-link-input:focus{outline:none;border-color:#c9a03a}
     .hw-submit-btn{margin-top:.85rem;width:100%;padding:.65rem;background:linear-gradient(135deg,#c9a03a,#e8b84b);color:#0f2044;border:none;border-radius:8px;font-weight:700;font-size:.88rem;cursor:pointer;transition:all .2s}
     .hw-submit-btn:hover{box-shadow:0 6px 16px rgba(201,160,58,.35);transform:translateY(-1px)}
     .hw-submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
@@ -1653,12 +1655,14 @@ function homeworkCardHTML(a, studentId) {
         <div class="hw-submit-area">
           <h4>📤 Submit Your Work</h4>
           <textarea class="hw-textarea" id="hwtext-${a.id}" placeholder="Type your written response here…"></textarea>
-          <div class="hw-or">— or upload a photo of your handwritten work —</div>
+          <div class="hw-or">— or upload a photo / PDF of your handwritten work —</div>
           <div class="hw-file-zone" id="hwzone-${a.id}">
             <input type="file" accept="image/*,.pdf" onchange="hwFileSelected('${a.id}',this)">
             <div class="hw-file-zone-text">📷 Click to upload photo or PDF</div>
             <div class="hw-file-selected" id="hwfile-label-${a.id}"></div>
           </div>
+          <div class="hw-or">— or paste a Google Drive / photo link —</div>
+          <input class="hw-link-input" id="hwlink-${a.id}" type="url" placeholder="https://drive.google.com/... (optional)" />
           <button class="hw-submit-btn" id="hwsubmit-${a.id}" onclick="submitHomework('${a.id}','${studentId}')">Submit Assignment →</button>
         </div>` : ''}
       ${isSubmitted ? `
@@ -1700,20 +1704,27 @@ async function submitHomework(hwId, studentId) {
   const btn = document.getElementById('hwsubmit-'+hwId);
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
-  let submissionUrl = null;
+  // Check for pasted link as fallback
+  const linkEl = document.getElementById('hwlink-'+hwId);
+  const pastedLink = linkEl ? linkEl.value.trim() : '';
 
-  // Try file upload — but don't block submission if it fails
+  let submissionUrl = pastedLink || null;
+
+  // Try direct file upload (preferred over pasted link)
   if (file) {
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
       const path = `${studentId}/${hwId}_${Date.now()}_${safeName}`;
       const { error: upErr } = await db.storage.from('submissions').upload(path, file, { upsert: true });
       if (upErr) {
-        console.warn('File upload failed (bucket may not be set up yet):', upErr.message);
-        showToast('Note: file upload skipped — submitting text only.','error');
+        console.warn('Storage upload failed:', upErr.message);
+        if (!pastedLink) {
+          showToast(`File upload failed: ${upErr.message}. Try pasting a Google Drive link instead.`, 'error');
+        }
+        // Keep pastedLink as fallback if available
       } else {
         const { data: urlData } = db.storage.from('submissions').getPublicUrl(path);
-        submissionUrl = urlData.publicUrl;
+        submissionUrl = urlData.publicUrl; // override pasted link with actual upload
       }
     } catch(upEx) {
       console.warn('Storage error:', upEx);
@@ -1729,7 +1740,8 @@ async function submitHomework(hwId, studentId) {
       submitted_at: new Date().toISOString()
     }).eq('id', hwId);
     if (error) throw error;
-    showToast(submissionUrl ? 'Assignment submitted with photo! ✅' : 'Assignment submitted! ✅','success');
+    const photoLabel = file && submissionUrl && !pastedLink ? 'with uploaded photo' : pastedLink ? 'with link' : 'text only';
+    showToast(`Assignment submitted (${photoLabel})! ✅`,'success');
     const fresh = await loadFromSupabase(sessionStorage.getItem('portalCode'));
     if (fresh) { currentStudent = fresh; buildAssignments(); }
   } catch(err) {
