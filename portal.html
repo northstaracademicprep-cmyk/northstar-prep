@@ -257,6 +257,88 @@
     .announcement-body{padding:1rem 1.25rem;font-size:.875rem;color:var(--text);line-height:1.6}
     .announcement-from{font-size:.75rem;color:var(--muted);margin-top:.5rem;display:flex;align-items:center;gap:.4rem}
 
+    /* ── PRACTICE VAULT ── */
+    .pv-hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);border-radius:var(--radius);padding:1.75rem 2rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;overflow:hidden;position:relative}
+    .pv-hero::after{content:'🎯';position:absolute;font-size:7rem;right:1.5rem;top:50%;transform:translateY(-50%);opacity:.06}
+    .pv-hero-text h2{font-size:1.3rem;font-weight:700;color:var(--white);margin-bottom:.3rem}
+    .pv-hero-text p{font-size:.85rem;color:rgba(255,255,255,.6)}
+    .pv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;margin-bottom:1.5rem}
+    .pv-period-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.35rem;cursor:pointer;transition:box-shadow .2s,border-color .2s,transform .2s;position:relative;overflow:hidden}
+    .pv-period-card:hover{box-shadow:0 6px 24px rgba(15,32,68,.12);border-color:var(--gold);transform:translateY(-2px)}
+    .pv-period-icon{font-size:1.8rem;margin-bottom:.6rem}
+    .pv-period-num{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.2rem}
+    .pv-period-name{font-size:.88rem;font-weight:700;color:var(--navy);margin-bottom:.4rem}
+    .pv-period-meta{font-size:.75rem;color:var(--muted);margin-bottom:.85rem}
+    .pv-period-footer{display:flex;align-items:center;justify-content:space-between}
+    .pv-q-count{font-size:.72rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:var(--off-white);color:var(--muted)}
+    .pv-best{font-size:.72rem;font-weight:700;color:var(--green)}
+    /* Quiz mode */
+    .pv-quiz-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:1rem}
+    .pv-quiz-title{font-size:.88rem;font-weight:700;color:var(--navy)}
+    .pv-quiz-back{background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:.78rem;cursor:pointer;padding:.35rem .75rem;display:flex;align-items:center;gap:.3rem;transition:all .15s}
+    .pv-quiz-back:hover{border-color:var(--navy);color:var(--navy)}
+    .pv-quiz-progress-bar{height:5px;background:var(--off-white);border-radius:99px;margin-bottom:1.5rem;overflow:hidden}
+    .pv-quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:99px;transition:width .4s ease}
+    .pv-q-num{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+    .pv-stimulus{background:var(--off-white);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:.85rem 1rem;font-size:.83rem;color:var(--text);line-height:1.6;margin-bottom:.25rem;font-style:italic}
+    .pv-attribution{font-size:.7rem;color:var(--muted);margin-bottom:1rem}
+    .pv-question{font-size:.97rem;font-weight:600;color:var(--navy);line-height:1.5;margin-bottom:1.1rem}
+    .pv-choices{display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.25rem}
+    .pv-choice{display:flex;align-items:flex-start;gap:.85rem;padding:.9rem 1rem;border:2px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .15s,background .15s;user-select:none}
+    .pv-choice:hover:not(.locked){border-color:rgba(201,160,58,.5);background:rgba(201,160,58,.04)}
+    .pv-choice.selected{border-color:var(--navy-light);background:#eff6ff}
+    .pv-choice.correct{border-color:var(--green)!important;background:var(--green-bg)!important}
+    .pv-choice.incorrect{border-color:var(--red)!important;background:var(--red-bg)!important}
+    .pv-choice.locked{cursor:default}
+    .pv-choice-letter{width:26px;height:26px;border-radius:50%;background:var(--off-white);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;color:var(--navy);flex-shrink:0;transition:all .15s}
+    .pv-choice.selected .pv-choice-letter{background:var(--navy-light);border-color:var(--navy-light);color:var(--white)}
+    .pv-choice.correct .pv-choice-letter{background:var(--green);border-color:var(--green);color:var(--white)}
+    .pv-choice.incorrect .pv-choice-letter{background:var(--red);border-color:var(--red);color:var(--white)}
+    .pv-choice-text{font-size:.875rem;color:var(--text);line-height:1.45;padding-top:2px}
+    .pv-nav-row{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .pv-btn{background:linear-gradient(135deg,var(--navy),var(--navy-light));color:var(--white);border:none;border-radius:10px;padding:.72rem 1.5rem;font-size:.85rem;font-weight:700;cursor:pointer;transition:opacity .18s}
+    .pv-btn:hover{opacity:.88}.pv-btn:disabled{opacity:.35;cursor:not-allowed}
+    .pv-btn-outline{background:var(--white);color:var(--navy);border:2px solid var(--border);border-radius:10px;padding:.65rem 1.25rem;font-size:.83rem;font-weight:700;cursor:pointer;transition:border-color .15s}
+    .pv-btn-outline:hover{border-color:var(--navy)}
+    .pv-explanation{background:#f0fdf4;border:1px solid #a7f3d0;border-radius:8px;padding:.8rem 1rem;font-size:.82rem;color:#065f46;line-height:1.55;margin-top:.75rem;display:none}
+    .pv-explanation.show{display:block;animation:fadeInUp .3s ease both}
+    /* Results */
+    .pv-results-wrap{text-align:center;padding:.5rem 0 2rem}
+    .pv-score-circle{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 1rem;box-shadow:0 6px 24px rgba(15,32,68,.25)}
+    .pv-score-num{font-size:1.6rem;font-weight:800;line-height:1}
+    .pv-score-denom{font-size:.7rem;opacity:.65}
+    .pv-score-pct{font-size:1.5rem;font-weight:800;color:var(--navy);margin-bottom:.2rem}
+    .pv-score-label{font-size:.85rem;color:var(--muted);margin-bottom:1.75rem}
+    .pv-review-list{display:flex;flex-direction:column;gap:.65rem;text-align:left;margin-bottom:1.5rem}
+    .pv-review-item{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    .pv-review-header{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;cursor:pointer;background:var(--white)}
+    .pv-review-header:hover{background:var(--off-white)}
+    .pv-review-q{font-size:.82rem;font-weight:600;color:var(--navy);line-height:1.35;flex:1}
+    .pv-review-status{font-size:.7rem;font-weight:700;padding:.2rem .55rem;border-radius:99px;flex-shrink:0}
+    .pv-review-status.correct{background:var(--green-bg);color:var(--green)}
+    .pv-review-status.incorrect{background:var(--red-bg);color:var(--red)}
+    .pv-review-body{padding:.75rem 1rem;border-top:1px solid var(--border);display:none;font-size:.82rem;line-height:1.5;background:var(--off-white)}
+    .pv-review-body.open{display:block}
+    .pv-review-correct-ans{color:var(--green);font-weight:700;margin-bottom:.4rem}
+    .pv-review-expl{color:var(--muted)}
+    /* Enhanced Progress */
+    .prog-overview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+    .prog-overview-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;text-align:center;box-shadow:var(--shadow)}
+    .prog-overview-val{font-size:2rem;font-weight:800;color:var(--navy);line-height:1;margin-bottom:.3rem}
+    .prog-overview-val.green{color:var(--green)}.prog-overview-val.gold{color:var(--gold)}
+    .prog-overview-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+    .prog-hw-list{display:flex;flex-direction:column;gap:.5rem}
+    .prog-hw-item{display:flex;align-items:center;gap:.85rem;padding:.7rem .85rem;border-radius:8px;border:1px solid var(--border);background:var(--white)}
+    .prog-hw-title{font-size:.8rem;font-weight:600;color:var(--navy);flex:1}
+    .prog-hw-feedback{font-size:.72rem;color:var(--muted)}
+    .prog-hw-score-badge{font-size:.82rem;font-weight:800;padding:.25rem .65rem;border-radius:8px;flex-shrink:0}
+    .prog-practice-list{display:flex;flex-direction:column;gap:.5rem}
+    .prog-practice-item{display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;border-radius:8px;border:1px solid var(--border);background:var(--white)}
+    .prog-practice-period{font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:99px;flex-shrink:0;background:var(--blue-bg);color:var(--blue)}
+    .prog-practice-name{font-size:.8rem;color:var(--navy);font-weight:600;flex:1}
+    .prog-practice-score{font-size:.85rem;font-weight:800;color:var(--navy)}
+    .prog-practice-date{font-size:.7rem;color:var(--muted)}
+
     /* ── EMPTY STATE ── */
     .empty-state{text-align:center;padding:2.5rem 1rem;color:var(--muted)}
     .empty-state .empty-icon{font-size:2.5rem;margin-bottom:.75rem;opacity:.5}
@@ -628,6 +710,11 @@
           <div class="card-header"><div class="card-title">📣 Announcements</div></div>
           <div class="card-body" id="announcementsBody"></div>
         </div>
+      </section>
+
+      <!-- PRACTICE VAULT — AP students -->
+      <section class="page-section" id="sec-practice">
+        <div id="pvContent"></div>
       </section>
 
     </div>
@@ -1118,7 +1205,7 @@ function bootPortal() {
   document.getElementById('sidebarTag').textContent = s.grade + (s.subjects.length ? ' · ' + s.subjects.join(', ') : '');
   buildNav();
   buildDashboard();
-  if (s.portalType === 'ap-prep') { buildProgress(); buildAssignments(); }
+  if (s.portalType === 'ap-prep') { buildProgressPage(); buildAssignments(); }
   if (s.portalType === 'college-counseling') { buildColleges(); buildEssays(); buildECPlan(); }
   buildSessions();
   buildResources();
@@ -1172,6 +1259,7 @@ const NAV_AP = [
   {section:'learning',items:[
     {id:'resources',icon:'📚',label:'Resources',badge:'resourcesBadge'},
     {id:'assignments',icon:'✏️',label:'Assignments',badge:'assignBadge'},
+    {id:'practice',icon:'🎯',label:'Practice Vault'},
   ]},
   {section:'updates',items:[
     {id:'announcements',icon:'📣',label:'Announcements'},
@@ -1224,9 +1312,10 @@ function showSection(id, navEl) {
     sec.classList.add('active');
   }
   if (navEl) navEl.classList.add('active');
-  const titles = {dashboard:'Dashboard',progress:'My Progress',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements'};
+  const titles = {dashboard:'Dashboard',progress:'My Progress',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault'};
   document.getElementById('topbarTitle').textContent = titles[id]||id;
-  if (id==='progress') setTimeout(animateAllBars,100);
+  if (id==='progress') { buildProgressPage(); setTimeout(animateAllBars,200); }
+  if (id==='practice') buildPracticeVault();
   closeSidebar();
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('open')}
@@ -1372,40 +1461,137 @@ function buildDashCC() {
 }
 
 /* ── PROGRESS (AP) ── */
-function buildProgress() {
+/* ══════════════════════════════════════
+   MY PROGRESS (enhanced)
+══════════════════════════════════════ */
+async function buildProgressPage() {
   const s = currentStudent;
-  if (!s.progress) return;
-  const subjects = Object.keys(s.progress);
-  const tabsEl = document.getElementById('subjectTabs');
-  const panelsEl = document.getElementById('subjectPanels');
-  tabsEl.innerHTML = ''; panelsEl.innerHTML = '';
-  subjects.forEach((subj,i) => {
-    const tab = document.createElement('button');
-    tab.className = 'subject-tab'+(i===0?' active':'');
-    tab.textContent = subj;
-    tab.onclick = ()=>switchSubjectTab(subj);
-    tabsEl.appendChild(tab);
-    const entries = s.progress[subj];
-    const maxScore = Math.max(...entries.map(e=>e.score),100);
-    const ap = s.apScores?.[subj];
-    const panel = document.createElement('div');
-    panel.className = 'subject-panel'+(i===0?' active':'');
-    panel.id = 'panel-'+subj.replace(/\s+/g,'-');
-    panel.innerHTML = `<div class="score-timeline">
-      ${entries.map((e,ei)=>`<div class="score-entry">
-        <div class="score-date">${e.date}</div>
-        <div class="score-bar-wrap"><div class="score-bar ${ei===entries.length-1?'gold':'navy'}" data-width="${Math.round((e.score/maxScore)*100)}" style="width:0%">${e.label}</div></div>
-        <div class="score-num">${e.score}%</div>
-      </div>`).join('')}
+  const progEl = document.getElementById('sec-progress');
+  if (!progEl) return;
+
+  // Load practice attempts from DB
+  let attempts = [];
+  if (s.studentId) {
+    const { data } = await db.from('practice_attempts').select('*').eq('student_id', s.studentId).order('attempted_at', {ascending: false});
+    attempts = data || [];
+  }
+
+  // Homework stats
+  const graded = (s.assignments || []).filter(a => a.status === 'graded' && a.score != null);
+  const submitted = (s.assignments || []).filter(a => a.status === 'submitted');
+  const pending = (s.assignments || []).filter(a => a.status === 'pending');
+  const hwAvg = graded.length ? Math.round(graded.reduce((sum,a) => sum + Number(a.score), 0) / graded.length) : null;
+
+  // Practice stats
+  const pvAvg = attempts.length ? Math.round(attempts.reduce((sum,a) => sum + Math.round((a.score/a.total)*100), 0) / attempts.length) : null;
+
+  // Score color helper
+  const scoreColor = pct => pct >= 85 ? '#10b981' : pct >= 70 ? '#f59e0b' : '#ef4444';
+  const scoreLetter = pct => pct >= 90 ? 'A' : pct >= 80 ? 'B' : pct >= 70 ? 'C' : pct >= 60 ? 'D' : 'F';
+
+  progEl.innerHTML = `
+  <!-- Overview stats -->
+  <div class="prog-overview-grid">
+    <div class="prog-overview-card">
+      <div class="prog-overview-val${hwAvg != null ? (hwAvg>=80?' green':hwAvg>=65?' gold':' red') : ''}">${hwAvg != null ? hwAvg+'%' : '—'}</div>
+      <div class="prog-overview-label">Homework Avg</div>
     </div>
-    ${ap?`<div class="ap-score-wrap"><div class="ap-score-label">AP Score Outlook</div><div class="ap-score-chips">
-      ${ap.predicted?`<span class="ap-chip ${ap.predicted>=5?'score5':ap.predicted>=4?'score4':'score3'}">Predicted: ${ap.predicted}</span>`:''}
-      <span class="ap-chip target">🎯 Target: ${ap.target}</span>
-      ${ap.note?`<span class="ap-chip score4">${ap.note}</span>`:''}
-    </div></div>`:''}`;
-    panelsEl.appendChild(panel);
-  });
-  setTimeout(animateAllBars,200);
+    <div class="prog-overview-card">
+      <div class="prog-overview-val${pvAvg != null ? (pvAvg>=80?' green':pvAvg>=65?' gold':' red') : ''}">${pvAvg != null ? pvAvg+'%' : '—'}</div>
+      <div class="prog-overview-label">Practice Avg</div>
+    </div>
+    <div class="prog-overview-card">
+      <div class="prog-overview-val">${graded.length + attempts.length}</div>
+      <div class="prog-overview-label">Total Completed</div>
+    </div>
+  </div>
+
+  <!-- Score timeline (existing) -->
+  ${s.progress ? `<div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header"><div class="card-title">📈 Score Progress</div></div>
+    <div class="subject-tabs" id="subjectTabs"></div>
+    <div id="subjectPanels"></div>
+  </div>` : ''}
+
+  <!-- Homework grades -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header">
+      <div class="card-title">📝 Homework Grades</div>
+      <div style="font-size:.75rem;color:var(--muted)">${graded.length} graded · ${submitted.length} awaiting · ${pending.length} pending</div>
+    </div>
+    <div class="card-body">
+      ${graded.length ? `<div class="prog-hw-list">${graded.map(a => {
+        const pct = Math.round((Number(a.score)/Number(a.maxScore||100))*100);
+        const col = scoreColor(pct);
+        return `<div class="prog-hw-item">
+          <div style="flex:1">
+            <div class="prog-hw-title">${a.title}</div>
+            ${a.feedback ? `<div class="prog-hw-feedback">💬 ${a.feedback}</div>` : ''}
+          </div>
+          <div class="prog-hw-score-badge" style="background:${col}20;color:${col}">${a.score}/${a.maxScore||100} · ${scoreLetter(pct)}</div>
+        </div>`;
+      }).join('')}</div>` : `<div class="empty-state"><div class="empty-icon">📝</div><p>No graded homework yet. Keep it up!</p></div>`}
+      ${submitted.length ? `<div style="margin-top:1rem;padding:.65rem .85rem;border-radius:8px;background:var(--blue-bg);color:var(--blue);font-size:.8rem;font-weight:600">⏳ ${submitted.length} assignment${submitted.length>1?'s':''} submitted and awaiting Sid's grade.</div>` : ''}
+    </div>
+  </div>
+
+  <!-- Practice history -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🎯 Practice History</div>
+      <button onclick="showSection('practice', document.getElementById('nav-practice'))" style="font-size:.78rem;font-weight:700;color:var(--navy-light);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px">Go to Practice Vault →</button>
+    </div>
+    <div class="card-body">
+      ${attempts.length ? `<div class="prog-practice-list">${attempts.slice(0,10).map(a => {
+        const pct = Math.round((a.score/a.total)*100);
+        const col = scoreColor(pct);
+        const bank = APUSH_BANK.find(b => b.key === a.period_key);
+        return `<div class="prog-practice-item">
+          <div class="prog-practice-period">${bank ? 'P'+bank.period : a.period_key}</div>
+          <div class="prog-practice-name">${bank ? bank.label : a.period_key}</div>
+          <div class="prog-practice-date">${fmtDateShort(a.attempted_at)}</div>
+          <div class="prog-practice-score" style="color:${col}">${a.score}/${a.total} · ${pct}%</div>
+        </div>`;
+      }).join('')}</div>` : `<div class="empty-state"><div class="empty-icon">🎯</div><p>No practice attempts yet. Visit the Practice Vault to start!</p></div>`}
+    </div>
+  </div>`;
+
+  // Build score timeline if data exists
+  if (s.progress) {
+    const subjects = Object.keys(s.progress);
+    const tabsEl = document.getElementById('subjectTabs');
+    const panelsEl = document.getElementById('subjectPanels');
+    if (tabsEl && panelsEl) {
+      tabsEl.innerHTML = ''; panelsEl.innerHTML = '';
+      subjects.forEach((subj,i) => {
+        const tab = document.createElement('button');
+        tab.className = 'subject-tab'+(i===0?' active':'');
+        tab.textContent = subj;
+        tab.onclick = ()=>switchSubjectTab(subj);
+        tabsEl.appendChild(tab);
+        const entries = s.progress[subj];
+        const maxScore = Math.max(...entries.map(e=>e.score),100);
+        const ap = s.apScores?.[subj];
+        const panel = document.createElement('div');
+        panel.className = 'subject-panel'+(i===0?' active':'');
+        panel.id = 'panel-'+subj.replace(/\s+/g,'-');
+        panel.innerHTML = `<div class="score-timeline">
+          ${entries.map((e,ei)=>`<div class="score-entry">
+            <div class="score-date">${e.date}</div>
+            <div class="score-bar-wrap"><div class="score-bar ${ei===entries.length-1?'gold':'navy'}" data-width="${Math.round((e.score/maxScore)*100)}" style="width:0%">${e.label}</div></div>
+            <div class="score-num">${e.score}%</div>
+          </div>`).join('')}
+        </div>
+        ${ap?`<div class="ap-score-wrap"><div class="ap-score-label">AP Score Outlook</div><div class="ap-score-chips">
+          ${ap.predicted?`<span class="ap-chip ${ap.predicted>=5?'score5':ap.predicted>=4?'score4':'score3'}">Predicted: ${ap.predicted}</span>`:''}
+          <span class="ap-chip target">🎯 Target: ${ap.target}</span>
+          ${ap.note?`<span class="ap-chip score4">${ap.note}</span>`:''}
+        </div></div>`:''}`;
+        panelsEl.appendChild(panel);
+      });
+      setTimeout(animateAllBars, 300);
+    }
+  }
 }
 function switchSubjectTab(subj) {
   document.querySelectorAll('.subject-tab').forEach(t=>t.classList.toggle('active',t.textContent===subj));
@@ -1413,6 +1599,377 @@ function switchSubjectTab(subj) {
   setTimeout(animateAllBars,80);
 }
 function animateAllBars(){document.querySelectorAll('.score-bar').forEach(bar=>{bar.style.width=bar.getAttribute('data-width')+'%'})}
+
+/* ══════════════════════════════════════
+   PRACTICE VAULT — APUSH QUESTION BANK
+══════════════════════════════════════ */
+const APUSH_BANK = [
+  { key:'period1', period:1, label:'Period 1 (1491–1607)', icon:'🌎', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'p1q1', stimulus:'"The people of these islands … are so naive and so free with their possessions that no one who has not witnessed them would believe it. When you ask for something they have, they never say no."', attribution:'— Christopher Columbus, journal, 1492',
+        q:"Columbus's description most directly reflects which European attitude toward Native Americans in the late 15th century?",
+        choices:{A:'A belief that Native Americans were militarily superior to Europeans',B:'A paternalistic view that cast Native Americans as simple people who could be exploited',C:'A recognition that Native American cultures were as sophisticated as European ones',D:'A fear that Native Americans would resist European settlement'},
+        answer:'B', explanation:"Columbus's portrayal of the Taíno as innocent and naive reflects a paternalistic European worldview that justified colonization and exploitation of indigenous peoples." },
+      { id:'p1q2', q:'Which of the following best describes a major consequence of the Columbian Exchange for Native American populations?',
+        choices:{A:'Native Americans gained military advantages from European weapons',B:'European diseases devastated Native American populations, killing millions',C:'Trade between Native Americans and Europeans was largely equal',D:'Native Americans rapidly adopted European religious practices'},
+        answer:'B', explanation:'The introduction of European diseases like smallpox, to which Native Americans had no immunity, caused catastrophic death tolls — up to 90% in some regions — the most significant consequence of the Columbian Exchange.' },
+      { id:'p1q3', stimulus:'"I, therefore, ask and require you … to recognize the Church as the ruler … If you do so, you will do well … otherwise, I certify to you that we shall make war against you in all ways."', attribution:'— Requerimiento, read to Native Americans before Spanish conquest, 1513',
+        q:'The Requerimiento most directly illustrates which aspect of Spanish colonization?',
+        choices:{A:"The Spanish Crown's genuine commitment to protecting Native American rights",B:'The use of religious and legal justifications to legitimize conquest and forced labor',C:'Spanish desire for peaceful trade with Native Americans',D:'The influence of Enlightenment philosophy on Spanish colonial policy'},
+        answer:'B', explanation:'The Requerimiento used religious and legal language to justify conquest, placing the moral responsibility for any violence on Native Americans who refused to submit.' },
+      { id:'p1q4', q:'The encomienda system established by the Spanish was most similar to which of the following?',
+        choices:{A:'The New England town meeting system',B:'Medieval European feudalism',C:"The Iroquois Confederacy's political structure",D:'English joint-stock companies'},
+        answer:'B', explanation:'The encomienda granted Spanish colonists the labor of Native Americans in exchange for supposed protection and religious instruction, closely paralleling the feudal lord–serf relationship.' },
+      { id:'p1q5', q:'The establishment of the mission system by Spain in the Americas was primarily intended to accomplish which of the following?',
+        choices:{A:'Provide Native Americans with economic independence',B:'Convert Native Americans to Christianity and integrate them into the colonial labor system',C:'Protect Native Americans from exploitation by Spanish settlers',D:'Encourage intermarriage between Spanish colonists and Native Americans'},
+        answer:'B', explanation:'The mission system aimed to convert Native Americans to Catholicism while simultaneously creating a controlled labor force that served the Spanish colonial economy.' }
+    ]
+  },
+  { key:'period2', period:2, label:'Period 2 (1607–1754)', icon:'🏴', color:'#1e40af', bg:'#eff6ff',
+    questions:[
+      { id:'p2q1', q:'The Halfway Covenant of 1662 in Puritan New England was primarily a response to which of the following?',
+        choices:{A:'Conflicts between Puritans and Native Americans over land',B:'Declining church membership as second-generation Puritans lacked conversion experiences',C:"The English Crown's demand that Puritans adopt the Book of Common Prayer",D:'Economic competition from Dutch settlements in New Amsterdam'},
+        answer:'B', explanation:'The Halfway Covenant allowed children of baptized but unconverted Puritans partial church membership, directly addressing the generational decline in full church membership.' },
+      { id:'p2q2', q:'Which of the following most accurately describes the headright system used in Virginia and other southern colonies?',
+        choices:{A:'A system granting Native Americans land rights in exchange for labor',B:'A method of granting land to colonists who paid for the passage of servants or immigrants',C:'A royal charter granting religious groups the right to establish colonies',D:'A tax system used by the English Crown to generate colonial revenue'},
+        answer:'B', explanation:'The headright system granted 50 acres of land for each person whose passage a colonist financed, incentivizing the importation of indentured servants and later enslaved Africans.' },
+      { id:'p2q3', q:"Bacon's Rebellion of 1676 most directly led to which long-term consequence?",
+        choices:{A:'Virginia planters increasingly turned to African slavery rather than indentured servitude',B:"The English Crown revoked Virginia's charter and imposed direct royal rule",C:'The colonial assembly gained new powers over taxation',D:'Large-scale conflict between English colonists and the Iroquois Confederacy'},
+        answer:'A', explanation:"The threat posed by armed, discontented former indentured servants pushed Virginia planters toward African slavery, which offered a more permanently controllable labor force." },
+      { id:'p2q4', q:'The Navigation Acts passed by the English Parliament were primarily intended to accomplish which of the following?',
+        choices:{A:'Guarantee religious freedom for colonists throughout British America',B:'Ensure colonial trade benefited England by restricting trade with other nations',C:'Establish a standing army to protect colonists from Native American attacks',D:'Regulate the slave trade to prevent mistreatment of enslaved people'},
+        answer:'B', explanation:'The Navigation Acts were mercantilist policies requiring colonial goods to be shipped through England on English ships, ensuring England captured the maximum economic benefit from colonial trade.' },
+      { id:'p2q5', stimulus:'"We are the servants of God and the builders of His Holy Commonwealth. But the government lays burdens upon us and gives us nothing in return."', attribution:'— Puritan colonist petition, Massachusetts, c. 1640s',
+        q:'The perspective in this passage most directly reflects which colonial tension?',
+        choices:{A:'Conflicts between Puritans and Anglicans over religious practice',B:'Disagreements between colonists and the English Crown over colonial self-governance',C:'Rivalry between English and Dutch settlements in North America',D:'Tensions between colonial merchants and Native American trading partners'},
+        answer:'B', explanation:"The colonist's complaint reflects the broader tension between colonial desires for self-governance and English imperial control — a recurring theme that eventually fueled the American Revolution." }
+    ]
+  },
+  { key:'period3', period:3, label:'Period 3 (1754–1800)', icon:'🦅', color:'#92400e', bg:'#fffbeb',
+    questions:[
+      { id:'p3q1', stimulus:'"Taxation without representation is tyranny."', attribution:'— James Otis Jr., 1761',
+        q:"James Otis's argument most directly challenged which British colonial policy?",
+        choices:{A:'The Proclamation of 1763 restricting westward expansion',B:'Parliamentary taxation of colonists who lacked direct representation in Parliament',C:'The use of writs of assistance to search colonial homes',D:'British policies restricting colonial manufacturing'},
+        answer:'B', explanation:"Otis argued Parliament had no right to tax colonists who had no elected representatives in that body — a foundational argument of the American Revolutionary movement." },
+      { id:'p3q2', q:'The Articles of Confederation were considered weak primarily because they',
+        choices:{A:'gave the federal government too much power over state governments',B:'failed to protect individual rights and liberties',C:'did not allow Congress to tax citizens directly or regulate interstate commerce',D:'created a powerful executive branch that threatened republican government'},
+        answer:'C', explanation:"Congress's inability under the Articles to levy taxes or regulate commerce left the national government dependent on voluntary state contributions and unable to pay war debts or maintain order." },
+      { id:'p3q3', q:'The Great Compromise at the Constitutional Convention resolved the dispute between large and small states by establishing which of the following?',
+        choices:{A:'A single legislative body with equal representation for all states',B:'A bicameral legislature with proportional representation in one house and equal state representation in the other',C:'An executive branch chosen directly by popular vote',D:'A federal court system to resolve interstate disputes'},
+        answer:'B', explanation:'The Great Compromise created the House (proportional representation) and the Senate (two senators per state), satisfying both large and small states.' },
+      { id:'p3q4', stimulus:'"We hold these truths to be self-evident, that all men are created equal, that they are endowed by their Creator with certain unalienable Rights, that among these are Life, Liberty and the pursuit of Happiness."', attribution:'— Declaration of Independence, 1776',
+        q:'The philosophy expressed most directly drew upon which intellectual tradition?',
+        choices:{A:"Puritan religious doctrine emphasizing God's sovereignty",B:"Enlightenment natural rights philosophy as articulated by thinkers like John Locke",C:'The republican civic virtue tradition of ancient Greece and Rome',D:'Mercantile economic theory emphasizing national wealth'},
+        answer:'B', explanation:"Jefferson's language of natural, unalienable rights directly reflects Enlightenment philosophy — particularly John Locke's Second Treatise, which argued for natural rights of life, liberty, and property." },
+      { id:'p3q5', q:'The Northwest Ordinance of 1787 was significant primarily because it',
+        choices:{A:'Established the principle of popular sovereignty in newly acquired territories',B:'Created a framework for admitting new states and banned slavery in the Northwest Territory',C:'Granted the federal government the power to tax citizens directly',D:'Opened Native American lands east of the Mississippi to immediate settlement'},
+        answer:'B', explanation:"The Northwest Ordinance established a precedent for organized territorial government and statehood, and its ban on slavery in the territory was a significant early anti-slavery precedent." }
+    ]
+  },
+  { key:'period4', period:4, label:'Period 4 (1800–1848)', icon:'🌾', color:'#6d28d9', bg:'#f5f3ff',
+    questions:[
+      { id:'p4q1', q:"The \"Market Revolution\" of the early nineteenth century most directly contributed to which of the following?",
+        choices:{A:'A decline in regional economic differences between North and South',B:'The transformation of the U.S. from a subsistence to a market-oriented economy',C:'The rapid industrialization of the Southern plantation economy',D:'A decrease in westward migration as workers concentrated in eastern cities'},
+        answer:'B', explanation:'The Market Revolution — driven by improved transportation, industrialization, and commercialization of agriculture — fundamentally shifted Americans from self-sufficient farming to participation in a national market economy.' },
+      { id:'p4q2', stimulus:'"It is our destiny to overspread and to possess the whole of the continent which Providence has given us for the development of the great experiment of liberty."', attribution:'— John L. O\'Sullivan, 1845',
+        q:'The ideas expressed most directly reflect which of the following beliefs?',
+        choices:{A:'Social Darwinism and the idea of racial hierarchy',B:"Manifest Destiny and conviction that American expansion was divinely ordained",C:'Abolitionism and desire to spread free labor westward',D:'Isolationism and opposition to American foreign involvement'},
+        answer:'B', explanation:'The passage reflects Manifest Destiny — the widely held belief that American westward expansion was both inevitable and divinely ordained, used to justify continental territorial conquest.' },
+      { id:'p4q3', q:'The Second Great Awakening most directly contributed to which development?',
+        choices:{A:'A decline in Protestant church membership in the Northeast',B:'The growth of reform movements including abolitionism, temperance, and women\'s rights',C:'Increased support for the separation of church and state',D:'The weakening of African American religious communities in the South'},
+        answer:'B', explanation:'The revivalist energy of the Second Great Awakening inspired many Americans to work for social reform, directly fueling abolitionism, temperance campaigns, and the early women\'s rights movement.' },
+      { id:'p4q4', q:'The Indian Removal Act of 1830 most directly reflected which of the following?',
+        choices:{A:'A genuine desire by the federal government to protect Native Americans from state interference',B:"The federal government's commitment to enforcing Supreme Court decisions protecting Native rights",C:'The prioritization of white settler land hunger over Native American rights and treaty obligations',D:'Native American support for voluntary relocation west of the Mississippi'},
+        answer:'C', explanation:'Despite Supreme Court rulings affirming Cherokee sovereignty (Worcester v. Georgia), the Indian Removal Act led to the forced removal of thousands of Native Americans along the Trail of Tears, prioritizing white land hunger.' },
+      { id:'p4q5', q:'Which best describes the political significance of the "corrupt bargain" of 1824?',
+        choices:{A:'It resulted in the permanent decline of the Federalist Party',B:"It intensified public distrust of elite political dealing, fueling Jackson's populist appeal in 1828",C:'It established the precedent of the Electoral College overriding the popular vote',D:'It led directly to the creation of the Whig Party'},
+        answer:'B', explanation:"Jackson supporters' claims of a \"corrupt bargain\" between Adams and Clay fueled a populist backlash, positioning Jackson as the champion of ordinary Americans and propelling him to victory in 1828." }
+    ]
+  },
+  { key:'period5', period:5, label:'Period 5 (1844–1877)', icon:'⚔️', color:'#991b1b', bg:'#fef2f2',
+    questions:[
+      { id:'p5q1', stimulus:'"A house divided against itself cannot stand. I believe this government cannot endure, permanently, half slave and half free."', attribution:'— Abraham Lincoln, 1858',
+        q:"Lincoln's \"House Divided\" speech most directly argued which of the following?",
+        choices:{A:'That the Civil War was inevitable and would begin within months',B:'That slavery must either expand everywhere or be put on the path to extinction',C:'That the federal government should immediately abolish slavery in all states',D:'That the Missouri Compromise should be restored'},
+        answer:'B', explanation:'Lincoln argued the nation could not remain permanently divided on slavery — it would eventually become all free or all slave. He advocated containing slavery to halt its expansion, not immediate abolition.' },
+      { id:'p5q2', q:'The Emancipation Proclamation of 1863 was significant primarily because it',
+        choices:{A:'Immediately freed all enslaved people throughout the United States',B:'Transformed the Civil War into explicitly a war to end slavery, preventing European recognition of the Confederacy',C:'Granted African Americans full citizenship rights and the right to vote',D:'Required Southern states to ratify a constitutional amendment before rejoining the Union'},
+        answer:'B', explanation:'While limited in scope, the Proclamation reframed the war as a moral crusade against slavery, making European support for the Confederacy politically impossible since Britain and France had already abolished slavery.' },
+      { id:'p5q3', q:'The Black Codes passed by Southern states after the Civil War were primarily intended to',
+        choices:{A:'Provide formerly enslaved people with land and economic opportunity',B:'Restrict the freedom and economic independence of African Americans to maintain a subservient labor force',C:'Comply with the requirements of the Thirteenth Amendment',D:'Establish a system of equal but separate public accommodations'},
+        answer:'B', explanation:'Black Codes restricted African Americans\' freedom of movement, labor choices, and legal rights — effectively recreating near-slavery conditions and ensuring a cheap agricultural labor supply for Southern planters.' },
+      { id:'p5q4', q:'The Compromise of 1850 most directly addressed tensions created by which of the following?',
+        choices:{A:'The annexation of Texas and disputed boundary with Mexico',B:'The question of whether slavery would be permitted in territories acquired from Mexico',C:'The growing abolitionist movement in Northern states',D:"Southern states' threats to nullify federal tariff legislation"},
+        answer:'B', explanation:'The Compromise addressed the status of slavery in territories gained from the Mexican-American War, admitting California as a free state while allowing popular sovereignty in other Mexican Cession territories.' },
+      { id:'p5q5', q:'Which of the following best explains why Reconstruction ended in 1877?',
+        choices:{A:'African Americans had achieved full economic and political equality in the South',B:'A political compromise resolved the disputed 1876 presidential election by withdrawing federal troops from the South',C:'Congress passed legislation ending military occupation as unnecessary',D:'The Supreme Court ruled Reconstruction legislation unconstitutional'},
+        answer:'B', explanation:"The Compromise of 1877 gave the presidency to Hayes in exchange for withdrawing federal troops from the South, ending federal enforcement of Reconstruction-era civil rights and leaving African Americans vulnerable to Jim Crow." }
+    ]
+  },
+  { key:'period6', period:6, label:'Period 6 (1865–1898)', icon:'🏭', color:'#0f766e', bg:'#f0fdfa',
+    questions:[
+      { id:'p6q1', stimulus:'"The accumulation of wealth … The old nations of the earth creep on at a snail\'s pace; the Republic thunders past with the rush of the express."', attribution:"— Andrew Carnegie, \"Wealth,\" 1889",
+        q:"Carnegie's argument most directly reflects which ideology?",
+        choices:{A:'Populism and the belief that government should regulate large corporations',B:"Social Darwinism and the belief that industrial capitalism's inequalities were natural and beneficial",C:'Progressivism and the need for government reform to address industrial abuses',D:'Socialism and redistribution of wealth from industrialists to workers'},
+        answer:'B', explanation:"Carnegie's \"Gospel of Wealth\" applied Social Darwinist ideas to argue that wealth accumulation by the talented few was natural and ultimately beneficial to society through philanthropy." },
+      { id:'p6q2', q:"Plessy v. Ferguson (1896) established which legal precedent?",
+        choices:{A:"States could not restrict African Americans' rights to vote",'B':'"Separate but equal" racial segregation was constitutional',C:'The federal government had authority to regulate interstate railroads',D:'Congress could not restrict freedom of speech'},
+        answer:'B', explanation:'Plessy v. Ferguson established the "separate but equal" doctrine, providing constitutional justification for Jim Crow segregation laws that remained in place until Brown v. Board of Education (1954).' },
+      { id:'p6q3', q:'The Populist Party of the 1890s primarily drew its support from which group?',
+        choices:{A:'Industrial factory workers in Northern cities',B:'Southern and Western farmers burdened by debt and falling crop prices',C:'Eastern bankers and financiers seeking currency stability',D:'Small business owners opposed to monopolistic practices'},
+        answer:'B', explanation:'The Populist (People\'s) Party was largely a movement of indebted farmers in the South and West who blamed railroads, banks, and deflationary gold-standard monetary policy for their economic struggles.' },
+      { id:'p6q4', q:'The Dawes Act of 1887 was primarily intended to accomplish which of the following?',
+        choices:{A:'Establish reservations where Native American tribes could maintain their traditional cultures',B:'Assimilate Native Americans by breaking up tribal lands and allotting individual plots',C:'Grant citizenship to all Native Americans within U.S. borders',D:'Provide Native Americans with economic support through federal annuity payments'},
+        answer:'B', explanation:"The Dawes Act divided communally-held reservation lands into individual family allotments, aiming to assimilate Native Americans into American farming culture while opening 'surplus' land to white settlement." },
+      { id:'p6q5', q:'The rise of labor unions in the late nineteenth century was primarily a response to which conditions?',
+        choices:{A:"Government policies restricting workers' ability to save and invest",B:'Dangerous working conditions, long hours, low wages, and lack of job security in industrial workplaces',C:'Competition from immigrant workers who drove down wages in skilled trades',D:'The decline of agricultural employment forcing workers into factories'},
+        answer:'B', explanation:'Workers organized unions to collectively bargain for better wages, shorter hours, safer conditions, and job security in the face of industrialists who held enormous power over individual workers.' }
+    ]
+  },
+  { key:'period7', period:7, label:'Period 7 (1890–1945)', icon:'🌍', color:'#b45309', bg:'#fff7ed',
+    questions:[
+      { id:'p7q1', q:'The Progressive Era reforms of the early twentieth century were primarily aimed at addressing which of the following?',
+        choices:{A:"The expansion of the United States' overseas empire",B:'The social, economic, and political problems created by industrialization and urbanization',C:'The threat of communist revolution inspired by events in Russia',D:'Cultural conflicts between nativist Americans and recent immigrants'},
+        answer:'B', explanation:'Progressive Era reformers targeted corruption, monopoly power, dangerous working conditions, child labor, and urban poverty — all problems created or worsened by rapid industrialization and urbanization.' },
+      { id:'p7q2', stimulus:'"We cannot fly from our world duties; it is ours to execute the purpose of a fate that has driven us to be greater than our small intentions."', attribution:'— Senator Albert Beveridge, 1900',
+        q:"Beveridge's argument most directly reflects which ideology?",
+        choices:{A:'Isolationism and opposition to overseas entanglements',B:"American imperialism and a belief in a divine mission to expand American power overseas",C:'Progressivism and the need to reform corrupt American institutions',D:'Anti-imperialism and criticism of American intervention in the Philippines'},
+        answer:'B', explanation:"Beveridge was a leading advocate of American imperialism, arguing the U.S. had both a right and a divine duty to expand its power overseas — especially after acquiring the Philippines from Spain." },
+      { id:'p7q3', q:'The Great Migration of African Americans from the South to Northern cities was primarily caused by',
+        choices:{A:'Federal government programs encouraging African Americans to seek industrial employment',B:'Push factors including Jim Crow and racial violence in the South combined with pull factors of industrial jobs in Northern cities',C:'The mechanization of Southern agriculture creating a surplus of workers',D:'Recruitment campaigns by Northern political machines seeking Democratic voters'},
+        answer:'B', explanation:'The Great Migration was driven by push factors (Jim Crow laws, lynching, economic hardship) and pull factors (wartime industrial jobs, better pay, greater freedom in Northern cities).' },
+      { id:'p7q4', q:"Roosevelt's New Deal programs represented a significant shift in American political thought primarily because they",
+        choices:{A:'Established a socialist economic system replacing private enterprise',B:'Dramatically expanded the role of the federal government in the economy and social welfare',C:'Balanced the federal budget by cutting spending during the Depression',D:"Reversed the Progressive Era's trust-busting policies by encouraging consolidation"},
+        answer:'B', explanation:'The New Deal fundamentally changed American expectations of government — establishing federal responsibility for unemployment relief, agricultural support, financial regulation, and protection of workers\' rights.' },
+      { id:'p7q5', q:'The Smoot-Hawley Tariff of 1930 most directly contributed to which of the following?',
+        choices:{A:'A recovery of American manufacturing employment during the early Depression',B:'The deepening of the Great Depression as retaliatory tariffs collapsed international trade',C:'A reduction in federal deficits by generating significant tariff revenue',D:'Improved diplomatic relations with European nations'},
+        answer:'B', explanation:'Smoot-Hawley raised tariffs to historic highs, triggering retaliatory tariffs from trading partners and dramatically reducing international trade, worsening the Depression globally.' }
+    ]
+  },
+  { key:'period8', period:8, label:'Period 8 (1945–1980)', icon:'☮️', color:'#0369a1', bg:'#f0f9ff',
+    questions:[
+      { id:'p8q1', stimulus:'"The United States will henceforth support free peoples who are resisting attempted subjugation by armed minorities or by outside pressures."', attribution:'— President Harry Truman, address to Congress, 1947',
+        q:"Truman's statement most directly articulates which Cold War policy?",
+        choices:{A:'The Marshall Plan for European economic recovery',B:'The Truman Doctrine of containment of Soviet communism',C:'The policy of détente and peaceful coexistence with the Soviet Union',D:"NSC-68's call for massive military buildup"},
+        answer:'B', explanation:'The Truman Doctrine committed the U.S. to supporting nations threatened by communist expansion, articulating the containment policy that would guide American Cold War strategy for decades.' },
+      { id:'p8q2', q:'Brown v. Board of Education (1954) was most significant because it',
+        choices:{A:'Immediately ended racial segregation in all public places throughout the South',B:"Overturned Plessy v. Ferguson and declared racial segregation in public schools unconstitutional",C:'Granted the federal government broad powers to enforce civil rights laws',D:'Established the legal principle of affirmative action in university admissions'},
+        answer:'B', explanation:'Brown v. Board overturned the 1896 Plessy decision, ruling that "separate but equal" education was inherently unequal and providing the legal foundation for the broader Civil Rights Movement.' },
+      { id:'p8q3', q:'The GI Bill (1944) most significantly contributed to which postwar development?',
+        choices:{A:'The creation of the interstate highway system',B:'The rapid growth of the American middle class through subsidized education, home loans, and job training for veterans',C:'The desegregation of the U.S. military and federal workforce',D:'The expansion of Social Security benefits'},
+        answer:'B', explanation:'The GI Bill allowed millions of veterans to attend college, buy suburban homes, and access job training, fueling the dramatic expansion of the American middle class in the postwar era.' },
+      { id:'p8q4', q:'U.S. escalation in Vietnam in the 1960s most directly resulted from which of the following?',
+        choices:{A:"Congress's formal declaration of war following the Gulf of Tonkin incident",B:'The application of containment doctrine and Cold War fears that communist victory would trigger a "domino effect"',C:'United Nations resolutions requiring member nations to prevent communist expansion',D:'Public pressure from Americans who saw Vietnam as a vital security interest'},
+        answer:'B', explanation:'U.S. involvement stemmed from containment thinking — policymakers feared a communist Vietnam would trigger communist dominoes falling across Southeast Asia, threatening American Cold War strategy.' },
+      { id:'p8q5', q:"The women's liberation movement of the 1960s and 1970s most directly challenged which of the following?",
+        choices:{A:'Cold War foreign policies relying on nuclear deterrence',B:'Traditional gender roles and legal, economic, and social inequalities between men and women',C:'Civil rights legislation that excluded women from anti-discrimination protections',D:"The environmental movement's focus on issues seen as less important"},
+        answer:'B', explanation:"The women's liberation movement confronted cultural norms limiting women to domestic roles while pushing for legal changes including equal pay, reproductive rights, and access to education and careers." }
+    ]
+  },
+  { key:'period9', period:9, label:'Period 9 (1980–Present)', icon:'💻', color:'#7c3aed', bg:'#f5f3ff',
+    questions:[
+      { id:'p9q1', stimulus:'"Government is not the solution to our problem; government is the problem."', attribution:'— President Ronald Reagan, First Inaugural Address, 1981',
+        q:"Reagan's statement most directly reflects which political philosophy?",
+        choices:{A:'Liberalism and support for an expanded federal welfare state',B:'Conservatism and belief in limited government, lower taxes, and deregulation',C:'Neoconservatism and aggressive American foreign policy to spread democracy',D:'Libertarianism and elimination of all government regulation'},
+        answer:'B', explanation:"Reagan's statement reflects the conservative ideology he championed — reducing the size and role of government, cutting taxes, and deregulating the economy, a sharp shift from the New Deal/Great Society liberal consensus." },
+      { id:'p9q2', q:'The end of the Cold War in 1991 most directly resulted from which of the following?',
+        choices:{A:'American military victory over Soviet forces in Korea and Vietnam',B:'Economic collapse of the Soviet Union combined with political reforms that allowed Eastern Europe to break free',C:'A negotiated disarmament treaty ending the nuclear arms race',D:"The success of Reagan's 'Star Wars' missile defense program"},
+        answer:'B', explanation:"The Soviet Union collapsed due to economic stagnation, the burden of military spending, Gorbachev's reforms (glasnost and perestroika), and the successful independence movements sweeping Eastern Europe." },
+      { id:'p9q3', q:'The USA PATRIOT Act passed after September 11, 2001 most directly represented which tension?',
+        choices:{A:'The tension between national security interests and civil liberties',B:'The debate over immigration policy and border security',C:'The conflict between federal power and states\' rights',D:'The struggle between economic growth and environmental protection'},
+        answer:'A', explanation:'The PATRIOT Act expanded government surveillance powers to combat terrorism, sparking intense debate about whether security needs justified restrictions on privacy rights and civil liberties guaranteed by the Constitution.' },
+      { id:'p9q4', q:'Which best explains the rise of the conservative movement in American politics in the 1970s and 1980s?',
+        choices:{A:'Widespread support for expanding New Deal welfare state programs',B:'A backlash against social and cultural changes of the 1960s, economic stagflation, and growing distrust of government',C:'The influence of labor unions pushing the Democratic Party toward centrist positions',D:'Widespread opposition to American military involvement in the Middle East'},
+        answer:'B', explanation:'The conservative movement grew from a "backlash" against civil rights, feminism, and counterculture, combined with economic anxiety from stagflation and declining trust in government after Vietnam and Watergate.' }
+    ]
+  }
+];
+
+/* ── PRACTICE VAULT STATE ── */
+let pvState = { bankKey: null, questions: [], current: 0, answers: {}, locked: false };
+
+function buildPracticeVault() {
+  const container = document.getElementById('pvContent');
+  if (!container) return;
+  // Load best scores from sessionStorage
+  const html = `
+    <div class="pv-hero">
+      <div class="pv-hero-text">
+        <h2>🎯 Practice Vault</h2>
+        <p>Real AP US History MCQs from released College Board exams — auto-graded instantly.</p>
+      </div>
+    </div>
+    <div class="pv-grid">
+      ${APUSH_BANK.map(b => {
+        const best = sessionStorage.getItem('pv_best_'+b.key);
+        return `<div class="pv-period-card" onclick="startPractice('${b.key}')">
+          <div class="pv-period-icon">${b.icon}</div>
+          <div class="pv-period-num" style="color:${b.color}">Period ${b.period}</div>
+          <div class="pv-period-name">${b.label}</div>
+          <div class="pv-period-meta">${b.questions.length} questions · Stimulus-based MCQ</div>
+          <div class="pv-period-footer">
+            <span class="pv-q-count">${b.questions.length} Qs</span>
+            ${best ? `<span class="pv-best">Best: ${best}%</span>` : '<span style="font-size:.72rem;color:var(--muted)">Not attempted</span>'}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  container.innerHTML = html;
+}
+
+function startPractice(key) {
+  const bank = APUSH_BANK.find(b => b.key === key);
+  if (!bank) return;
+  pvState = { bankKey: key, questions: bank.questions, current: 0, answers: {}, locked: false };
+  renderPvQuestion();
+}
+
+function renderPvQuestion() {
+  const container = document.getElementById('pvContent');
+  const { questions, current, bankKey, answers } = pvState;
+  const bank = APUSH_BANK.find(b => b.key === bankKey);
+  const q = questions[current];
+  const total = questions.length;
+  const pct = Math.round((current / total) * 100);
+  const answered = answers[q.id];
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-body">
+        <div class="pv-quiz-header">
+          <div class="pv-quiz-title">${bank.icon} ${bank.label}</div>
+          <button class="pv-quiz-back" onclick="buildPracticeVault()">← Back to Topics</button>
+        </div>
+        <div class="pv-quiz-progress-bar"><div class="pv-quiz-progress-fill" style="width:${pct}%"></div></div>
+        <div class="pv-q-num">Question ${current+1} of ${total}</div>
+        ${q.stimulus ? `<div class="pv-stimulus">${q.stimulus}</div>` : ''}
+        ${q.attribution ? `<div class="pv-attribution">${q.attribution}</div>` : ''}
+        <div class="pv-question">${q.q}</div>
+        <div class="pv-choices" id="pvChoices">
+          ${Object.entries(q.choices).map(([letter, text]) => {
+            let cls = 'pv-choice';
+            if (answered) {
+              cls += ' locked';
+              if (letter === q.answer) cls += ' correct';
+              else if (letter === answered) cls += ' incorrect';
+            }
+            return `<div class="${cls}" id="pvc-${letter}" onclick="pvSelectChoice('${letter}')">
+              <div class="pv-choice-letter">${letter}</div>
+              <div class="pv-choice-text">${text}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        ${answered ? `<div class="pv-explanation show">💡 ${q.explanation}</div>` : ''}
+        <div class="pv-nav-row">
+          <div style="font-size:.8rem;color:var(--muted)">${Object.keys(answers).length} of ${total} answered</div>
+          ${answered ? (current < total-1
+            ? `<button class="pv-btn" onclick="pvNextQuestion()">Next Question →</button>`
+            : `<button class="pv-btn" onclick="pvFinish()">See Results 🏆</button>`)
+            : `<button class="pv-btn" disabled>Select an answer</button>`}
+        </div>
+      </div>
+    </div>`;
+}
+
+function pvSelectChoice(letter) {
+  if (pvState.locked) return;
+  const q = pvState.questions[pvState.current];
+  if (pvState.answers[q.id]) return; // already answered
+  pvState.answers[q.id] = letter;
+  // Show correct/incorrect immediately
+  document.querySelectorAll('.pv-choice').forEach(el => el.classList.add('locked'));
+  Object.entries(q.choices).forEach(([l]) => {
+    const el = document.getElementById('pvc-'+l);
+    if (!el) return;
+    if (l === q.answer) el.classList.add('correct');
+    else if (l === letter) el.classList.add('incorrect');
+  });
+  // Show explanation
+  const expEl = document.querySelector('.pv-explanation');
+  if (expEl) { expEl.textContent = '💡 '+q.explanation; expEl.classList.add('show'); }
+  // Update nav button
+  const nav = document.querySelector('.pv-nav-row');
+  if (nav) {
+    const total = pvState.questions.length;
+    const cur = pvState.current;
+    nav.innerHTML = `<div style="font-size:.8rem;color:var(--muted)">${Object.keys(pvState.answers).length} of ${total} answered</div>
+      ${cur < total-1
+        ? `<button class="pv-btn" onclick="pvNextQuestion()">Next Question →</button>`
+        : `<button class="pv-btn" onclick="pvFinish()">See Results 🏆</button>`}`;
+  }
+}
+
+function pvNextQuestion() {
+  pvState.current++;
+  renderPvQuestion();
+}
+
+async function pvFinish() {
+  const { questions, answers, bankKey } = pvState;
+  const bank = APUSH_BANK.find(b => b.key === bankKey);
+  const correct = questions.filter(q => answers[q.id] === q.answer).length;
+  const total = questions.length;
+  const pct = Math.round((correct/total)*100);
+  const scoreColor = pct>=80?'#10b981':pct>=65?'#f59e0b':'#ef4444';
+  const scoreMsg = pct>=80?'Great work! Keep it up 🔥':pct>=65?'Solid effort — review the misses 📖':'Keep practicing — you\'ll get there 💪';
+
+  // Save best score to sessionStorage
+  const prev = parseInt(sessionStorage.getItem('pv_best_'+bankKey)||'0');
+  if (pct > prev) sessionStorage.setItem('pv_best_'+bankKey, pct);
+
+  // Save to Supabase
+  if (currentStudent?.studentId) {
+    const details = questions.map(q=>({id:q.id,chosen:answers[q.id]||null,correct:answers[q.id]===q.answer}));
+    await db.from('practice_attempts').insert({
+      student_id: currentStudent.studentId,
+      period_key: bankKey,
+      score: correct,
+      total,
+      details
+    }).then(({error})=>{ if(error) console.warn('Practice save error:',error.message); });
+  }
+
+  const container = document.getElementById('pvContent');
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-body">
+        <div class="pv-quiz-header">
+          <div class="pv-quiz-title">${bank.icon} ${bank.label} — Results</div>
+          <button class="pv-quiz-back" onclick="buildPracticeVault()">← Back to Topics</button>
+        </div>
+        <div class="pv-results-wrap">
+          <div class="pv-score-circle">
+            <div class="pv-score-num">${correct}</div>
+            <div class="pv-score-denom">out of ${total}</div>
+          </div>
+          <div class="pv-score-pct" style="color:${scoreColor}">${pct}%</div>
+          <div class="pv-score-label">${scoreMsg}</div>
+          <div class="pv-review-list">
+            ${questions.map((q,i) => {
+              const chosen = answers[q.id];
+              const isCorrect = chosen === q.answer;
+              return `<div class="pv-review-item">
+                <div class="pv-review-header" onclick="this.nextElementSibling.classList.toggle('open')">
+                  <span style="font-size:1rem;flex-shrink:0">${isCorrect?'✅':'❌'}</span>
+                  <div class="pv-review-q">Q${i+1}: ${q.q.length>90?q.q.slice(0,90)+'…':q.q}</div>
+                  <span class="pv-review-status ${isCorrect?'correct':'incorrect'}">${isCorrect?'Correct':'Incorrect'}</span>
+                </div>
+                <div class="pv-review-body">
+                  ${!isCorrect?`<div class="pv-review-correct-ans">✓ Correct answer: (${q.answer}) ${q.choices[q.answer]}</div>`:''}
+                  ${chosen&&!isCorrect?`<div style="color:var(--red);font-size:.78rem;margin-bottom:.4rem">✗ Your answer: (${chosen}) ${q.choices[chosen]}</div>`:''}
+                  <div class="pv-review-expl">${q.explanation}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">
+            <button class="pv-btn-outline" onclick="buildPracticeVault()">← All Topics</button>
+            <button class="pv-btn" onclick="startPractice('${bankKey}')">Retry This Set 🔄</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
 
 /* ── COUNT-UP ── */
 function countUp(el, rawVal, duration=750) {
