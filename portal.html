@@ -1121,6 +1121,41 @@ function bootPortal() {
   buildSessions();
   buildResources();
   buildAnnouncements();
+  showNewItemsNotification();
+}
+
+function showNewItemsNotification() {
+  const s = currentStudent;
+  const newMaterials    = (s.resources||[]).filter(r=>r.isNew).length;
+  const newAssignments  = (s.assignments||[]).filter(a=>a.isNew && a.status==='pending').length;
+  const newAnnouncements= (s.announcements||[]).filter(a=>{
+    if (!a.date) return false;
+    return (Date.now() - new Date(a.date).getTime()) < 3*24*60*60*1000;
+  }).length;
+  const total = newMaterials + newAssignments + newAnnouncements;
+  if (!total) return;
+
+  const items = [];
+  if (newMaterials)     items.push(`📚 ${newMaterials} new material${newMaterials>1?'s':''}`);
+  if (newAssignments)   items.push(`✏️ ${newAssignments} new assignment${newAssignments>1?'s':''}`);
+  if (newAnnouncements) items.push(`📣 ${newAnnouncements} new announcement${newAnnouncements>1?'s':''}`);
+
+  // Insert notification banner at top of dashboard
+  const dash = document.getElementById('sec-dashboard');
+  if (!dash) return;
+  const banner = document.createElement('div');
+  banner.id = 'newItemsBanner';
+  banner.style.cssText = 'background:linear-gradient(135deg,#0f2044,#1a3a6e);border-radius:14px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;animation:fadeInUp .5s cubic-bezier(.22,1,.36,1) both';
+  banner.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.85rem">
+      <div style="font-size:1.5rem">🔔</div>
+      <div>
+        <div style="color:#c9a03a;font-weight:700;font-size:.9rem;margin-bottom:.2rem">New from Sid!</div>
+        <div style="color:rgba(255,255,255,.8);font-size:.82rem">${items.join(' · ')}</div>
+      </div>
+    </div>
+    <button onclick="document.getElementById('newItemsBanner').remove()" style="background:rgba(255,255,255,.12);border:none;color:#fff;padding:.35rem .75rem;border-radius:8px;cursor:pointer;font-size:.78rem;white-space:nowrap">Dismiss</button>`;
+  dash.insertBefore(banner, dash.firstChild);
 }
 
 /* ── NAV ── */
@@ -1822,7 +1857,10 @@ async function selectTutorStudent(studentId) {
   ];
 
   document.getElementById('tContent').innerHTML = `
-    <button class="t-back-btn" onclick="renderTutorDashboard()">← All Students</button>
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem">
+      <button class="t-back-btn" style="margin-bottom:0" onclick="renderTutorDashboard()">← All Students</button>
+      <button class="t-btn t-btn-ghost t-btn-sm" onclick="selectTutorStudent('${selectedStudent.id}')" style="margin-left:auto">↻ Refresh</button>
+    </div>
     <div class="t-student-header anim-up">
       <div class="t-avatar">${initials}</div>
       <div>
@@ -1916,7 +1954,8 @@ async function uploadMaterial(studentId) {
   const btn = document.getElementById('matUploadBtn');
   btn.disabled = true; btn.textContent = 'Uploading…';
   try {
-    const path = `${studentId}/${Date.now()}_${file.name}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path = `${studentId}/${Date.now()}_${safeName}`;
     const { error: upErr } = await db.storage.from('materials').upload(path, file, {upsert:true});
     if (upErr) throw upErr;
     const { data: urlData } = db.storage.from('materials').getPublicUrl(path);
@@ -2017,7 +2056,8 @@ async function assignHomework(studentId, subject) {
   try {
     let attachUrl = null;
     if (file) {
-      const path = `${studentId}/hw_${Date.now()}_${file.name}`;
+      const safeName2 = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path = `${studentId}/hw_${Date.now()}_${safeName2}`;
       const { error: upErr } = await db.storage.from('materials').upload(path, file, {upsert:true});
       if (upErr) throw upErr;
       const { data: urlData } = db.storage.from('materials').getPublicUrl(path);
