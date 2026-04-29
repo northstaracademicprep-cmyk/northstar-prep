@@ -1488,8 +1488,15 @@ function buildNav() {
     html += `<div class="nav-section-label">${group.section}</div>`;
     group.items.forEach((item,i) => {
       const isFirst = group === navDef[0] && i === 0;
+      const isMessages = item.id === 'messages';
       html += `<div class="nav-item${isFirst?' active':''}" onclick="showSection('${item.id}',this)" id="nav-${item.id}">
-        <span class="nav-icon">${item.icon}</span> ${item.label}
+        <span class="nav-icon">${item.icon}</span>
+        ${isMessages
+          ? `<div style="flex:1;display:flex;flex-direction:column;gap:.05rem;min-width:0">
+               <span>${item.label}</span>
+               <span id="msgFromLabel" style="display:none;font-size:.62rem;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2"></span>
+             </div>`
+          : `<span style="flex:1">${item.label}</span>`}
         ${item.badge ? `<span class="nav-badge" id="${item.badge}" style="display:none">0</span>` : ''}
       </div>`;
     });
@@ -1609,10 +1616,10 @@ function buildDashAP() {
   dashHTML += `</div></div>`;
   if (s.announcements.length) {
     const a = s.announcements[0];
-    dashHTML += `<div class="card dash-grid-full"><div class="card-header"><div class="card-title">📣 Latest from Your Tutor</div></div>
+    dashHTML += `<div class="card dash-grid-full"><div class="card-header"><div class="card-title">📣 Latest Announcement</div><button onclick="showSection('announcements',document.getElementById('nav-announcements'))" style="font-size:.75rem;font-weight:600;color:#3b82f6;background:none;border:none;cursor:pointer;padding:0">View all →</button></div>
     <div class="card-body"><div class="announcement-item">
       <div class="announcement-header"><div class="announcement-title">${a.title}</div><div class="announcement-date">${a.date}</div></div>
-      <div class="announcement-body">${a.message}<div class="announcement-from">💬 From: Northstar Academic Prep</div></div>
+      <div class="announcement-body">${a.message}<div class="announcement-from">📣 Northstar Academic Prep</div></div>
     </div></div></div>`;
   }
   document.getElementById('dashGrid').innerHTML = dashHTML;
@@ -1677,10 +1684,10 @@ function buildDashCC() {
   // Latest announcement
   if (s.announcements.length) {
     const a = s.announcements[0];
-    dashHTML += `<div class="card"><div class="card-header"><div class="card-title">📣 Latest from Your Counselor</div></div>
+    dashHTML += `<div class="card"><div class="card-header"><div class="card-title">📣 Latest Announcement</div><button onclick="showSection('announcements',document.getElementById('nav-announcements'))" style="font-size:.75rem;font-weight:600;color:#3b82f6;background:none;border:none;cursor:pointer;padding:0">View all →</button></div>
     <div class="card-body"><div class="announcement-item">
       <div class="announcement-header"><div class="announcement-title">${a.title}</div><div class="announcement-date">${a.date}</div></div>
-      <div class="announcement-body">${a.message}<div class="announcement-from">💬 From: Northstar Academic Prep</div></div>
+      <div class="announcement-body">${a.message}<div class="announcement-from">📣 Northstar Academic Prep</div></div>
     </div></div></div>`;
   }
   document.getElementById('dashGrid').innerHTML = dashHTML;
@@ -3141,14 +3148,15 @@ function buildAnnouncements(){
   document.getElementById('announcementsBody').innerHTML = `<div class="announcements-list">`+
     ann.map((a,i)=>`<div class="announcement-item anim-up" style="animation-delay:${i*.09}s">
       <div class="announcement-header"><div class="announcement-title">${a.title}</div><div class="announcement-date">${a.date}</div></div>
-      <div class="announcement-body">${a.message}<div class="announcement-from">💬 From: Northstar Academic Prep</div></div>
+      <div class="announcement-body">${a.message}<div class="announcement-from">📣 Northstar Academic Prep</div></div>
     </div>`).join('')+`</div>`;
 }
 
 /* ══════════════════════════════════════════════════════════
    NOTIFICATION SYSTEM  (favicon + tab title + in-app badges)
 ══════════════════════════════════════════════════════════ */
-let _unreadByStudent = {};  // { studentId: unreadCount }
+let _unreadByStudent = {};  // { studentId: count }
+let _unreadSenders   = {};  // { studentId: 'Sender Name' } — last sender per student
 let _bgNotifChannels = {};  // { studentId: channel } — always-on background listeners
 
 function _totalUnread() { return Object.values(_unreadByStudent).reduce((a,b)=>a+b,0); }
@@ -3166,16 +3174,18 @@ function _isChatVisible(studentId) {
 }
 
 /* Increment unread for a student (skip if sender is self or chat is visible) */
-function _countUnread(studentId, senderRole, myRole) {
+function _countUnread(studentId, senderRole, senderName, myRole) {
   if (senderRole === myRole) return;
   if (_isChatVisible(studentId)) return;
   _unreadByStudent[studentId] = (_unreadByStudent[studentId]||0) + 1;
+  if (senderName) _unreadSenders[studentId] = senderName;
   _refreshAllBadges();
 }
 
 /* Clear unread for a student when they open the chat */
 function _markRead(studentId) {
   delete _unreadByStudent[studentId];
+  delete _unreadSenders[studentId];
   _refreshAllBadges();
 }
 
@@ -3184,22 +3194,56 @@ function _refreshAllBadges() {
   const total = _totalUnread();
   _faviconBadge(total);
   _titleBadge(total);
-  // Student nav badge
+
+  // ── Student nav badge + "from [name]" label ──
   _setBadge('msgBadge', total);
-  // Admin nav badge
+  const fromLabel = document.getElementById('msgFromLabel');
+  if (fromLabel) {
+    const names = [...new Set(Object.values(_unreadSenders))];
+    fromLabel.textContent = names.length ? 'from ' + names[0] + (names.length > 1 ? ` +${names.length-1}` : '') : '';
+    fromLabel.style.display = total > 0 ? '' : 'none';
+  }
+
+  // ── Admin nav badge + "from [student name]" label + per-student badges ──
   _setBadge('admMsgBadge', total);
-  // Tutor: messages tab badge for selected student
-  if (selectedStudent) _setBadge('ttab-msg-badge', _unreadByStudent[selectedStudent.id]||0);
-  // Tutor sidebar: per-student badges
-  Object.keys(_unreadByStudent).forEach(sid => _setBadge('tstu-badge-'+sid, _unreadByStudent[sid]||0));
-  document.querySelectorAll('[id^="tstu-badge-"]').forEach(el => {
-    const sid = el.id.replace('tstu-badge-','');
-    if (!_unreadByStudent[sid]) _setBadge(el.id, 0);
-  });
-  // Admin conversation list: per-student badges
+  const admFromLabel = document.getElementById('admMsgFromLabel');
+  if (admFromLabel) {
+    const senderNames = [...new Set(Object.values(_unreadSenders))];
+    admFromLabel.textContent = senderNames.length ? 'from ' + senderNames[0] + (senderNames.length > 1 ? ` +${senderNames.length-1}` : '') : '';
+    admFromLabel.style.display = total > 0 ? '' : 'none';
+  }
   Object.keys(_unreadByStudent).forEach(sid => _setBadge('admstu-badge-'+sid, _unreadByStudent[sid]||0));
   document.querySelectorAll('[id^="admstu-badge-"]').forEach(el => {
     const sid = el.id.replace('admstu-badge-','');
+    if (!_unreadByStudent[sid]) _setBadge(el.id, 0);
+  });
+
+  // ── Tutor: Messages tab badge + "from [student name]" sub-label + sidebar badges ──
+  if (typeof selectedStudent !== 'undefined' && selectedStudent) {
+    _setBadge('ttab-msg-badge', _unreadByStudent[selectedStudent.id]||0);
+  }
+  // Tutor tab "from" label — show the student name(s) with unread
+  const tutorTabFrom = document.getElementById('ttab-msg-from');
+  if (tutorTabFrom) {
+    const sidsWithUnread = Object.keys(_unreadByStudent).filter(s => (_unreadByStudent[s]||0) > 0);
+    // Find the student names from the tutorStudents list
+    const names = sidsWithUnread.map(sid => {
+      if (typeof tutorStudents !== 'undefined') {
+        const s = tutorStudents.find(st => st.id === sid);
+        if (s) return s.name.split(' ')[0];
+      }
+      return _unreadSenders[sid] || '';
+    }).filter(Boolean);
+    if (names.length) {
+      tutorTabFrom.textContent = 'from ' + names[0] + (names.length > 1 ? ` +${names.length-1}` : '');
+      tutorTabFrom.style.display = '';
+    } else {
+      tutorTabFrom.style.display = 'none';
+    }
+  }
+  Object.keys(_unreadByStudent).forEach(sid => _setBadge('tstu-badge-'+sid, _unreadByStudent[sid]||0));
+  document.querySelectorAll('[id^="tstu-badge-"]').forEach(el => {
+    const sid = el.id.replace('tstu-badge-','');
     if (!_unreadByStudent[sid]) _setBadge(el.id, 0);
   });
 }
@@ -3249,7 +3293,7 @@ function _initBgNotifs(studentIds, myRole) {
     if (_bgNotifChannels[sid]) return;
     _bgNotifChannels[sid] = db.channel('chat-' + sid)
       .on('broadcast', { event:'new_message' }, ({ payload }) => {
-        _countUnread(sid, payload.sender_role, myRole);
+        _countUnread(sid, payload.sender_role, payload.sender_name, myRole);
       })
       .subscribe();
   });
@@ -3259,6 +3303,7 @@ function _cleanupBgNotifs() {
   Object.values(_bgNotifChannels).forEach(ch => { try { db.removeChannel(ch); } catch(e){} });
   _bgNotifChannels = {};
   _unreadByStudent = {};
+  _unreadSenders   = {};
 }
 
 /* ── MESSAGES (STUDENT) ── */
@@ -3419,7 +3464,7 @@ function _subscribeChat(studentId, myRole, myName) {
       _appendMsgBubble(msg, myRole);
       delete _typingUsers[msg.sender_role];
       _updateTypingUI();
-      _countUnread(studentId, msg.sender_role, myRole);
+      _countUnread(studentId, msg.sender_role, msg.sender_name, myRole);
     })
     /* ── edit message ── */
     .on('broadcast', { event:'edit_message' }, ({ payload }) => {
@@ -3850,7 +3895,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
     {id:'progress',    label:'📊 Progress'},
     {id:'sessions',    label:'📅 Sessions'},
     {id:'announce',    label:'📣 Announcements'},
-    {id:'messages',    label:`💬 Messages<span class="notif-badge" id="ttab-msg-badge" style="margin-left:.4rem"></span>`, raw:true},
+    {id:'messages',    label:`<span style="display:flex;flex-direction:column;align-items:flex-start;gap:.05rem">💬 Messages<span id="ttab-msg-from" style="display:none;font-size:.58rem;color:#ef4444;font-weight:700;line-height:1.1"></span></span><span class="notif-badge" id="ttab-msg-badge" style="margin-left:.5rem"></span>`, raw:true},
   ];
 
   document.getElementById('tContent').innerHTML = `
@@ -5523,7 +5568,14 @@ async function loadAdminConvo(studentId, studentName) {
         <div class="adm-nav-item" data-id="billing" onclick="showAdminSection('billing')"><span class="adm-nav-icon">💰</span> Hours &amp; Billing</div>
         <div class="adm-nav-label">Tools</div>
         <div class="adm-nav-item" data-id="tutor-mgmt" onclick="showAdminSection('tutor-mgmt')"><span class="adm-nav-icon">🎓</span> Tutor Management</div>
-        <div class="adm-nav-item" data-id="adm-messages" onclick="showAdminSection('adm-messages')"><span class="adm-nav-icon">💬</span> Messages<span class="notif-badge" id="admMsgBadge"></span></div>
+        <div class="adm-nav-item" data-id="adm-messages" onclick="showAdminSection('adm-messages')">
+          <span class="adm-nav-icon">💬</span>
+          <span style="flex:1;display:flex;flex-direction:column;gap:.04rem;min-width:0">
+            <span>Messages</span>
+            <span id="admMsgFromLabel" style="display:none;font-size:.62rem;color:#fca5a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2"></span>
+          </span>
+          <span class="notif-badge" id="admMsgBadge"></span>
+        </div>
       </nav>
       <div class="adm-sidebar-footer">
         <button class="adm-logout" onclick="adminLogout()">↩ Sign Out</button>
