@@ -458,6 +458,7 @@
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     @keyframes popIn{0%{opacity:0;transform:scale(.8)}65%{transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
     @keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}60%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes slideLeft{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
 
     /* Login entrance */
@@ -834,6 +835,68 @@
         <div style="font-size:.78rem;color:#94a3b8" id="tTopbarDate"></div>
       </header>
       <div class="t-content" id="tContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD TUTOR MODAL ══ -->
+<div id="addTutorModal" style="display:none;position:fixed;inset:0;background:rgba(10,20,45,.6);backdrop-filter:blur(4px);z-index:9999;overflow-y:auto;padding:2rem 1rem" onclick="if(event.target===this)closeAddTutorModal()">
+  <div style="background:#fff;border-radius:18px;max-width:520px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,.35);overflow:hidden">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0f2044,#1a3260);padding:1.5rem 1.75rem;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-family:'Josefin Sans',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#c9a03a;margin-bottom:.3rem">Northstar Academic Prep</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#fff">Add New Tutor</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.5);margin-top:.2rem">A login code is generated instantly — share it with the tutor</div>
+      </div>
+      <button onclick="closeAddTutorModal()" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);font-size:1.2rem;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <!-- Body -->
+    <div style="padding:1.75rem;display:flex;flex-direction:column;gap:1.1rem">
+
+      <!-- Full Name -->
+      <div>
+        <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Tutor Full Name *</label>
+        <input id="atr-name" type="text" placeholder="e.g. Sidharth Shasti" oninput="updateTutorCode()" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;transition:border-color .18s" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+      </div>
+
+      <!-- Subjects -->
+      <div>
+        <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Subjects (comma-separated) *</label>
+        <input id="atr-subjects" type="text" placeholder="e.g. AP US History, SAT Prep, HiSET Math" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;transition:border-color .18s" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+      </div>
+
+      <!-- Rate + Email row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem">
+        <div>
+          <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Hourly Rate ($)</label>
+          <input id="atr-rate" type="number" min="0" step="5" placeholder="e.g. 75" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;transition:border-color .18s" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+        </div>
+        <div>
+          <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Email (optional)</label>
+          <input id="atr-email" type="email" placeholder="tutor@email.com" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;transition:border-color .18s" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+        </div>
+      </div>
+
+      <!-- Generated code preview -->
+      <div style="background:#f0f4ff;border:1.5px dashed #a5b4fc;border-radius:10px;padding:1rem 1.1rem;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:.7rem;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem">🔑 Login Code</div>
+          <div id="atr-code-preview" style="font-family:'Josefin Sans',sans-serif;font-size:1.2rem;font-weight:800;color:#0f2044;letter-spacing:.12em">—</div>
+        </div>
+        <div style="font-size:.72rem;color:#6366f1;max-width:150px;text-align:right;line-height:1.5">Tutor uses this code to log in to the portal</div>
+      </div>
+
+      <!-- Error -->
+      <div id="atr-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:8px;padding:.65rem .9rem;font-size:.83rem"></div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:.75rem;margin-top:.25rem">
+        <button onclick="closeAddTutorModal()" style="flex:1;padding:.75rem;background:#f1f5f9;border:none;border-radius:9px;font-size:.85rem;font-weight:600;color:#374151;cursor:pointer">Cancel</button>
+        <button onclick="submitAddTutor()" id="atr-submit-btn" style="flex:2;padding:.75rem;background:linear-gradient(135deg,#0f2044,#1a3260);border:none;border-radius:9px;font-size:.85rem;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.5rem">
+          <span>👨‍🏫</span> Add Tutor
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -5051,30 +5114,119 @@ async function buildAdminTutors() {
   });
 
   body.innerHTML = `
-    <div class="adm-section-header">${tutors.length} tutor${tutors.length!==1?'s':''} on staff</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div class="adm-section-header" style="margin-bottom:0">${tutors.length} tutor${tutors.length!==1?'s':''} on staff</div>
+      <button onclick="openAddTutorModal()" style="background:linear-gradient(135deg,#0f2044,#1a3260);color:#fff;border:none;border-radius:9px;font-size:.82rem;font-weight:700;padding:.55rem 1.1rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;box-shadow:0 2px 8px rgba(15,32,68,.18);transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+        ➕ Add Tutor
+      </button>
+    </div>
     <div class="adm-list">
-      ${tutors.map(t => {
+      ${tutors.length ? tutors.map(t => {
         const sessions  = sessionsByTutor[t.id] || [];
         const approved  = sessions.filter(s=>s.approved);
         const pending   = sessions.filter(s=>!s.approved);
         const totalHrs  = approved.reduce((sum,s)=>sum+(s.duration_hours||0),0);
         const initials  = t.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const subjects  = (t.subjects_can_teach||[]).slice(0,3).join(', ') || 'No subjects listed';
         return `<div class="adm-card">
           <div class="adm-card-top">
             <div class="adm-card-avatar" style="background:linear-gradient(135deg,#1a3260,#2a4a8a)">${initials}</div>
             <div class="adm-card-info">
               <div class="adm-card-name">${t.name}</div>
-              <div class="adm-card-meta">Code: ${t.code||'—'}</div>
+              <div class="adm-card-meta" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+                <span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:.1rem .45rem;font-size:.7rem;font-weight:700;color:#334155;letter-spacing:.04em">🔑 ${t.code||'—'}</span>
+                ${t.hourly_rate?`<span style="color:#64748b;font-size:.78rem">$${t.hourly_rate}/hr</span>`:''}
+              </div>
             </div>
+            <button onclick="if(confirm('Remove ${t.name.replace(/'/g,"\\'")} from the platform?')) deleteTutor('${t.id}')"
+              style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:.8rem;padding:.25rem .4rem;border-radius:5px;transition:color .15s;flex-shrink:0"
+              onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'" title="Remove tutor">✕</button>
           </div>
-          <div style="display:flex;gap:.6rem;margin-top:.85rem;flex-wrap:wrap">
+          <div style="font-size:.78rem;color:#64748b;margin:.6rem 0 .5rem;padding:.4rem .6rem;background:#f8fafc;border-radius:7px;border:1px solid #e5e7eb">📚 ${subjects}</div>
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap">
             <div class="adm-stat-chip" style="background:#ecfdf5;color:#065f46">${approved.length} sessions approved</div>
-            <div class="adm-stat-chip" style="background:#eff6ff;color:#1e40af">${totalHrs.toFixed(1)}h total logged</div>
-            ${pending.length?`<div class="adm-stat-chip" style="background:#fffbeb;color:#92400e">⏳ ${pending.length} pending approval</div>`:''}
+            <div class="adm-stat-chip" style="background:#eff6ff;color:#1e40af">${totalHrs.toFixed(1)}h logged</div>
+            ${pending.length?`<div class="adm-stat-chip" style="background:#fffbeb;color:#92400e">⏳ ${pending.length} pending</div>`:''}
           </div>
         </div>`;
-      }).join('')}
+      }).join('') : `<div style="text-align:center;padding:3rem;color:#94a3b8"><div style="font-size:2.5rem;margin-bottom:.75rem">👨‍🏫</div><div style="font-weight:600;font-size:.95rem">No tutors yet</div><div style="font-size:.82rem;margin-top:.3rem">Click "Add Tutor" to get started</div></div>`}
     </div>`;
+}
+
+async function deleteTutor(id) {
+  const { error } = await db.from('tutors').delete().eq('id', id);
+  if (error) { showToast('Error: '+error.message,'error'); return; }
+  showToast('Tutor removed.','success');
+  buildAdminTutors();
+}
+
+/* ── ADD TUTOR MODAL ── */
+function _genTutorCode(name) {
+  // e.g. "Sidharth Shasti" → "SHASTI26" (last name + 2-digit year)
+  const parts = name.trim().split(/\s+/);
+  const last  = (parts[parts.length-1]||parts[0]).toUpperCase().replace(/[^A-Z]/g,'').slice(0,7);
+  const yr    = String(new Date().getFullYear()).slice(-2);
+  return last + yr;
+}
+
+function openAddTutorModal() {
+  ['atr-name','atr-subjects','atr-rate','atr-email'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const codeEl=document.getElementById('atr-code-preview');
+  if(codeEl) codeEl.textContent='—';
+  const errEl=document.getElementById('atr-error');
+  if(errEl) errEl.style.display='none';
+  const btn=document.getElementById('atr-submit-btn');
+  if(btn){btn.disabled=false;btn.innerHTML='<span>👨‍🏫</span> Add Tutor';}
+  document.getElementById('addTutorModal').style.display='block';
+  document.body.style.overflow='hidden';
+  setTimeout(()=>document.getElementById('atr-name')?.focus(),80);
+}
+function closeAddTutorModal() {
+  document.getElementById('addTutorModal').style.display='none';
+  document.body.style.overflow='';
+}
+function updateTutorCode() {
+  const name=document.getElementById('atr-name').value.trim();
+  const preview=document.getElementById('atr-code-preview');
+  if(preview) preview.textContent = name ? _genTutorCode(name) : '—';
+}
+async function submitAddTutor() {
+  const name    = document.getElementById('atr-name').value.trim();
+  const subjRaw = document.getElementById('atr-subjects').value.trim();
+  const rate    = document.getElementById('atr-rate').value.trim();
+  const email   = document.getElementById('atr-email').value.trim();
+  const errEl   = document.getElementById('atr-error');
+
+  if (!name)    { errEl.textContent='Please enter the tutor\'s full name.'; errEl.style.display='block'; return; }
+  if (!subjRaw) { errEl.textContent='Please enter at least one subject.';   errEl.style.display='block'; return; }
+  errEl.style.display='none';
+
+  const btn=document.getElementById('atr-submit-btn');
+  btn.disabled=true; btn.innerHTML='<span style="display:inline-block;animation:spin .7s linear infinite">⏳</span> Creating…';
+
+  // Generate code and ensure uniqueness
+  let code = _genTutorCode(name);
+  const { data: existing } = await db.from('tutors').select('code').eq('code', code).maybeSingle();
+  if (existing) code = code + Math.floor(Math.random()*90+10); // append 2 random digits if collision
+
+  const subjects_can_teach = subjRaw.split(',').map(s=>s.trim()).filter(Boolean);
+  const payload = { name, code, subjects_can_teach };
+  if (rate)  payload.hourly_rate = parseFloat(rate)||null;
+  if (email) payload.email = email;
+
+  const { error } = await db.from('tutors').insert([payload]);
+  if (error) {
+    errEl.textContent = 'Error: '+error.message;
+    errEl.style.display='block';
+    btn.disabled=false; btn.innerHTML='<span>👨‍🏫</span> Add Tutor';
+    return;
+  }
+
+  closeAddTutorModal();
+  showToast(`✅ ${name} added! Login code: ${code}`, 'success');
+  buildAdminTutors();
 }
 
 /* ── BILLING / HOURS ── */
