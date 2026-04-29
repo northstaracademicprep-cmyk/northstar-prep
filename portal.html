@@ -3286,7 +3286,7 @@ function renderMessagesUI(container, msgs, studentId, myRole, myName) {
   const typingId  = 'msgTyping-' + studentId;
 
   container.innerHTML = `
-    <div style="width:100%;height:100%;display:flex;flex-direction:column;gap:0">
+    <div style="flex:1;min-height:0;width:100%;display:flex;flex-direction:column">
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(15,32,68,.07);flex:1;min-height:0">
         <!-- header -->
         <div style="padding:1rem 1.4rem;border-bottom:1px solid #f0f2f5;background:linear-gradient(135deg,#0f2044 0%,#1a3260 100%);display:flex;align-items:center;gap:.75rem">
@@ -3881,7 +3881,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
     <div id="ttab-panel-progress" class="t-tab-panel"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading progress…</div></div>
     <div id="ttab-panel-sessions" class="t-tab-panel">${buildTutorSessionsPanel(sessions, studentId)}</div>
     <div id="ttab-panel-announce" class="t-tab-panel">${buildTutorAnnouncePanel(announcements, studentId)}</div>
-    <div id="ttab-panel-messages" class="t-tab-panel" style="flex-direction:column;height:calc(100vh - 220px)"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading messages…</div></div>`;
+    <div id="ttab-panel-messages" class="t-tab-panel" style="flex-direction:column;height:calc(100vh - 220px);overflow:hidden"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading messages…</div></div>`;
   // Restore whichever tab was active (defaults to materials on first load)
   switchTutorTab(tutorActiveTab);
   // Async-load the progress panel in the background
@@ -5404,8 +5404,8 @@ async function buildAdminMessages() {
           </button>`).join('')}
       </div>
       <!-- Chat area -->
-      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:1rem;background:#f8fafc">
-        <div id="admConvoArea" style="flex:1;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.9rem;flex-direction:column;gap:.5rem">
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;padding:1rem;background:#f8fafc">
+        <div id="admConvoArea" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.9rem;flex-direction:column;gap:.5rem">
           <div style="font-size:2.5rem">💬</div>
           <div style="font-weight:600">Select a student to open their chat</div>
           <div style="font-size:.8rem;color:#cbd5e1">Messages are shared with the student and their tutor</div>
@@ -5419,8 +5419,8 @@ async function loadAdminConvo(studentId, studentName) {
   const btn = document.getElementById('admMsgBtn-'+studentId);
   if (btn) { btn.style.borderColor='#0f2044'; btn.style.background='#f0f4ff'; }
   const area = document.getElementById('admConvoArea');
-  // Reset placeholder centering so chat fills full height
-  area.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden';
+  // Reset to flex column so the renderMessagesUI flex:1 child fills correctly
+  area.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;width:100%';
   area.innerHTML='<div style="padding:2rem;color:#64748b;text-align:center">Loading…</div>';
   _markRead(studentId);
   _unsubscribeMessages();
