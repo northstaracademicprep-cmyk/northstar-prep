@@ -113,6 +113,35 @@
     .score-date{font-size:.78rem;color:var(--muted);width:70px;flex-shrink:0}
     .score-bar-wrap{flex:1;height:28px;background:var(--off-white);border-radius:6px;overflow:hidden}
     .score-bar{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:10px;font-size:.78rem;font-weight:700;color:var(--white);transition:width 1s cubic-bezier(.22,1,.36,1);width:0}
+
+    /* ── GLOBAL SMOOTH ANIMATIONS ── */
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes msgSlideRight{from{opacity:0;transform:translateX(18px) scale(.95)}to{opacity:1;transform:translateX(0) scale(1)}}
+    @keyframes msgSlideLeft{from{opacity:0;transform:translateX(-18px) scale(.95)}to{opacity:1;transform:translateX(0) scale(1)}}
+    @keyframes typingBounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
+    @keyframes pulseGold{0%,100%{box-shadow:0 0 0 0 rgba(201,160,58,.4)}50%{box-shadow:0 0 0 6px rgba(201,160,58,0)}}
+    .page-section.active{animation:fadeInUp .28s cubic-bezier(.22,1,.36,1)}
+    .stat-card{transition:box-shadow .2s,transform .2s!important}
+    .stat-card:hover{box-shadow:0 8px 28px rgba(15,32,68,.13)!important;transform:translateY(-2px)}
+
+    /* ── iMESSAGE CHAT ── */
+    .msg-wrap{display:flex;flex-direction:column;align-items:var(--msg-align,flex-start);margin-bottom:.15rem}
+    .msg-bubble{max-width:72%;padding:.62rem 1rem;border-radius:var(--msg-radius,18px 18px 18px 4px);font-size:.9rem;line-height:1.5;word-break:break-word;position:relative}
+    .msg-bubble.me{background:#0f2044;color:#fff;border-radius:18px 18px 4px 18px;animation:msgSlideRight .22s cubic-bezier(.22,1,.36,1)}
+    .msg-bubble.them{background:#e9ebef;color:#1a1a2e;animation:msgSlideLeft .22s cubic-bezier(.22,1,.36,1)}
+    .msg-meta{font-size:.65rem;color:#94a3b8;margin:.18rem .3rem}
+    .typing-bubble{display:none;align-items:center;gap:.32rem;padding:.55rem .9rem;background:#e9ebef;border-radius:18px 18px 18px 4px;width:fit-content;margin:.15rem 0}
+    .typing-bubble.visible{display:flex}
+    .typing-dot{width:7px;height:7px;border-radius:50%;background:#9ca3af;animation:typingBounce 1.2s infinite}
+    .typing-dot:nth-child(2){animation-delay:.2s}
+    .typing-dot:nth-child(3){animation-delay:.4s}
+    .typing-name{font-size:.68rem;color:#6b7280;margin-left:.1rem}
+    .msg-send-btn{background:#0f2044;color:#fff;border:none;border-radius:12px;padding:.7rem 1.2rem;font-size:.85rem;font-weight:700;cursor:pointer;transition:transform .15s,opacity .15s;white-space:nowrap;display:flex;align-items:center;gap:.4rem}
+    .msg-send-btn:hover{opacity:.9;transform:scale(1.04)}
+    .msg-send-btn:active{transform:scale(.97)}
+    .msg-input{flex:1;padding:.7rem 1rem;border:1.5px solid #e5e7eb;border-radius:12px;font-size:.9rem;font-family:'Inter',sans-serif;resize:none;outline:none;line-height:1.5;transition:border-color .18s,box-shadow .18s}
+    .msg-input:focus{border-color:#0f2044;box-shadow:0 0 0 3px rgba(15,32,68,.08)}
     .score-bar.navy{background:linear-gradient(90deg,var(--navy-mid),var(--navy-light))}
     .score-bar.gold{background:linear-gradient(90deg,var(--gold),var(--gold-light))}
     .score-num{font-size:.82rem;font-weight:700;color:var(--navy);width:40px;text-align:right;flex-shrink:0}
@@ -3072,64 +3101,229 @@ function buildAnnouncements(){
 }
 
 /* ── MESSAGES (STUDENT) ── */
-async function buildStudentMessages() {
-  const container = document.getElementById('messagesBody');
-  if (!container) return;
-  const studentId = currentStudent?.studentId;
-  if (!studentId) { container.innerHTML='<div class="empty-state"><p>Unable to load messages.</p></div>'; return; }
-  container.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b">Loading…</div>';
-  const { data: msgs, error } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at', {ascending:true});
-  if (error) { container.innerHTML=`<div style="color:#ef4444;padding:1rem">${error.message}</div>`; return; }
-  renderMessagesUI(container, msgs||[], studentId, 'student', currentStudent.name);
-}
+/* ══════════════════════════════════════════════════════════
+   REAL-TIME MESSAGING  (iMessage-style)
+══════════════════════════════════════════════════════════ */
+let _msgChannel    = null;   // Supabase realtime channel for message inserts
+let _typingChannel = null;   // Supabase broadcast channel for typing events
+let _typingTimer   = null;   // debounce: stop typing after 2s idle
+let _typingUsers   = {};     // { role: name } currently typing
+let _shownMsgIds   = new Set(); // dedup: IDs already rendered
+let _activeMsgCtx  = null;   // { studentId, myRole, myName, feedId, typingId }
 
+/* Render the iMessage-style chat UI (initial load) */
 function renderMessagesUI(container, msgs, studentId, myRole, myName) {
-  const roleColor = {student:'#0f2044', tutor:'#065f46', admin:'#92400e'};
-  const roleLabel = {student:'Student', tutor:'Tutor', admin:'Admin'};
+  const roleLabel = {student:'Student', tutor:'Tutor', admin:'Northstar'};
+  const safeRole  = (myRole||'').replace(/'/g,"\\'");
+  const safeName  = (myName||'').replace(/'/g,"\\'");
+  const feedId    = 'msgFeed-' + studentId;
+  const typingId  = 'msgTyping-' + studentId;
+
   container.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:0;max-width:680px;margin:0 auto">
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
-        <div style="padding:1rem 1.25rem;border-bottom:1px solid #e5e7eb;background:#f8fafc;display:flex;align-items:center;gap:.6rem">
-          <span style="font-size:1.1rem">💬</span>
-          <span style="font-weight:700;color:#0f2044;font-size:.95rem">Group Chat</span>
-          <span style="font-size:.72rem;color:#94a3b8;margin-left:.25rem">Student · Tutor · Admin</span>
+    <div style="max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:0">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(15,32,68,.07)">
+        <!-- header -->
+        <div style="padding:1rem 1.4rem;border-bottom:1px solid #f0f2f5;background:linear-gradient(135deg,#0f2044 0%,#1a3260 100%);display:flex;align-items:center;gap:.75rem">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(201,160,58,.25);display:flex;align-items:center;justify-content:center;font-size:1rem">💬</div>
+          <div>
+            <div style="font-weight:700;color:#fff;font-size:.95rem">Group Chat</div>
+            <div style="font-size:.7rem;color:rgba(255,255,255,.5)">Student · Tutor · Northstar Admin</div>
+          </div>
+          <div style="margin-left:auto;width:9px;height:9px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.2)" title="Live"></div>
         </div>
-        <div id="msgFeed" style="padding:1.25rem;display:flex;flex-direction:column;gap:.85rem;min-height:280px;max-height:420px;overflow-y:auto">
-          ${msgs.length ? msgs.map(m => {
-            const isMe = m.sender_role === myRole;
-            const time = new Date(m.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
-            return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
-              <div style="font-size:.68rem;color:#94a3b8;margin-bottom:.2rem">${m.sender_name} · <span style="font-weight:700;color:${roleColor[m.sender_role]||'#64748b'}">${roleLabel[m.sender_role]||m.sender_role}</span> · ${time}</div>
-              <div style="max-width:78%;padding:.6rem .9rem;border-radius:${isMe?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${isMe?'#0f2044':'#f1f5f9'};color:${isMe?'#fff':'#1a2540'};font-size:.88rem;line-height:1.55">${m.content}</div>
-            </div>`;
-          }).join('') : '<div style="text-align:center;color:#94a3b8;font-size:.85rem;padding:2rem">No messages yet. Send the first one!</div>'}
+        <!-- feed -->
+        <div id="${feedId}" style="padding:1.25rem 1.25rem .75rem;display:flex;flex-direction:column;gap:.1rem;min-height:300px;max-height:440px;overflow-y:auto;scroll-behavior:smooth">
+          ${msgs.length===0 ? `<div data-empty="1" style="text-align:center;color:#9ca3af;font-size:.85rem;padding:2.5rem 1rem;animation:fadeIn .3s">No messages yet — say hello! 👋</div>` :
+            _renderMsgBubbles(msgs, myRole)}
         </div>
-        <div style="padding:.85rem 1.25rem;border-top:1px solid #e5e7eb;display:flex;gap:.6rem;align-items:flex-end">
-          <textarea id="msgInput" rows="2" placeholder="Type a message…" style="flex:1;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:10px;font-size:.88rem;font-family:'Inter',sans-serif;resize:none;outline:none;line-height:1.5" onfocus="this.style.borderColor='#0f2044'" onblur="this.style.borderColor='#e5e7eb'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage('${studentId}','${myRole}','${myName.replace(/'/g,"\\'")}');}"></textarea>
-          <button onclick="sendMessage('${studentId}','${myRole}','${myName.replace(/'/g,"\\'")}')" style="background:#0f2044;color:#fff;border:none;border-radius:10px;padding:.65rem 1.1rem;font-size:.85rem;font-weight:700;cursor:pointer;white-space:nowrap">Send →</button>
+        <!-- typing indicator -->
+        <div style="padding:0 1.4rem .35rem">
+          <div id="${typingId}" class="typing-bubble">
+            <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+            <span class="typing-name" id="${typingId}-name"></span>
+          </div>
+        </div>
+        <!-- input bar -->
+        <div style="padding:.85rem 1.25rem;border-top:1px solid #f0f2f5;display:flex;gap:.6rem;align-items:flex-end;background:#fafbfc">
+          <textarea id="msgInput" rows="1" placeholder="iMessage…" class="msg-input"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';_onMsgTyping('${studentId}','${safeRole}','${safeName}')"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage('${studentId}','${safeRole}','${safeName}');}"></textarea>
+          <button class="msg-send-btn" onclick="sendMessage('${studentId}','${safeRole}','${safeName}')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
         </div>
       </div>
     </div>`;
+
+  // Mark existing IDs as shown
+  msgs.forEach(m => { if (m.id) _shownMsgIds.add(m.id); });
   // Scroll to bottom
-  setTimeout(()=>{const feed=document.getElementById('msgFeed'); if(feed) feed.scrollTop=feed.scrollHeight;},50);
+  setTimeout(()=>{ const f=document.getElementById(feedId); if(f) f.scrollTop=f.scrollHeight; }, 60);
+  // Store context for realtime
+  _activeMsgCtx = { studentId, myRole, myName, feedId, typingId };
+  // Subscribe realtime
+  _subscribeMessages(studentId, myRole);
+  _subscribeTyping(studentId, myRole, myName);
 }
 
+/* Render just the bubble HTML for a list of messages */
+function _renderMsgBubbles(msgs, myRole) {
+  const roleLabel = {student:'Student', tutor:'Tutor', admin:'Northstar'};
+  let out = '';
+  let lastDate = '';
+  msgs.forEach(m => {
+    const isMe = m.sender_role === myRole;
+    const d = new Date(m.created_at);
+    const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    if (dateStr !== lastDate) {
+      out += `<div style="text-align:center;margin:.6rem 0;font-size:.67rem;color:#9ca3af;font-weight:600;letter-spacing:.06em;text-transform:uppercase">${dateStr}</div>`;
+      lastDate = dateStr;
+    }
+    const time = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    const label = roleLabel[m.sender_role]||m.sender_role;
+    out += `
+      <div class="msg-wrap" style="--msg-align:${isMe?'flex-end':'flex-start'}">
+        ${!isMe?`<div class="msg-meta" style="margin-left:.3rem">${m.sender_name} <span style="opacity:.6">· ${label}</span></div>`:''}
+        <div class="msg-bubble ${isMe?'me':'them'}">${_escHtml(m.content)}</div>
+        <div class="msg-meta" style="margin-${isMe?'right':'left'}:.3rem">${time}</div>
+      </div>`;
+  });
+  return out;
+}
+
+function _escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+/* Append a single new bubble (called by realtime) */
+function _appendMsgBubble(msg, myRole) {
+  if (!_activeMsgCtx) return;
+  const feed = document.getElementById(_activeMsgCtx.feedId);
+  if (!feed) return;
+  const roleLabel = {student:'Student', tutor:'Tutor', admin:'Northstar'};
+  const isMe  = msg.sender_role === myRole;
+  const d     = new Date(msg.created_at);
+  const time  = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  const label = roleLabel[msg.sender_role]||msg.sender_role;
+  const div = document.createElement('div');
+  div.className = 'msg-wrap';
+  div.style.setProperty('--msg-align', isMe ? 'flex-end' : 'flex-start');
+  div.innerHTML = `
+    ${!isMe?`<div class="msg-meta" style="margin-left:.3rem">${_escHtml(msg.sender_name)} <span style="opacity:.6">· ${label}</span></div>`:''}
+    <div class="msg-bubble ${isMe?'me':'them'}">${_escHtml(msg.content)}</div>
+    <div class="msg-meta" style="margin-${isMe?'right':'left'}:.3rem">${time}</div>`;
+  // Remove "no messages" placeholder if present
+  const empty = feed.querySelector('[data-empty]');
+  if (empty) empty.remove();
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+/* Supabase Realtime: subscribe to new message inserts */
+function _subscribeMessages(studentId, myRole) {
+  if (_msgChannel) { try { db.removeChannel(_msgChannel); } catch(e){} _msgChannel=null; }
+  _msgChannel = db.channel('chat-' + studentId)
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages', filter:`student_id=eq.${studentId}` },
+      payload => {
+        const msg = payload.new;
+        if (!msg?.id || _shownMsgIds.has(msg.id)) return; // dedup
+        _shownMsgIds.add(msg.id);
+        _appendMsgBubble(msg, myRole);
+        // Hide typing indicator if it was this person
+        if (msg.sender_role !== myRole) {
+          delete _typingUsers[msg.sender_role];
+          _updateTypingUI();
+        }
+      })
+    .subscribe();
+}
+
+/* Supabase Realtime: typing broadcast */
+function _subscribeTyping(studentId, myRole, myName) {
+  if (_typingChannel) { try { db.removeChannel(_typingChannel); } catch(e){} _typingChannel=null; }
+  _typingChannel = db.channel('typing-' + studentId)
+    .on('broadcast', { event:'typing' }, ({ payload }) => {
+      if (payload.role === myRole) return; // ignore own events
+      if (payload.isTyping) {
+        _typingUsers[payload.role] = payload.name;
+      } else {
+        delete _typingUsers[payload.role];
+      }
+      _updateTypingUI();
+    })
+    .subscribe();
+}
+
+function _updateTypingUI() {
+  if (!_activeMsgCtx) return;
+  const el   = document.getElementById(_activeMsgCtx.typingId);
+  const nameEl = document.getElementById(_activeMsgCtx.typingId + '-name');
+  if (!el || !nameEl) return;
+  const names = Object.values(_typingUsers);
+  if (names.length === 0) { el.classList.remove('visible'); }
+  else {
+    nameEl.textContent = names.join(' & ') + ' ' + (names.length===1?'is':'are') + ' typing…';
+    el.classList.add('visible');
+  }
+}
+
+function _onMsgTyping(studentId, myRole, myName) {
+  if (!_typingChannel) return;
+  _typingChannel.send({ type:'broadcast', event:'typing', payload:{ role:myRole, name:myName, isTyping:true, studentId } });
+  clearTimeout(_typingTimer);
+  _typingTimer = setTimeout(() => {
+    if (_typingChannel) _typingChannel.send({ type:'broadcast', event:'typing', payload:{ role:myRole, name:myName, isTyping:false, studentId } });
+  }, 2000);
+}
+
+/* Tear down realtime (call when switching students/portals) */
+function _unsubscribeMessages() {
+  if (_msgChannel) { try { db.removeChannel(_msgChannel); } catch(e){} _msgChannel=null; }
+  if (_typingChannel) { try { db.removeChannel(_typingChannel); } catch(e){} _typingChannel=null; }
+  _typingUsers = {};
+  _shownMsgIds = new Set();
+  _activeMsgCtx = null;
+}
+
+/* ── SEND MESSAGE ── */
 async function sendMessage(studentId, senderRole, senderName) {
   const input = document.getElementById('msgInput');
   const content = (input?.value||'').trim();
   if (!content) return;
   input.value = '';
-  const { error } = await db.from('messages').insert({ student_id:studentId, sender_role:senderRole, sender_name:senderName, content });
-  if (error) { showToast('Error sending message: '+error.message,'error'); return; }
-  // Reload messages
-  if (senderRole==='student') buildStudentMessages();
-  else buildTutorMessagesPanel(studentId);
+  input.style.height = 'auto';
+  // Stop typing broadcast
+  if (_typingChannel) _typingChannel.send({ type:'broadcast', event:'typing', payload:{ role:senderRole, name:senderName, isTyping:false, studentId } });
+  // Insert to DB — use .select().single() to get the ID back for dedup
+  const { data: saved, error } = await db.from('messages')
+    .insert({ student_id:studentId, sender_role:senderRole, sender_name:senderName, content })
+    .select().single();
+  if (error) { showToast('Error: '+error.message,'error'); return; }
+  // Optimistic render — realtime echo will be deduped by ID
+  const optimisticMsg = saved || { id:null, sender_role:senderRole, sender_name:senderName, content, created_at:new Date().toISOString() };
+  if (optimisticMsg.id) {
+    if (_shownMsgIds.has(optimisticMsg.id)) return; // realtime already rendered it
+    _shownMsgIds.add(optimisticMsg.id);
+  }
+  _appendMsgBubble(optimisticMsg, senderRole);
 }
 
-/* ── MESSAGES (TUTOR) ── */
+/* ── LOAD STUDENT MESSAGES ── */
+async function buildStudentMessages() {
+  const container = document.getElementById('messagesBody');
+  if (!container) return;
+  const studentId = currentStudent?.studentId;
+  if (!studentId) { container.innerHTML='<div style="padding:2rem;text-align:center;color:#9ca3af">Unable to load messages.</div>'; return; }
+  container.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b">Loading…</div>';
+  _unsubscribeMessages();
+  const { data: msgs, error } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at', {ascending:true});
+  if (error) { container.innerHTML=`<div style="color:#ef4444;padding:1rem">${error.message}</div>`; return; }
+  renderMessagesUI(container, msgs||[], studentId, 'student', currentStudent.name);
+}
+
+/* ── TUTOR MESSAGES PANEL ── */
 async function buildTutorMessagesPanel(studentId) {
   const panel = document.getElementById('ttab-panel-messages');
   if (!panel) return;
+  _unsubscribeMessages();
   const { data: msgs, error } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at', {ascending:true});
   if (error) { panel.innerHTML=`<div style="color:#ef4444;padding:1rem">${error.message}</div>`; return; }
   const tutorName = currentTutor?.name || 'Tutor';
@@ -3397,10 +3591,16 @@ function switchTutorTab(id) {
   tutorActiveTab = id;
   document.querySelectorAll('.t-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.t-tab-panel').forEach(p=>p.classList.remove('active'));
-  const tab = document.getElementById('ttab-'+id);
+  const tab   = document.getElementById('ttab-'+id);
   const panel = document.getElementById('ttab-panel-'+id);
-  if (tab) tab.classList.add('active');
-  if (panel) panel.classList.add('active');
+  if (tab)   tab.classList.add('active');
+  if (panel) {
+    panel.style.animation='none'; void panel.offsetWidth;
+    panel.style.animation='fadeInUp .22s cubic-bezier(.22,1,.36,1)';
+    panel.classList.add('active');
+  }
+  // Load messages panel lazily when switching to messages tab
+  if (id === 'messages' && selectedStudent) buildTutorMessagesPanel(selectedStudent.id);
 }
 
 /* ── MATERIALS PANEL ── */
@@ -3693,9 +3893,9 @@ function buildTutorSessionsPanel(sessions, studentId) {
         <label class="t-label">Session Notes (shown to student)</label>
         <textarea class="t-textarea" id="sessNotes" placeholder="What did you cover? Any key takeaways or homework reminders?"></textarea>
       </div>
-      <div class="t-form-group">
-        <label class="t-label">Google Meet Link (for upcoming sessions)</label>
-        <input class="t-input" id="sessMeet" type="url" placeholder="https://meet.google.com/xxx-xxxx-xxx" />
+      <div class="t-form-group" style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:.85rem 1rem">
+        <label class="t-label" style="color:#1d4ed8">📹 Google Meet Link <span style="font-weight:400;color:#3b82f6;font-size:.72rem">(student will see a "Join Meeting" button)</span></label>
+        <input class="t-input" id="sessMeet" type="url" placeholder="https://meet.google.com/xxx-xxxx-xxx" style="margin-top:.35rem;background:#fff" />
       </div>
       <button class="t-btn t-btn-primary" id="sessLogBtn" onclick="logSession('${studentId}')">📝 Log Session</button>
       <p style="font-size:.74rem;color:#94a3b8;margin-top:.65rem">Hours will appear as pending until approved by admin.</p>
@@ -3705,12 +3905,13 @@ function buildTutorSessionsPanel(sessions, studentId) {
       ${pending.length?`<div style="margin-bottom:.75rem;font-size:.8rem;font-weight:600;color:#92400e;background:#fef3c7;padding:.4rem .75rem;border-radius:8px">⏳ ${pending.length} pending admin approval</div>`:''}
       ${sessions.length ? `<div class="t-list">${sessions.map(s=>`
         <div class="t-item" style="flex-direction:column;align-items:stretch">
-          <div style="display:flex;align-items:center;gap:.75rem">
+          <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
             <div class="t-item-icon" style="background:#eff6ff">📅</div>
             <div class="t-item-info">
               <div class="t-item-name">${s.topic||'Session'} <span style="font-weight:400;color:#64748b">(${s.duration_hours}h)</span></div>
               <div class="t-item-meta">${s.session_date||''}${s.notes?' · '+s.notes.substring(0,60)+'…':''}</div>
             </div>
+            ${s.meeting_url ? `<a href="${s.meeting_url}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;background:#1a73e8;color:#fff;font-size:.72rem;font-weight:700;padding:.3rem .7rem;border-radius:8px;text-decoration:none;flex-shrink:0">📹 Join</a>` : ''}
             <span class="t-status-badge ${s.approved?'t-status-approved':'t-status-pending'}">${s.approved?'Approved':'Pending'}</span>
             <div style="display:flex;gap:.3rem;flex-shrink:0">
               <button class="t-btn t-btn-ghost t-btn-sm" onclick="tutorEditToggle('esess-${s.id}')">✏️ Edit</button>
@@ -4121,6 +4322,7 @@ function showAdminSection(id) {
   document.getElementById('admTopbarTitle').textContent =
     {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', 'adm-messages':'Messages'}[id] || id;
   const body = document.getElementById('admBody');
+  body.style.animation='none'; void body.offsetWidth; body.style.animation='fadeInUp .25s cubic-bezier(.22,1,.36,1)';
   body.innerHTML = '<div style="text-align:center;padding:3rem;color:#64748b">Loading…</div>';
   if      (id === 'approvals')    buildAdminApprovals();
   else if (id === 'enrollments')  buildAdminEnrollments();
@@ -4706,23 +4908,32 @@ async function buildAdminMessages() {
   if (!students?.length) { body.innerHTML='<div class="adm-empty">No students yet.</div>'; return; }
 
   body.innerHTML = `
-    <div style="display:flex;gap:1rem;height:calc(100vh - 140px);min-height:500px">
-      <div style="width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:.35rem">
-        <div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.35rem">Students</div>
-        ${students.map(s=>`<button id="admMsgBtn-${s.id}" onclick="loadAdminConvo('${s.id}','${s.name.replace(/'/g,"\\'")}')" style="text-align:left;padding:.55rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;background:#fff;font-size:.82rem;font-weight:600;color:#0f2044;cursor:pointer;transition:all .15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">${s.name}</button>`).join('')}
+    <div style="display:flex;gap:1.25rem;height:calc(100vh - 140px);min-height:500px">
+      <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:.35rem;overflow-y:auto">
+        <div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;padding:.25rem 0">Conversations</div>
+        ${students.map(s=>`
+          <button id="admMsgBtn-${s.id}" onclick="loadAdminConvo('${s.id}','${s.name.replace(/'/g,"\\'")}')"
+            style="text-align:left;padding:.6rem .9rem;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.83rem;font-weight:600;color:#0f2044;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:.6rem">
+            <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0f2044,#2a4a8a);color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+            ${s.name}
+          </button>`).join('')}
       </div>
-      <div style="flex:1;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
-        <div id="admConvoArea" style="flex:1;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.9rem">Select a student to view their conversation</div>
+      <div style="flex:1;background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 20px rgba(15,32,68,.06)">
+        <div id="admConvoArea" style="flex:1;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.9rem;flex-direction:column;gap:.5rem">
+          <div style="font-size:2rem">💬</div>
+          <div>Select a student to open their chat</div>
+        </div>
       </div>
     </div>`;
 }
 
 async function loadAdminConvo(studentId, studentName) {
-  document.querySelectorAll('[id^="admMsgBtn-"]').forEach(b=>b.style.borderColor='#e5e7eb');
+  document.querySelectorAll('[id^="admMsgBtn-"]').forEach(b=>{ b.style.borderColor='#e5e7eb'; b.style.background='#fff'; });
   const btn = document.getElementById('admMsgBtn-'+studentId);
-  if (btn) btn.style.borderColor='#0f2044';
+  if (btn) { btn.style.borderColor='#0f2044'; btn.style.background='#f0f4ff'; }
   const area = document.getElementById('admConvoArea');
-  area.innerHTML='<div style="padding:2rem;color:#64748b">Loading…</div>';
+  area.innerHTML='<div style="padding:2rem;color:#64748b;text-align:center">Loading…</div>';
+  _unsubscribeMessages();
   const { data: msgs } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at',{ascending:true});
   renderMessagesUI(area, msgs||[], studentId, 'admin', 'Northstar Admin');
 }
