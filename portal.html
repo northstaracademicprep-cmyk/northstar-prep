@@ -126,11 +126,24 @@
     .stat-card:hover{box-shadow:0 8px 28px rgba(15,32,68,.13)!important;transform:translateY(-2px)}
 
     /* ── iMESSAGE CHAT ── */
-    .msg-wrap{display:flex;flex-direction:column;align-items:var(--msg-align,flex-start);margin-bottom:.15rem}
-    .msg-bubble{max-width:72%;padding:.62rem 1rem;border-radius:var(--msg-radius,18px 18px 18px 4px);font-size:.9rem;line-height:1.5;word-break:break-word;position:relative}
+    .msg-wrap{display:flex;flex-direction:column;align-items:var(--msg-align,flex-start);margin-bottom:.2rem;position:relative}
+    .msg-bubble-row{display:flex;align-items:flex-end;gap:.3rem;width:100%;justify-content:var(--msg-align,flex-start)}
+    .msg-bubble{max-width:72%;padding:.65rem 1rem;border-radius:18px 18px 18px 4px;font-size:.9rem;line-height:1.5;word-break:break-word;position:relative;transition:transform .12s}
     .msg-bubble.me{background:#0f2044;color:#fff;border-radius:18px 18px 4px 18px;animation:msgSlideRight .22s cubic-bezier(.22,1,.36,1)}
     .msg-bubble.them{background:#e9ebef;color:#1a1a2e;animation:msgSlideLeft .22s cubic-bezier(.22,1,.36,1)}
     .msg-meta{font-size:.65rem;color:#94a3b8;margin:.18rem .3rem}
+    /* ── MESSAGE EDIT / DELETE ACTIONS ── */
+    .msg-actions{display:flex;gap:.18rem;opacity:0;transition:opacity .15s;flex-shrink:0;align-items:center;padding-bottom:2px}
+    .msg-wrap:hover .msg-actions{opacity:1}
+    .msg-action-btn{background:rgba(100,116,139,.1);border:none;border-radius:7px;width:28px;height:28px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,transform .1s;padding:0;line-height:1}
+    .msg-action-btn:hover{background:rgba(100,116,139,.22);transform:scale(1.12)}
+    .msg-edited{font-size:.6rem;color:rgba(255,255,255,.45);margin-left:.3rem;font-style:italic}
+    .msg-bubble.them .msg-edited{color:#94a3b8}
+    .msg-edit-input{background:transparent;border:none;outline:none;font-size:.9rem;font-family:inherit;width:100%;resize:none;line-height:1.5;color:inherit;padding:0;min-height:1.4em}
+    .msg-edit-bar{display:flex;gap:.3rem;margin-top:.45rem;justify-content:flex-end}
+    .msg-eact-btn{background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:.22rem .65rem;font-size:.74rem;font-weight:600;cursor:pointer;color:inherit;transition:background .12s;line-height:1.5}
+    .msg-eact-btn.save{background:#fff;color:#0f2044}.msg-eact-btn.save:hover{background:#e8edff}
+    .msg-eact-btn.cancel:hover{background:rgba(255,255,255,.28)}
     /* ── NOTIFICATION BADGES ── */
     .notif-badge{display:none;min-width:18px;height:18px;border-radius:99px;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;align-items:center;justify-content:center;padding:0 4px;margin-left:auto;animation:popIn .25s cubic-bezier(.22,1,.36,1);line-height:1;flex-shrink:0}
     .notif-badge.visible{display:inline-flex}
@@ -1392,6 +1405,8 @@ function bootPortal() {
   buildResources();
   buildAnnouncements();
   showNewItemsNotification();
+  // Start background notification listener so student gets notified on other tabs
+  if (s.studentId) _initBgNotifs([s.studentId], 'student');
 }
 
 function showNewItemsNotification() {
@@ -3329,15 +3344,22 @@ function _renderMsgBubbles(msgs, myRole) {
     const d = new Date(m.created_at);
     const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     if (dateStr !== lastDate) {
-      out += `<div style="text-align:center;margin:.6rem 0;font-size:.67rem;color:#9ca3af;font-weight:600;letter-spacing:.06em;text-transform:uppercase">${dateStr}</div>`;
+      out += `<div style="text-align:center;margin:.75rem 0 .3rem;font-size:.67rem;color:#9ca3af;font-weight:600;letter-spacing:.06em;text-transform:uppercase">${dateStr}</div>`;
       lastDate = dateStr;
     }
     const time = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     const label = roleLabel[m.sender_role]||m.sender_role;
+    const actions = isMe && m.id ? `<div class="msg-actions">
+      <button class="msg-action-btn" onclick="editMessage('${m.id}')" title="Edit">✏️</button>
+      <button class="msg-action-btn" onclick="deleteMessage('${m.id}')" title="Delete">🗑️</button>
+    </div>` : '';
     out += `
-      <div class="msg-wrap" style="--msg-align:${isMe?'flex-end':'flex-start'}">
-        ${!isMe?`<div class="msg-meta" style="margin-left:.3rem">${m.sender_name} <span style="opacity:.6">· ${label}</span></div>`:''}
-        <div class="msg-bubble ${isMe?'me':'them'}">${_escHtml(m.content)}</div>
+      <div class="msg-wrap" data-msg-id="${m.id||''}" style="--msg-align:${isMe?'flex-end':'flex-start'}">
+        ${!isMe?`<div class="msg-meta" style="margin-left:.3rem">${_escHtml(m.sender_name)} <span style="opacity:.6">· ${label}</span></div>`:''}
+        <div class="msg-bubble-row">
+          ${isMe ? actions : ''}
+          <div class="msg-bubble ${isMe?'me':'them'}" id="bubble-${m.id||''}" data-original="${_escAttr(m.content)}">${_escHtml(m.content)}</div>
+        </div>
         <div class="msg-meta" style="margin-${isMe?'right':'left'}:.3rem">${time}</div>
       </div>`;
   });
@@ -3345,6 +3367,7 @@ function _renderMsgBubbles(msgs, myRole) {
 }
 
 function _escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+function _escAttr(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 /* Append a single new bubble (called by realtime) */
 function _appendMsgBubble(msg, myRole) {
@@ -3356,12 +3379,20 @@ function _appendMsgBubble(msg, myRole) {
   const d     = new Date(msg.created_at);
   const time  = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   const label = roleLabel[msg.sender_role]||msg.sender_role;
+  const actions = isMe && msg.id ? `<div class="msg-actions">
+    <button class="msg-action-btn" onclick="editMessage('${msg.id}')" title="Edit">✏️</button>
+    <button class="msg-action-btn" onclick="deleteMessage('${msg.id}')" title="Delete">🗑️</button>
+  </div>` : '';
   const div = document.createElement('div');
   div.className = 'msg-wrap';
+  div.dataset.msgId = msg.id || '';
   div.style.setProperty('--msg-align', isMe ? 'flex-end' : 'flex-start');
   div.innerHTML = `
     ${!isMe?`<div class="msg-meta" style="margin-left:.3rem">${_escHtml(msg.sender_name)} <span style="opacity:.6">· ${label}</span></div>`:''}
-    <div class="msg-bubble ${isMe?'me':'them'}">${_escHtml(msg.content)}</div>
+    <div class="msg-bubble-row">
+      ${isMe ? actions : ''}
+      <div class="msg-bubble ${isMe?'me':'them'}" id="bubble-${msg.id||''}" data-original="${_escAttr(msg.content)}">${_escHtml(msg.content)}</div>
+    </div>
     <div class="msg-meta" style="margin-${isMe?'right':'left'}:.3rem">${time}</div>`;
   // Remove "no messages" placeholder if present
   const empty = feed.querySelector('[data-empty]');
@@ -3370,26 +3401,46 @@ function _appendMsgBubble(msg, myRole) {
   feed.scrollTop = feed.scrollHeight;
 }
 
-/* ── SINGLE BROADCAST CHANNEL: messages + typing ── */
+/* ── SINGLE BROADCAST CHANNEL: messages + typing + edit + delete ── */
 function _subscribeChat(studentId, myRole, myName) {
+  // Remove bg notif channel for this student to prevent naming conflict
+  if (_bgNotifChannels[studentId]) {
+    try { db.removeChannel(_bgNotifChannels[studentId]); } catch(e){}
+    delete _bgNotifChannels[studentId];
+  }
   if (_chatChannel) { try { db.removeChannel(_chatChannel); } catch(e){} _chatChannel=null; }
 
   _chatChannel = db.channel('chat-' + studentId, { config:{ broadcast:{ self:false } } })
-    /* ── new message broadcast (from any sender) ── */
+    /* ── new message ── */
     .on('broadcast', { event:'new_message' }, ({ payload }) => {
       const msg = payload;
       if (!msg?.id || _shownMsgIds.has(msg.id)) return;
       _shownMsgIds.add(msg.id);
       _appendMsgBubble(msg, myRole);
-      // Clear typing for the sender
       delete _typingUsers[msg.sender_role];
       _updateTypingUI();
-      // Notification: if sender isn't us, ping badges (chat IS open here so _countUnread skips)
       _countUnread(studentId, msg.sender_role, myRole);
     })
-    /* ── typing indicator broadcast ── */
+    /* ── edit message ── */
+    .on('broadcast', { event:'edit_message' }, ({ payload }) => {
+      const bubble = document.getElementById('bubble-' + payload.id);
+      if (bubble && bubble.dataset.editing !== '1') {
+        bubble.innerHTML = _escHtml(payload.content) + '<span class="msg-edited"> · edited</span>';
+        bubble.dataset.original = payload.content;
+      }
+    })
+    /* ── delete message ── */
+    .on('broadcast', { event:'delete_message' }, ({ payload }) => {
+      const wrap = document.querySelector(`.msg-wrap[data-msg-id="${payload.id}"]`);
+      if (wrap) {
+        wrap.style.transition = 'opacity .22s ease, transform .22s ease';
+        wrap.style.opacity = '0'; wrap.style.transform = 'scale(.95)';
+        setTimeout(() => wrap.remove(), 240);
+      }
+    })
+    /* ── typing indicator ── */
     .on('broadcast', { event:'typing' }, ({ payload }) => {
-      if (payload.role === myRole) return; // ignore own echo
+      if (payload.role === myRole) return;
       if (payload.isTyping) { _typingUsers[payload.role] = payload.name; }
       else { delete _typingUsers[payload.role]; }
       _updateTypingUI();
@@ -3421,10 +3472,14 @@ function _onMsgTyping(studentId, myRole, myName) {
 
 /* Tear down (call when switching students/portals) */
 function _unsubscribeMessages() {
+  const prevStudentId = _activeMsgCtx?.studentId;
+  const prevRole      = _activeMsgCtx?.myRole;
   if (_chatChannel) { try { db.removeChannel(_chatChannel); } catch(e){} _chatChannel=null; }
   _typingUsers = {};
   _shownMsgIds = new Set();
   _activeMsgCtx = null;
+  // Restore bg notif listener for the student we just left
+  if (prevStudentId && prevRole) _initBgNotifs([prevStudentId], prevRole);
 }
 
 /* ── SEND MESSAGE ── */
@@ -3456,6 +3511,83 @@ async function sendMessage(studentId, senderRole, senderName) {
   if (_chatChannel && msg.id) {
     _chatChannel.send({ type:'broadcast', event:'new_message', payload: msg });
   }
+}
+
+/* ── EDIT / DELETE MESSAGES ── */
+function editMessage(msgId) {
+  const bubble = document.getElementById('bubble-' + msgId);
+  if (!bubble || bubble.querySelector('textarea')) return; // already editing
+  const original = bubble.dataset.original ?? bubble.textContent.trim();
+  bubble.dataset.original = original;
+  bubble.dataset.editing = '1';
+  // Replace bubble content with inline edit UI (built via DOM to avoid escaping issues)
+  bubble.innerHTML = '';
+  const ta = document.createElement('textarea');
+  ta.className = 'msg-edit-input';
+  ta.value = original;
+  ta.rows = 1;
+  bubble.appendChild(ta);
+  const bar = document.createElement('div');
+  bar.className = 'msg-edit-bar';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'msg-eact-btn cancel';
+  cancelBtn.textContent = 'Cancel';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'msg-eact-btn save';
+  saveBtn.textContent = 'Save';
+  bar.appendChild(cancelBtn); bar.appendChild(saveBtn);
+  bubble.appendChild(bar);
+  // Auto-size textarea
+  requestAnimationFrame(() => { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); });
+  ta.oninput = () => { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; };
+  const doSave   = () => _saveEdit(msgId, ta.value, bubble);
+  const doCancel = () => _cancelEdit(msgId, original, bubble);
+  saveBtn.onclick = doSave;
+  cancelBtn.onclick = doCancel;
+  ta.onkeydown = e => {
+    if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); doSave(); }
+    if (e.key==='Escape') doCancel();
+  };
+}
+
+function _cancelEdit(msgId, original, bubble) {
+  if (!bubble) bubble = document.getElementById('bubble-' + msgId);
+  if (!bubble) return;
+  bubble.dataset.editing = '0';
+  bubble.innerHTML = _escHtml(original) + (bubble.dataset.wasEdited==='1' ? '<span class="msg-edited"> · edited</span>' : '');
+}
+
+async function _saveEdit(msgId, newContent, bubble) {
+  newContent = (newContent||'').trim();
+  if (!newContent) return;
+  if (!bubble) bubble = document.getElementById('bubble-' + msgId);
+  const { error } = await db.from('messages').update({ content: newContent }).eq('id', msgId);
+  if (error) { showToast('Error saving: '+error.message, 'error'); return; }
+  if (bubble) {
+    bubble.dataset.editing = '0';
+    bubble.dataset.original = newContent;
+    bubble.dataset.wasEdited = '1';
+    bubble.innerHTML = _escHtml(newContent) + '<span class="msg-edited"> · edited</span>';
+  }
+  if (_chatChannel) _chatChannel.send({ type:'broadcast', event:'edit_message', payload:{ id:msgId, content:newContent } });
+}
+
+async function deleteMessage(msgId) {
+  const wrap = document.querySelector(`.msg-wrap[data-msg-id="${msgId}"]`);
+  if (!wrap) return;
+  // Smooth slide-out before deleting
+  wrap.style.transition = 'opacity .22s ease, transform .22s ease, max-height .28s ease, margin .28s ease';
+  wrap.style.opacity = '0';
+  const slideDir = getComputedStyle(wrap).getPropertyValue('--msg-align').trim() === 'flex-end' ? '20' : '-20';
+  wrap.style.transform = `translateX(${slideDir}px) scale(.95)`;
+  wrap.style.maxHeight = wrap.offsetHeight + 'px';
+  requestAnimationFrame(() => { wrap.style.maxHeight='0'; wrap.style.marginBottom='0'; });
+  const { error } = await db.from('messages').delete().eq('id', msgId);
+  if (error) {
+    wrap.style.cssText=''; showToast('Error: '+error.message,'error'); return;
+  }
+  setTimeout(() => wrap.remove(), 300);
+  if (_chatChannel) _chatChannel.send({ type:'broadcast', event:'delete_message', payload:{ id:msgId } });
 }
 
 /* ── LOAD STUDENT MESSAGES ── */
@@ -3770,9 +3902,15 @@ function switchTutorTab(id) {
   if (panel) {
     panel.style.animation='none'; void panel.offsetWidth;
     panel.style.animation='fadeInUp .22s cubic-bezier(.22,1,.36,1)';
-    // messages panel needs flex, others use block (set by CSS .t-tab-panel.active)
+    // messages panel needs flex; others use block (set by CSS .t-tab-panel.active)
     if (id === 'messages') panel.style.display = 'flex';
     panel.classList.add('active');
+  }
+  // Full-width + no max-width cap for messages; restore for other tabs
+  const tc = document.getElementById('tContent');
+  if (tc) {
+    if (id === 'messages') { tc.style.maxWidth = 'none'; tc.style.paddingBottom = '0'; }
+    else { tc.style.maxWidth = ''; tc.style.paddingBottom = ''; }
   }
   // Load messages panel lazily when switching to messages tab
   if (id === 'messages' && selectedStudent) buildTutorMessagesPanel(selectedStudent.id);
@@ -4500,6 +4638,9 @@ function showAdminSection(id) {
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
     {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', 'adm-messages':'Messages'}[id] || id;
+  // Full-bleed layout for messages, restore padding for other sections
+  const admContent = document.querySelector('.adm-content');
+  if (admContent) admContent.style.padding = id === 'adm-messages' ? '0' : '';
   const body = document.getElementById('admBody');
   body.style.animation='none'; void body.offsetWidth; body.style.animation='fadeInUp .25s cubic-bezier(.22,1,.36,1)';
   body.innerHTML = '<div style="text-align:center;padding:3rem;color:#64748b">Loading…</div>';
@@ -5250,21 +5391,24 @@ async function buildAdminMessages() {
   if (!students?.length) { body.innerHTML='<div class="adm-empty">No students yet.</div>'; return; }
 
   body.innerHTML = `
-    <div style="display:flex;gap:1.25rem;height:calc(100vh - 120px)">
-      <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:.35rem;overflow-y:auto">
-        <div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;padding:.25rem 0">Conversations</div>
+    <div style="display:flex;height:calc(100vh - 57px)">
+      <!-- Student list sidebar -->
+      <div style="width:230px;flex-shrink:0;display:flex;flex-direction:column;gap:.3rem;overflow-y:auto;border-right:1px solid #e5e7eb;background:#fafbfc;padding:1rem .85rem">
+        <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem;padding:0 .1rem">Conversations</div>
         ${students.map(s=>`
           <button id="admMsgBtn-${s.id}" onclick="loadAdminConvo('${s.id}','${s.name.replace(/'/g,"\\'")}')"
-            style="text-align:left;padding:.6rem .9rem;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.83rem;font-weight:600;color:#0f2044;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:.6rem">
-            <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0f2044,#2a4a8a);color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
-            <span style="flex:1">${s.name}</span>
+            style="text-align:left;padding:.6rem .8rem;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.82rem;font-weight:600;color:#0f2044;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:.55rem;width:100%">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0f2044,#2a4a8a);color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
             <span class="notif-badge" id="admstu-badge-${s.id}"></span>
           </button>`).join('')}
       </div>
-      <div style="flex:1;background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 20px rgba(15,32,68,.06)">
+      <!-- Chat area -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:1rem;background:#f8fafc">
         <div id="admConvoArea" style="flex:1;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.9rem;flex-direction:column;gap:.5rem">
-          <div style="font-size:2rem">💬</div>
-          <div>Select a student to open their chat</div>
+          <div style="font-size:2.5rem">💬</div>
+          <div style="font-weight:600">Select a student to open their chat</div>
+          <div style="font-size:.8rem;color:#cbd5e1">Messages are shared with the student and their tutor</div>
         </div>
       </div>
     </div>`;
@@ -5275,8 +5419,8 @@ async function loadAdminConvo(studentId, studentName) {
   const btn = document.getElementById('admMsgBtn-'+studentId);
   if (btn) { btn.style.borderColor='#0f2044'; btn.style.background='#f0f4ff'; }
   const area = document.getElementById('admConvoArea');
-  // Reset placeholder centering so chat fills full width
-  area.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;overflow:hidden';
+  // Reset placeholder centering so chat fills full height
+  area.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden';
   area.innerHTML='<div style="padding:2rem;color:#64748b;text-align:center">Loading…</div>';
   _markRead(studentId);
   _unsubscribeMessages();
