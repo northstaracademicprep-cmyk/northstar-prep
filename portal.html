@@ -717,6 +717,10 @@
         <div id="pvContent"></div>
       </section>
 
+      <section class="page-section" id="sec-messages">
+        <div id="messagesBody"></div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -747,6 +751,7 @@
       <header class="t-topbar">
         <div class="t-topbar-left">
           <button class="t-menu-btn" onclick="toggleTutorSidebar()">☰</button>
+          <button onclick="renderTutorDashboard()" title="Home" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#94a3b8;padding:0 .4rem;line-height:1;transition:color .15s" onmouseover="this.style.color='#0f2044'" onmouseout="this.style.color='#94a3b8'">🏠</button>
           <span class="t-topbar-title" id="tTopbarTitle">My Students</span>
         </div>
         <div style="font-size:.78rem;color:#94a3b8" id="tTopbarDate"></div>
@@ -1164,7 +1169,8 @@ async function loadFromSupabase(code) {
         subject: subj,
         topic: s.topic || '',
         time: s.duration_hours ? s.duration_hours + ' hrs' : '',
-        type: 'With Sid'
+        type: 'With Sid',
+        meetUrl: s.meeting_url || ''
       })),
       pastSessions: pastSessions.slice().reverse().map(s => ({
         month: fmtMonthAbbr(s.session_date),
@@ -1379,6 +1385,7 @@ const NAV_AP = [
   ]},
   {section:'updates',items:[
     {id:'announcements',icon:'📣',label:'Announcements'},
+    {id:'messages',icon:'💬',label:'Messages',badge:'msgBadge'},
   ]},
 ];
 const NAV_CC = [
@@ -1428,10 +1435,11 @@ function showSection(id, navEl) {
     sec.classList.add('active');
   }
   if (navEl) navEl.classList.add('active');
-  const titles = {dashboard:'Dashboard',progress:'My Progress',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault'};
+  const titles = {dashboard:'Dashboard',progress:'My Progress',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault',messages:'Messages'};
   document.getElementById('topbarTitle').textContent = titles[id]||id;
   if (id==='progress') { buildProgressPage(); setTimeout(animateAllBars,200); }
   if (id==='practice') buildPracticeVault();
+  if (id==='messages') buildStudentMessages();
   closeSidebar();
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('open')}
@@ -2671,7 +2679,9 @@ function buildSessions() {
       html += upcoming.map((ses,i)=>`<div class="session-item anim-up" style="animation-delay:${i*.07}s">
         <div class="session-date-block"><div class="session-month">${ses.month}</div><div class="session-day">${ses.day}</div></div>
         <div class="session-info"><div class="session-subject">${ses.subject}</div><div class="session-topic">${ses.topic}</div>
-        <div class="session-meta"><span class="session-tag time">🕐 ${ses.time}</span><span class="session-tag type">📍 ${ses.type}</span></div></div></div>`).join('');
+        <div class="session-meta"><span class="session-tag time">🕐 ${ses.time}</span><span class="session-tag type">📍 ${ses.type}</span>
+        ${ses.meetUrl?`<a href="${ses.meetUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;background:#1a73e8;color:#fff;font-size:.72rem;font-weight:700;padding:.2rem .65rem;border-radius:6px;text-decoration:none;margin-left:.25rem">📹 Join Meeting</a>`:''}
+        </div></div></div>`).join('');
       html += `</div>`;
     }
     if (past.length) {
@@ -2987,6 +2997,71 @@ function buildAnnouncements(){
     </div>`).join('')+`</div>`;
 }
 
+/* ── MESSAGES (STUDENT) ── */
+async function buildStudentMessages() {
+  const container = document.getElementById('messagesBody');
+  if (!container) return;
+  const studentId = currentStudent?.studentId;
+  if (!studentId) { container.innerHTML='<div class="empty-state"><p>Unable to load messages.</p></div>'; return; }
+  container.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b">Loading…</div>';
+  const { data: msgs, error } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at', {ascending:true});
+  if (error) { container.innerHTML=`<div style="color:#ef4444;padding:1rem">${error.message}</div>`; return; }
+  renderMessagesUI(container, msgs||[], studentId, 'student', currentStudent.name);
+}
+
+function renderMessagesUI(container, msgs, studentId, myRole, myName) {
+  const roleColor = {student:'#0f2044', tutor:'#065f46', admin:'#92400e'};
+  const roleLabel = {student:'Student', tutor:'Tutor', admin:'Admin'};
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:0;max-width:680px;margin:0 auto">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="padding:1rem 1.25rem;border-bottom:1px solid #e5e7eb;background:#f8fafc;display:flex;align-items:center;gap:.6rem">
+          <span style="font-size:1.1rem">💬</span>
+          <span style="font-weight:700;color:#0f2044;font-size:.95rem">Group Chat</span>
+          <span style="font-size:.72rem;color:#94a3b8;margin-left:.25rem">Student · Tutor · Admin</span>
+        </div>
+        <div id="msgFeed" style="padding:1.25rem;display:flex;flex-direction:column;gap:.85rem;min-height:280px;max-height:420px;overflow-y:auto">
+          ${msgs.length ? msgs.map(m => {
+            const isMe = m.sender_role === myRole;
+            const time = new Date(m.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+            return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+              <div style="font-size:.68rem;color:#94a3b8;margin-bottom:.2rem">${m.sender_name} · <span style="font-weight:700;color:${roleColor[m.sender_role]||'#64748b'}">${roleLabel[m.sender_role]||m.sender_role}</span> · ${time}</div>
+              <div style="max-width:78%;padding:.6rem .9rem;border-radius:${isMe?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${isMe?'#0f2044':'#f1f5f9'};color:${isMe?'#fff':'#1a2540'};font-size:.88rem;line-height:1.55">${m.content}</div>
+            </div>`;
+          }).join('') : '<div style="text-align:center;color:#94a3b8;font-size:.85rem;padding:2rem">No messages yet. Send the first one!</div>'}
+        </div>
+        <div style="padding:.85rem 1.25rem;border-top:1px solid #e5e7eb;display:flex;gap:.6rem;align-items:flex-end">
+          <textarea id="msgInput" rows="2" placeholder="Type a message…" style="flex:1;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:10px;font-size:.88rem;font-family:'Inter',sans-serif;resize:none;outline:none;line-height:1.5" onfocus="this.style.borderColor='#0f2044'" onblur="this.style.borderColor='#e5e7eb'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage('${studentId}','${myRole}','${myName.replace(/'/g,"\\'")}');}"></textarea>
+          <button onclick="sendMessage('${studentId}','${myRole}','${myName.replace(/'/g,"\\'")}')" style="background:#0f2044;color:#fff;border:none;border-radius:10px;padding:.65rem 1.1rem;font-size:.85rem;font-weight:700;cursor:pointer;white-space:nowrap">Send →</button>
+        </div>
+      </div>
+    </div>`;
+  // Scroll to bottom
+  setTimeout(()=>{const feed=document.getElementById('msgFeed'); if(feed) feed.scrollTop=feed.scrollHeight;},50);
+}
+
+async function sendMessage(studentId, senderRole, senderName) {
+  const input = document.getElementById('msgInput');
+  const content = (input?.value||'').trim();
+  if (!content) return;
+  input.value = '';
+  const { error } = await db.from('messages').insert({ student_id:studentId, sender_role:senderRole, sender_name:senderName, content });
+  if (error) { showToast('Error sending message: '+error.message,'error'); return; }
+  // Reload messages
+  if (senderRole==='student') buildStudentMessages();
+  else buildTutorMessagesPanel(studentId);
+}
+
+/* ── MESSAGES (TUTOR) ── */
+async function buildTutorMessagesPanel(studentId) {
+  const panel = document.getElementById('ttab-panel-messages');
+  if (!panel) return;
+  const { data: msgs, error } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at', {ascending:true});
+  if (error) { panel.innerHTML=`<div style="color:#ef4444;padding:1rem">${error.message}</div>`; return; }
+  const tutorName = currentTutor?.name || 'Tutor';
+  renderMessagesUI(panel, msgs||[], studentId, 'tutor', tutorName);
+}
+
 /* ══════════════════════════════════════════════════════════
    TUTOR PORTAL
 ══════════════════════════════════════════════════════════ */
@@ -3205,6 +3280,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
     {id:'progress',    label:'📊 Progress'},
     {id:'sessions',    label:'📅 Sessions'},
     {id:'announce',    label:'📣 Announcements'},
+    {id:'messages',    label:'💬 Messages'},
   ];
 
   document.getElementById('tContent').innerHTML = `
@@ -3234,11 +3310,13 @@ async function selectTutorStudent(studentId, keepTab=false) {
     <div id="ttab-panel-assignments" class="t-tab-panel">${buildTutorAssignmentsPanel(homework, studentId, subj)}</div>
     <div id="ttab-panel-progress" class="t-tab-panel"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading progress…</div></div>
     <div id="ttab-panel-sessions" class="t-tab-panel">${buildTutorSessionsPanel(sessions, studentId)}</div>
-    <div id="ttab-panel-announce" class="t-tab-panel">${buildTutorAnnouncePanel(announcements, studentId)}</div>`;
+    <div id="ttab-panel-announce" class="t-tab-panel">${buildTutorAnnouncePanel(announcements, studentId)}</div>
+    <div id="ttab-panel-messages" class="t-tab-panel"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading messages…</div></div>`;
   // Restore whichever tab was active (defaults to materials on first load)
   switchTutorTab(tutorActiveTab);
   // Async-load the progress panel in the background
   buildTutorProgressPanel(homework, studentId, subj);
+  buildTutorMessagesPanel(studentId);
 }
 
 function switchTutorTab(id) {
@@ -3541,6 +3619,10 @@ function buildTutorSessionsPanel(sessions, studentId) {
         <label class="t-label">Session Notes (shown to student)</label>
         <textarea class="t-textarea" id="sessNotes" placeholder="What did you cover? Any key takeaways or homework reminders?"></textarea>
       </div>
+      <div class="t-form-group">
+        <label class="t-label">Google Meet Link (for upcoming sessions)</label>
+        <input class="t-input" id="sessMeet" type="url" placeholder="https://meet.google.com/xxx-xxxx-xxx" />
+      </div>
       <button class="t-btn t-btn-primary" id="sessLogBtn" onclick="logSession('${studentId}')">📝 Log Session</button>
       <p style="font-size:.74rem;color:#94a3b8;margin-top:.65rem">Hours will appear as pending until approved by admin.</p>
     </div>
@@ -3567,7 +3649,8 @@ function buildTutorSessionsPanel(sessions, studentId) {
               <div class="t-form-group"><label class="t-label">Duration (hrs)</label><input class="t-input" type="number" step="0.5" id="esess-dur-${s.id}" value="${s.duration_hours||''}"></div>
             </div>
             <div class="t-form-group" style="margin-bottom:.5rem"><label class="t-label">Topic</label><input class="t-input" id="esess-topic-${s.id}" value="${(s.topic||'').replace(/"/g,'&quot;')}"></div>
-            <div class="t-form-group" style="margin-bottom:.75rem"><label class="t-label">Notes</label><textarea class="t-textarea" id="esess-notes-${s.id}" style="min-height:55px">${s.notes||''}</textarea></div>
+            <div class="t-form-group" style="margin-bottom:.5rem"><label class="t-label">Notes</label><textarea class="t-textarea" id="esess-notes-${s.id}" style="min-height:55px">${s.notes||''}</textarea></div>
+            <div class="t-form-group" style="margin-bottom:.75rem"><label class="t-label">Google Meet Link</label><input class="t-input" type="url" id="esess-meet-${s.id}" placeholder="https://meet.google.com/…" value="${(s.meeting_url||'').replace(/"/g,'&quot;')}"></div>
             <div style="display:flex;gap:.5rem">
               <button class="t-btn t-btn-primary t-btn-sm" onclick="tutorSaveSession('${s.id}','${studentId}')">Save Changes</button>
               <button class="t-btn t-btn-ghost t-btn-sm" onclick="tutorEditToggle('esess-${s.id}')">Cancel</button>
@@ -3583,22 +3666,18 @@ async function logSession(studentId) {
   const duration = document.getElementById('sessDur').value;
   const topic    = (document.getElementById('sessTopic').value||'').trim();
   const notes    = (document.getElementById('sessNotes').value||'').trim();
+  const meetUrl  = (document.getElementById('sessMeet').value||'').trim();
   if (!date||!duration||!topic) { showToast('Please fill in date, duration, and topic.','error'); return; }
   const btn = document.getElementById('sessLogBtn');
   btn.disabled=true; btn.textContent='Logging…';
   const { error } = await db.from('sessions').insert({
-    student_id: studentId,
-    tutor_id: currentTutor.id,
-    session_date: date,
-    duration_hours: parseFloat(duration),
-    topic, notes: notes||null,
-    approved: false
+    student_id: studentId, tutor_id: currentTutor.id,
+    session_date: date, duration_hours: parseFloat(duration),
+    topic, notes: notes||null, meeting_url: meetUrl||null, approved: false
   });
   if (error) { showToast('Error: '+error.message,'error'); btn.disabled=false; btn.textContent='📝 Log Session'; return; }
-  showToast('Session logged! Awaiting your admin approval. ✅','success');
-  document.getElementById('sessDur').value='';
-  document.getElementById('sessTopic').value='';
-  document.getElementById('sessNotes').value='';
+  showToast('Session logged! Awaiting admin approval. ✅','success');
+  ['sessDur','sessTopic','sessNotes','sessMeet'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   btn.disabled=false; btn.textContent='📝 Log Session';
   await selectTutorStudent(studentId, true);
 }
@@ -3914,7 +3993,8 @@ async function tutorSaveSession(id, studentId) {
   const topic    = (document.getElementById('esess-topic-'+id)?.value||'').trim();
   const notes    = (document.getElementById('esess-notes-'+id)?.value||'').trim();
   if (!date||!duration||!topic) { showToast('Date, duration, and topic are required.','error'); return; }
-  const { error } = await db.from('sessions').update({ session_date:date, duration_hours:parseFloat(duration), topic, notes:notes||null }).eq('id', id);
+  const meetUrl = (document.getElementById('esess-meet-'+id)?.value||'').trim();
+  const { error } = await db.from('sessions').update({ session_date:date, duration_hours:parseFloat(duration), topic, notes:notes||null, meeting_url:meetUrl||null }).eq('id', id);
   if (error) { showToast('Save failed: '+error.message,'error'); return; }
   showToast('Session updated! ✅','success');
   await selectTutorStudent(studentId, true);
@@ -3965,14 +4045,16 @@ async function bootAdminPortal() {
 function showAdminSection(id) {
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
-    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing'}[id] || id;
+    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', 'adm-messages':'Messages'}[id] || id;
   const body = document.getElementById('admBody');
   body.innerHTML = '<div style="text-align:center;padding:3rem;color:#64748b">Loading…</div>';
-  if      (id === 'approvals')   buildAdminApprovals();
-  else if (id === 'enrollments') buildAdminEnrollments();
-  else if (id === 'students')    buildAdminStudents();
-  else if (id === 'tutors')      buildAdminTutors();
-  else if (id === 'billing')     buildAdminBilling();
+  if      (id === 'approvals')    buildAdminApprovals();
+  else if (id === 'enrollments')  buildAdminEnrollments();
+  else if (id === 'students')     buildAdminStudents();
+  else if (id === 'tutors')       buildAdminTutors();
+  else if (id === 'billing')      buildAdminBilling();
+  else if (id === 'tutor-mgmt')   buildAdminTutorMgmt();
+  else if (id === 'adm-messages') buildAdminMessages();
 }
 
 /* ── APPROVALS ── */
@@ -4381,6 +4463,149 @@ async function buildAdminBilling() {
       }).join('')}
     </div>`;
 }
+
+/* ── ADMIN: TUTOR MANAGEMENT ── */
+async function buildAdminTutorMgmt() {
+  const body = document.getElementById('admBody');
+  const { data: tutors, error } = await db.from('tutors').select('*').order('name');
+  if (error) { body.innerHTML=`<div class="adm-error">${error.message}</div>`; return; }
+
+  const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+  body.innerHTML = `
+    <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap">
+      <div style="font-size:.82rem;font-weight:700;color:#64748b">🔍 Match a student — filter tutors by:</div>
+      <input id="matchSubj" type="text" placeholder="Subject (e.g. AP US History)" style="padding:.5rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.82rem;width:220px;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap">
+        ${DAYS.map(d=>`<label style="display:flex;align-items:center;gap:.25rem;font-size:.75rem;font-weight:600;color:#374151;cursor:pointer"><input type="checkbox" value="${d}" style="accent-color:#0f2044"> ${d.slice(0,3)}</label>`).join('')}
+      </div>
+      <button onclick="runTutorMatch()" style="background:#0f2044;color:#fff;border:none;border-radius:8px;padding:.5rem 1rem;font-size:.8rem;font-weight:700;cursor:pointer">Find Match →</button>
+    </div>
+    <div id="matchResult" style="margin-bottom:1.5rem"></div>
+    <div class="adm-section-header">${tutors.length} tutor${tutors.length!==1?'s':''} — click to edit profile</div>
+    <div class="adm-list">
+      ${tutors.map(t => {
+        const initials = t.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const avail = (t.availability_days||[]).join(', ')||'Not set';
+        const subjects = (t.subjects_can_teach||[]).join(', ')||'Not set';
+        return `<div class="adm-card" id="tmgmt-${t.id}">
+          <div class="adm-card-top">
+            <div class="adm-card-avatar" style="background:linear-gradient(135deg,#1a3260,#2a4a8a)">${initials}</div>
+            <div class="adm-card-info">
+              <div class="adm-card-name">${t.name}</div>
+              <div class="adm-card-meta">Code: ${t.code||'—'} ${t.hourly_rate?'· $'+t.hourly_rate+'/hr':''}</div>
+            </div>
+            <button onclick="toggleTutorEdit('${t.id}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:7px;font-size:.75rem;font-weight:600;padding:.3rem .7rem;cursor:pointer">✏️ Edit</button>
+          </div>
+          <div style="display:flex;gap:.5rem;margin-top:.65rem;flex-wrap:wrap">
+            ${t.sat_score?`<span class="adm-stat-chip" style="background:#eff6ff;color:#1e40af">SAT: ${t.sat_score}</span>`:''}
+            ${(t.ap_courses_taken||[]).slice(0,3).map(c=>`<span class="adm-stat-chip" style="background:#ecfdf5;color:#065f46">${c}</span>`).join('')}
+            ${(t.ap_courses_taken||[]).length>3?`<span class="adm-stat-chip" style="background:#f1f5f9;color:#64748b">+${t.ap_courses_taken.length-3} more</span>`:''}
+          </div>
+          <div style="margin-top:.5rem;font-size:.75rem;color:#374151"><span style="font-weight:600;color:#64748b">Subjects:</span> ${subjects}</div>
+          <div style="font-size:.75rem;color:#374151"><span style="font-weight:600;color:#64748b">Available:</span> ${avail}</div>
+          ${t.bio?`<div style="font-size:.75rem;color:#374151;font-style:italic;margin-top:.3rem">"${t.bio}"</div>`:''}
+          <!-- Edit form -->
+          <div id="tedit-${t.id}" style="display:none;margin-top:1rem;padding:1rem;background:#f8fafc;border-radius:10px;border:1px solid #e5e7eb">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem">
+              <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">SAT Score</label><input id="te-sat-${t.id}" type="number" value="${t.sat_score||''}" placeholder="e.g. 1450" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
+              <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Hourly Rate ($)</label><input id="te-pay-${t.id}" type="number" step="0.5" value="${t.hourly_rate||''}" placeholder="e.g. 25" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
+            </div>
+            <div style="margin-bottom:.65rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">AP Courses Taken (comma-separated)</label><input id="te-ap-${t.id}" type="text" value="${(t.ap_courses_taken||[]).join(', ')}" placeholder="AP US History, AP Calc BC…" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
+            <div style="margin-bottom:.65rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Subjects Can Teach (comma-separated)</label><input id="te-subj-${t.id}" type="text" value="${(t.subjects_can_teach||[]).join(', ')}" placeholder="AP US History, SAT, ACT…" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
+            <div style="margin-bottom:.65rem">
+              <label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.4rem">Availability</label>
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                ${DAYS.map(d=>`<label style="display:flex;align-items:center;gap:.25rem;font-size:.75rem;font-weight:600;color:#374151;cursor:pointer"><input type="checkbox" class="te-day-${t.id}" value="${d}" ${(t.availability_days||[]).includes(d)?'checked':''} style="accent-color:#0f2044"> ${d}</label>`).join('')}
+              </div>
+            </div>
+            <div style="margin-bottom:.65rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Tutoring Experience</label><textarea id="te-exp-${t.id}" rows="2" placeholder="Previous tutoring experience, schools, etc." style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;font-family:'Inter',sans-serif;resize:vertical;outline:none">${t.experience_notes||''}</textarea></div>
+            <div style="margin-bottom:.85rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Short Bio</label><textarea id="te-bio-${t.id}" rows="2" placeholder="A short bio shown to admin for matching…" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;font-family:'Inter',sans-serif;resize:vertical;outline:none">${t.bio||''}</textarea></div>
+            <div style="display:flex;gap:.5rem">
+              <button onclick="saveTutorProfile('${t.id}')" style="background:#0f2044;color:#fff;border:none;border-radius:7px;padding:.5rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer">Save Profile</button>
+              <button onclick="toggleTutorEdit('${t.id}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:7px;padding:.5rem .9rem;font-size:.8rem;font-weight:600;cursor:pointer">Cancel</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function toggleTutorEdit(id) {
+  const el = document.getElementById('tedit-'+id);
+  if (el) el.style.display = el.style.display==='none'?'block':'none';
+}
+
+async function saveTutorProfile(id) {
+  const sat      = parseInt(document.getElementById('te-sat-'+id)?.value)||null;
+  const pay      = parseFloat(document.getElementById('te-pay-'+id)?.value)||null;
+  const apRaw    = document.getElementById('te-ap-'+id)?.value||'';
+  const subjRaw  = document.getElementById('te-subj-'+id)?.value||'';
+  const exp      = document.getElementById('te-exp-'+id)?.value||'';
+  const bio      = document.getElementById('te-bio-'+id)?.value||'';
+  const days     = [...document.querySelectorAll('.te-day-'+id+':checked')].map(cb=>cb.value);
+  const ap_courses_taken   = apRaw.split(',').map(s=>s.trim()).filter(Boolean);
+  const subjects_can_teach = subjRaw.split(',').map(s=>s.trim()).filter(Boolean);
+  const { error } = await db.from('tutors').update({
+    sat_score: sat, hourly_rate: pay, ap_courses_taken, subjects_can_teach,
+    availability_days: days, experience_notes: exp||null, bio: bio||null
+  }).eq('id', id);
+  if (error) { showToast('Error: '+error.message,'error'); return; }
+  showToast('Tutor profile saved! ✅','success');
+  buildAdminTutorMgmt();
+}
+
+async function runTutorMatch() {
+  const subj = document.getElementById('matchSubj')?.value.trim().toLowerCase();
+  const selectedDays = [...document.querySelectorAll('input[type=checkbox]:checked')].map(cb=>cb.value);
+  const { data: tutors } = await db.from('tutors').select('*').order('name');
+  const result = document.getElementById('matchResult');
+  const matches = (tutors||[]).filter(t => {
+    const canTeach  = (t.subjects_can_teach||[]).map(s=>s.toLowerCase());
+    const avail     = t.availability_days||[];
+    const subjMatch = !subj || canTeach.some(s=>s.includes(subj)||subj.includes(s.split(' ')[0].toLowerCase()));
+    const dayMatch  = !selectedDays.length || selectedDays.some(d=>avail.includes(d));
+    return subjMatch && dayMatch;
+  });
+  if (!matches.length) {
+    result.innerHTML=`<div style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:8px;padding:.65rem 1rem;font-size:.82rem">No tutors match these criteria. Check availability or subjects.</div>`;
+    return;
+  }
+  result.innerHTML=`<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:.75rem 1rem">
+    <div style="font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:.5rem">✅ ${matches.length} tutor${matches.length>1?'s':''} can take this student:</div>
+    ${matches.map(t=>`<div style="font-size:.82rem;color:#0f2044;font-weight:600">· ${t.name} — Available: ${(t.availability_days||[]).join(', ')||'TBD'} ${t.hourly_rate?'· $'+t.hourly_rate+'/hr':''}</div>`).join('')}
+  </div>`;
+}
+
+/* ── ADMIN: MESSAGES ── */
+async function buildAdminMessages() {
+  const body = document.getElementById('admBody');
+  const { data: students, error: se } = await db.from('students').select('id, name').order('name');
+  if (se) { body.innerHTML=`<div class="adm-error">${se.message}</div>`; return; }
+  if (!students?.length) { body.innerHTML='<div class="adm-empty">No students yet.</div>'; return; }
+
+  body.innerHTML = `
+    <div style="display:flex;gap:1rem;height:calc(100vh - 140px);min-height:500px">
+      <div style="width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:.35rem">
+        <div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.35rem">Students</div>
+        ${students.map(s=>`<button id="admMsgBtn-${s.id}" onclick="loadAdminConvo('${s.id}','${s.name.replace(/'/g,"\\'")}')" style="text-align:left;padding:.55rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;background:#fff;font-size:.82rem;font-weight:600;color:#0f2044;cursor:pointer;transition:all .15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">${s.name}</button>`).join('')}
+      </div>
+      <div style="flex:1;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+        <div id="admConvoArea" style="flex:1;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.9rem">Select a student to view their conversation</div>
+      </div>
+    </div>`;
+}
+
+async function loadAdminConvo(studentId, studentName) {
+  document.querySelectorAll('[id^="admMsgBtn-"]').forEach(b=>b.style.borderColor='#e5e7eb');
+  const btn = document.getElementById('admMsgBtn-'+studentId);
+  if (btn) btn.style.borderColor='#0f2044';
+  const area = document.getElementById('admConvoArea');
+  area.innerHTML='<div style="padding:2rem;color:#64748b">Loading…</div>';
+  const { data: msgs } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at',{ascending:true});
+  renderMessagesUI(area, msgs||[], studentId, 'admin', 'Northstar Admin');
+}
+
 </script>
 
 <!-- ══════════════════════════════════════════════════════
@@ -4454,6 +4679,9 @@ async function buildAdminBilling() {
         <div class="adm-nav-item" data-id="tutors" onclick="showAdminSection('tutors')"><span class="adm-nav-icon">👨‍🏫</span> My Tutors</div>
         <div class="adm-nav-label">Finance</div>
         <div class="adm-nav-item" data-id="billing" onclick="showAdminSection('billing')"><span class="adm-nav-icon">💰</span> Hours &amp; Billing</div>
+        <div class="adm-nav-label">Tools</div>
+        <div class="adm-nav-item" data-id="tutor-mgmt" onclick="showAdminSection('tutor-mgmt')"><span class="adm-nav-icon">🎓</span> Tutor Management</div>
+        <div class="adm-nav-item" data-id="adm-messages" onclick="showAdminSection('adm-messages')"><span class="adm-nav-icon">💬</span> Messages</div>
       </nav>
       <div class="adm-sidebar-footer">
         <button class="adm-logout" onclick="adminLogout()">↩ Sign Out</button>
