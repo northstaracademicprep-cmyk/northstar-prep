@@ -4817,13 +4817,36 @@ async function buildAdminApprovals() {
               <div class="adm-hours-badge">${s.duration_hours}h</div>
             </div>
           </div>
-          <div class="adm-card-detail">
+          <!-- Read view -->
+          <div id="sess-view-${s.id}" class="adm-card-detail">
             <div class="adm-detail-row"><span class="adm-detail-label">Date</span><span>${s.session_date||'—'}</span></div>
+            <div class="adm-detail-row"><span class="adm-detail-label">Duration</span><span>${s.duration_hours}h</span></div>
             <div class="adm-detail-row"><span class="adm-detail-label">Topic</span><span>${s.topic||'—'}</span></div>
             ${s.notes?`<div class="adm-detail-row"><span class="adm-detail-label">Notes</span><span style="font-style:italic">${s.notes}</span></div>`:''}
+            ${s.meeting_url?`<div class="adm-detail-row"><span class="adm-detail-label">Meet</span><a href="${s.meeting_url}" target="_blank" style="color:#3b82f6;font-size:.82rem">${s.meeting_url}</a></div>`:''}
+          </div>
+          <!-- Edit form (hidden by default) -->
+          <div id="sess-edit-${s.id}" style="display:none;padding:.85rem;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;margin:.5rem 0;display:none;flex-direction:column;gap:.65rem">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+              <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Date</label>
+                <input id="se-date-${s.id}" type="date" value="${s.session_date||''}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
+              <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Duration (hours)</label>
+                <input id="se-dur-${s.id}" type="number" min="0.5" step="0.5" value="${s.duration_hours||1}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
+            </div>
+            <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Topic</label>
+              <input id="se-topic-${s.id}" type="text" value="${(s.topic||'').replace(/"/g,'&quot;')}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
+            <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Notes</label>
+              <textarea id="se-notes-${s.id}" rows="2" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none;resize:vertical;font-family:'Inter',sans-serif" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">${s.notes||''}</textarea></div>
+            <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Meeting URL</label>
+              <input id="se-meet-${s.id}" type="url" value="${s.meeting_url||''}" placeholder="https://meet.google.com/…" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
+            <div style="display:flex;gap:.5rem">
+              <button onclick="adminSaveSession('${s.id}','${s.student_id}')" style="flex:2;padding:.55rem;background:#0f2044;color:#fff;border:none;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer">💾 Save Changes</button>
+              <button onclick="adminCancelEditSession('${s.id}')" style="flex:1;padding:.55rem;background:#f1f5f9;color:#374151;border:none;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer">Cancel</button>
+            </div>
           </div>
           <div class="adm-card-actions">
             <button class="adm-btn adm-btn-approve" onclick="adminApproveSession('${s.id}','${s.student_id}',${s.duration_hours})">✓ Approve</button>
+            <button class="adm-btn" onclick="adminToggleEditSession('${s.id}')" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0">✏️ Edit</button>
             <button class="adm-btn adm-btn-reject"  onclick="adminRejectSession('${s.id}')">✗ Reject</button>
           </div>
         </div>`;
@@ -4852,6 +4875,32 @@ async function adminRejectSession(sessionId) {
   buildAdminApprovals();
 }
 
+function adminToggleEditSession(id) {
+  const view = document.getElementById('sess-view-'+id);
+  const edit = document.getElementById('sess-edit-'+id);
+  if (!edit) return;
+  const isHidden = edit.style.display === 'none' || !edit.style.display;
+  edit.style.display = isHidden ? 'flex' : 'none';
+  if (view) view.style.display = isHidden ? 'none' : '';
+}
+function adminCancelEditSession(id) {
+  adminToggleEditSession(id);
+}
+async function adminSaveSession(sessionId, studentId) {
+  const date    = (document.getElementById('se-date-'+sessionId)?.value||'').trim();
+  const dur     = parseFloat(document.getElementById('se-dur-'+sessionId)?.value||'0');
+  const topic   = (document.getElementById('se-topic-'+sessionId)?.value||'').trim();
+  const notes   = (document.getElementById('se-notes-'+sessionId)?.value||'').trim();
+  const meetUrl = (document.getElementById('se-meet-'+sessionId)?.value||'').trim();
+  if (!date||!dur||!topic) { showToast('Date, duration, and topic are required.','error'); return; }
+  const { error } = await db.from('sessions').update({
+    session_date: date, duration_hours: dur, topic, notes: notes||null, meeting_url: meetUrl||null
+  }).eq('id', sessionId);
+  if (error) { showToast('Save failed: '+error.message,'error'); return; }
+  showToast('Session updated! ✅','success');
+  buildAdminApprovals();
+}
+
 /* ── ENROLLMENT REQUESTS ── */
 async function buildAdminEnrollments() {
   const body = document.getElementById('admBody');
@@ -4872,6 +4921,9 @@ async function buildAdminEnrollments() {
     return;
   }
 
+  // Pre-load tutor list for the edit dropdown
+  const { data: allTutors } = await db.from('tutors').select('id, name').order('name');
+
   function enrCard(r) {
     const subj    = (r.subjects||[]).join(', ')||'—';
     const tutor   = r.tutors?.name || 'Unknown Tutor';
@@ -4882,11 +4934,13 @@ async function buildAdminEnrollments() {
       : r.status === 'approved'
         ? `<span style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:.7rem;font-weight:700;padding:.2rem .65rem;border-radius:99px">✅ Approved</span>`
         : `<span style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;font-size:.7rem;font-weight:700;padding:.2rem .65rem;border-radius:99px">✗ Rejected</span>`;
+    const tutorOptions = (allTutors||[]).map(t=>`<option value="${t.id}"${t.id===r.tutor_id?' selected':''}>${t.name}</option>`).join('');
+    const safeCode = (r.generated_code||'').replace(/'/g,"\\'");
     return `<div class="adm-card" id="enrcard-${r.id}">
       <div class="adm-card-top">
         <div class="adm-card-avatar">${r.student_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
         <div class="adm-card-info">
-          <div class="adm-card-name">${r.student_name}</div>
+          <div class="adm-card-name" id="enr-display-name-${r.id}">${r.student_name}</div>
           <div class="adm-card-meta">${subj}${r.grade?' · Grade '+r.grade:''} · ${r.hours_package||10}h package</div>
         </div>
         <div class="adm-card-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">
@@ -4894,23 +4948,71 @@ async function buildAdminEnrollments() {
           <div style="font-size:.68rem;color:#94a3b8">Submitted ${submits}</div>
         </div>
       </div>
-      <div class="adm-card-detail">
+
+      <!-- Read view -->
+      <div id="enr-view-${r.id}" class="adm-card-detail">
         <div class="adm-detail-row"><span class="adm-detail-label">Tutor</span><span>${tutor}</span></div>
         ${r.exam_date?`<div class="adm-detail-row"><span class="adm-detail-label">Exam</span><span>${r.exam_date}</span></div>`:''}
         ${r.session_frequency?`<div class="adm-detail-row"><span class="adm-detail-label">Freq.</span><span>${r.session_frequency}</span></div>`:''}
         ${r.notes?`<div class="adm-detail-row"><span class="adm-detail-label">Notes</span><span style="font-style:italic;color:#374151">${r.notes}</span></div>`:''}
       </div>
-      <!-- Code preview box -->
-      <div style="margin:.85rem 0 .65rem;background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:9px;padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between">
+
+      <!-- Edit form (hidden by default) -->
+      <div id="enr-edit-${r.id}" style="display:none;flex-direction:column;gap:.65rem;padding:.85rem;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;margin:.5rem 0">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Student Name</label>
+            <input id="ee-name-${r.id}" type="text" value="${r.student_name.replace(/"/g,'&quot;')}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Grade</label>
+            <select id="ee-grade-${r.id}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none;background:#fff;cursor:pointer">
+              <option value="">—</option>
+              ${[9,10,11,12].map(g=>`<option value="${g}"${r.grade==g?' selected':''}>${g}</option>`).join('')}
+            </select></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Subject(s)</label>
+            <input id="ee-subj-${r.id}" type="text" value="${subj==='—'?'':subj}" placeholder="AP US History, SAT Prep…" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Hours Package</label>
+            <select id="ee-hours-${r.id}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none;background:#fff;cursor:pointer">
+              ${[5,10,15,20,25,30].map(h=>`<option value="${h}"${(r.hours_package||10)==h?' selected':''}>${h}h</option>`).join('')}
+            </select></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Exam / Goal Date</label>
+            <input id="ee-exam-${r.id}" type="date" value="${r.exam_date||''}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Session Frequency</label>
+            <select id="ee-freq-${r.id}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none;background:#fff;cursor:pointer">
+              <option value="">No preference</option>
+              ${['1x per week','2x per week','3x per week','Biweekly','As needed'].map(f=>`<option value="${f}"${r.session_frequency===f?' selected':''}>${f}</option>`).join('')}
+            </select></div>
+        </div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Assign Tutor</label>
+          <select id="ee-tutor-${r.id}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none;background:#fff;cursor:pointer">
+            <option value="">— Unassigned —</option>
+            ${tutorOptions}
+          </select></div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Access Code</label>
+          <input id="ee-code-${r.id}" type="text" value="${r.generated_code||''}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;font-family:'Josefin Sans',sans-serif;font-weight:700;letter-spacing:.1em;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Notes</label>
+          <textarea id="ee-notes-${r.id}" rows="2" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none;resize:vertical;font-family:'Inter',sans-serif" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">${r.notes||''}</textarea></div>
+        <div style="display:flex;gap:.5rem">
+          <button onclick="adminSaveEnrollment('${r.id}')" style="flex:2;padding:.55rem;background:#0f2044;color:#fff;border:none;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer">💾 Save Changes</button>
+          <button onclick="adminCancelEditEnrollment('${r.id}')" style="flex:1;padding:.55rem;background:#f1f5f9;color:#374151;border:none;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Code preview box (read mode) -->
+      <div id="enr-codebox-${r.id}" style="margin:.85rem 0 .65rem;background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:9px;padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.15rem">Access Code</div>
           <div style="font-family:'Josefin Sans',sans-serif;font-size:1.1rem;font-weight:800;color:#0f2044;letter-spacing:.12em">${r.generated_code||'—'}</div>
         </div>
         ${isPending?`<div style="font-size:.72rem;color:#64748b">Activates on approval</div>`
-          :r.status==='approved'?`<button onclick="copyCode('${r.generated_code||''}')" style="background:#0f2044;color:#c9a03a;border:none;border-radius:7px;padding:.35rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer">📋 Copy</button>`:''}
+          :r.status==='approved'?`<button onclick="copyCode('${safeCode}')" style="background:#0f2044;color:#c9a03a;border:none;border-radius:7px;padding:.35rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer">📋 Copy</button>`:''}
       </div>
+
       ${isPending?`<div class="adm-card-actions">
         <button class="adm-btn adm-btn-approve" onclick="adminApproveEnrollment('${r.id}')">✓ Approve & Activate</button>
+        <button class="adm-btn" onclick="adminToggleEditEnrollment('${r.id}')" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0">✏️ Edit</button>
         <button class="adm-btn adm-btn-reject"  onclick="adminRejectEnrollment('${r.id}','${r.student_name.replace(/'/g,"\\'")}')">✗ Reject</button>
       </div>`:''}
     </div>`;
@@ -4959,6 +5061,47 @@ async function adminRejectEnrollment(requestId, studentName) {
   const { error } = await db.from('enrollment_requests').update({status:'rejected'}).eq('id', requestId);
   if (error) { showToast('Error: '+error.message,'error'); return; }
   showToast(`Enrollment for ${studentName} rejected.`,'success');
+  buildAdminEnrollments();
+}
+
+function adminToggleEditEnrollment(id) {
+  const view    = document.getElementById('enr-view-'+id);
+  const edit    = document.getElementById('enr-edit-'+id);
+  const codebox = document.getElementById('enr-codebox-'+id);
+  if (!edit) return;
+  const opening = edit.style.display === 'none' || !edit.style.display;
+  edit.style.display    = opening ? 'flex' : 'none';
+  if (view)    view.style.display    = opening ? 'none' : '';
+  if (codebox) codebox.style.display = opening ? 'none' : '';
+}
+function adminCancelEditEnrollment(id) {
+  adminToggleEditEnrollment(id);
+}
+async function adminSaveEnrollment(requestId) {
+  const name    = (document.getElementById('ee-name-'+requestId)?.value||'').trim();
+  const grade   = document.getElementById('ee-grade-'+requestId)?.value||null;
+  const subjRaw = (document.getElementById('ee-subj-'+requestId)?.value||'').trim();
+  const hours   = parseInt(document.getElementById('ee-hours-'+requestId)?.value)||10;
+  const exam    = document.getElementById('ee-exam-'+requestId)?.value||null;
+  const freq    = document.getElementById('ee-freq-'+requestId)?.value||null;
+  const tutorId = document.getElementById('ee-tutor-'+requestId)?.value||null;
+  const code    = (document.getElementById('ee-code-'+requestId)?.value||'').trim().toUpperCase();
+  const notes   = (document.getElementById('ee-notes-'+requestId)?.value||'').trim();
+  if (!name) { showToast('Student name is required.','error'); return; }
+  const subjects = subjRaw ? subjRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  const { error } = await db.from('enrollment_requests').update({
+    student_name: name,
+    grade: grade||null,
+    subjects,
+    hours_package: hours,
+    exam_date: exam||null,
+    session_frequency: freq||null,
+    tutor_id: tutorId||null,
+    generated_code: code||null,
+    notes: notes||null
+  }).eq('id', requestId);
+  if (error) { showToast('Save failed: '+error.message,'error'); return; }
+  showToast('Enrollment request updated! ✅','success');
   buildAdminEnrollments();
 }
 
