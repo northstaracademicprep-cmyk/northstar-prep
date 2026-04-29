@@ -2447,10 +2447,84 @@ function findBankSection(key) {
   for (const b of all) { const found = b.find(s=>s.key===key); if (found) return found; }
   return null;
 }
+
+/* ── PROCEDURAL MATH GENERATOR ── */
+let _gqc = 0;
+function _rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function _gcd(a,b){return b===0?a:_gcd(b,a%b);}
+function _mkQ(q, correctVal, wrongVals, explanation) {
+  const letters = ['A','B','C','D'];
+  const all = [String(correctVal), ...wrongVals.slice(0,3).map(String)];
+  for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]];}
+  const choices={}; letters.forEach((l,i)=>choices[l]=all[i]);
+  const ans = letters[all.indexOf(String(correctVal))];
+  return { id:'gen-'+(++_gqc), q, choices, answer:ans, explanation };
+}
+const _MATH_TEMPLATES = [
+  // Linear: ax + b = c
+  ()=>{const a=_rnd(2,9),x=_rnd(1,12),b=_rnd(1,20),c=a*x+b;
+    return _mkQ(`If ${a}x + ${b} = ${c}, what is the value of x?`,x,[x-1,x+1,x+2].filter(n=>n>0&&n!==x),`${a}x = ${c}−${b} = ${a*x}. x = ${a*x}÷${a} = ${x}.`);},
+  // ax - b = c
+  ()=>{const a=_rnd(2,9),x=_rnd(2,12),b=_rnd(1,15),c=a*x-b;
+    return _mkQ(`Solve: ${a}x − ${b} = ${c}`,x,[x-1,x+1,x-2].filter(n=>n>0&&n!==x),`${a}x = ${c}+${b} = ${a*x}. x = ${a*x}÷${a} = ${x}.`);},
+  // Percentage of
+  ()=>{const ps=[10,15,20,25,30,40,50,60,75];const p=ps[_rnd(0,ps.length-1)];const bases=[20,40,50,80,100,120,150,200,240,300,400,500];const base=bases[_rnd(0,bases.length-1)];const ans=(p/100)*base;
+    return _mkQ(`What is ${p}% of ${base}?`,ans,[ans+(base*.1),ans-(base*.1),ans+(base*.2)].map(Math.round).filter(n=>n!==ans&&n>0),`${p}% × ${base} = 0.${p<10?'0'+p:p} × ${base} = ${ans}.`);},
+  // Percent increase/decrease
+  ()=>{const orig=_rnd(2,20)*10;const pcts=[10,15,20,25,30,50];const p=pcts[_rnd(0,pcts.length-1)];const up=_rnd(0,1);const ans=up?orig*(1+p/100):orig*(1-p/100);
+    return _mkQ(`A $${orig} item is marked ${up?'up':'down'} by ${p}%. What is the new price?`,ans,[ans+(orig*.1),ans-(orig*.1),ans+(orig*.2)].map(Math.round).filter(n=>n!==ans&&n>0),`${up?'Increase':'Decrease'}: ${p}% × $${orig} = $${orig*p/100}. New price: $${orig} ${up?'+':'−'} $${orig*p/100} = $${ans}.`);},
+  // Slope
+  ()=>{const x1=_rnd(0,4),y1=_rnd(0,6),dx=_rnd(1,5),dy=_rnd(-5,6);const x2=x1+dx,y2=y1+dy;const g=_gcd(Math.abs(dy),dx);const sn=dy/g,sd=dx/g;const s=sd===1?`${sn}`:`${sn}/${sd}`;
+    return _mkQ(`What is the slope of the line through (${x1},${y1}) and (${x2},${y2})?`,s,[`${sn+1}/${sd}`,`${sn-1}/${sd}`,`${sd}/${sn}`].filter(v=>v!==s),`slope = (${y2}−${y1})/(${x2}−${x1}) = ${dy}/${dx}${g>1?' = '+s:''}.`);},
+  // Area rectangle
+  ()=>{const l=_rnd(3,18),w=_rnd(2,12),a=l*w;
+    return _mkQ(`Find the area of a rectangle: length ${l} ft, width ${w} ft.`,a,[a+l,a-w,2*(l+w)].filter(n=>n!==a&&n>0),`Area = ${l} × ${w} = ${a} sq ft.`);},
+  // Distance/time
+  ()=>{const spds=[30,40,50,55,60,65,70];const s=spds[_rnd(0,spds.length-1)];const ts=[1,1.5,2,2.5,3,3.5,4];const t=ts[_rnd(0,ts.length-1)];const d=s*t;
+    return _mkQ(`A car travels at ${s} mph for ${t} hours. How far does it go?`,d,[d+s,d-s,d+s*.5].map(Math.round).filter(n=>n!==d&&n>0),`Distance = ${s} × ${t} = ${d} miles.`);},
+  // Mean
+  ()=>{const n=_rnd(3,5);const vals=Array.from({length:n},()=>_rnd(4,20));const sum=vals.reduce((a,b)=>a+b,0);const mean=+(sum/n).toFixed(1);
+    return _mkQ(`Find the mean of: ${vals.join(', ')}`,mean,[+(mean+1).toFixed(1),+(mean-1).toFixed(1),+(mean+2).toFixed(1)].filter(v=>v!==mean),`Sum = ${sum}. Mean = ${sum} ÷ ${n} = ${mean}.`);},
+  // Simple interest
+  ()=>{const p=_rnd(2,20)*100;const r=_rnd(2,10);const t=_rnd(1,5);const interest=p*r/100*t;
+    return _mkQ(`Simple interest on $${p} at ${r}% for ${t} year${t>1?'s':''}?`,interest,[interest+p*r/100,interest-p*r/100,interest*2].filter(n=>n!==interest&&n>0),`I = P×r×t = ${p}×${r/100}×${t} = $${interest}.`);},
+  // Pythagorean theorem (find hypotenuse)
+  ()=>{const trips=[[3,4,5],[5,12,13],[6,8,10],[8,15,17],[9,12,15]];const [a,b,c]=trips[_rnd(0,trips.length-1)];const m=_rnd(1,3);
+    return _mkQ(`A right triangle has legs ${a*m} and ${b*m}. What is the hypotenuse?`,c*m,[c*m+m,c*m-m,c*m+2*m].filter(n=>n!==c*m&&n>0),`${a*m}² + ${b*m}² = ${(a*m)**2}+${(b*m)**2}=${(c*m)**2} = (${c*m})². Hyp = ${c*m}.`);},
+  // Probability
+  ()=>{const total=_rnd(5,20);const fav=_rnd(1,total-1);const g=_gcd(fav,total);const pn=fav/g,pd=total/g;const ans=pd===1?`${pn}`:`${pn}/${pd}`;
+    return _mkQ(`A bag has ${total} marbles, ${fav} red. P(picking red) = ?`,ans,[`${pn+1}/${pd}`,`${pn-1}/${pd}`,`${fav}/${total+1}`].filter(s=>s!==ans),`P = ${fav}/${total}${g>1?' = '+ans:''}.`);},
+  // Quadratic (factored)
+  ()=>{const r1=_rnd(1,7),r2=_rnd(1,7);const b=r1+r2,c=r1*r2;
+    return _mkQ(`Solve: x² − ${b}x + ${c} = 0`,`x=${r1} or x=${r2}`,[`x=${r1+1} or x=${r2}`,`x=${r1} or x=${r2+1}`,`x=${b} or x=${c}`],`Factor: (x−${r1})(x−${r2})=0. Solutions: x=${r1} or x=${r2}.`);},
+  // Unit conversion
+  ()=>{const ft=_rnd(2,10);const inc=ft*12;
+    return _mkQ(`${ft} feet = how many inches?`,inc,[inc-12,inc+12,inc-6].filter(n=>n!==inc&&n>0),`1 foot = 12 inches. ${ft} × 12 = ${inc} inches.`);},
+  // Ratio
+  ()=>{const a=_rnd(2,8),b=_rnd(2,8),total=_rnd(20,60);const share=Math.round(total*a/(a+b));
+    return _mkQ(`Split ${total} in ratio ${a}:${b}. Larger share = ?`,Math.max(share,total-share),[Math.max(share,total-share)+a,Math.max(share,total-share)-b,total-Math.min(share,total-share)+1].filter(n=>n!==Math.max(share,total-share)&&n>0),`Total parts=${a+b}. One part=${total}/(${a+b})≈${+(total/(a+b)).toFixed(1)}. Larger=${Math.max(share,total-share)}.`);},
+];
+
+const MATH_BANK_KEYS = new Set(['sat-math-nc','sat-math-c','act-math','hiset-math','calc-limits','calc-derivatives','calc-integrals','stat-data','stat-probability','stat-inference']);
+
+function generateMathPool(key, count=18) {
+  if (!MATH_BANK_KEYS.has(key)) return [];
+  const out=[];
+  for(let i=0;i<count;i++){
+    const fn=_MATH_TEMPLATES[Math.floor(Math.random()*_MATH_TEMPLATES.length)];
+    try{ const q=fn(); if(q) out.push(q); }catch(e){}
+  }
+  return out;
+}
+
 function startPractice(key) {
   const bank = findBankSection(key);
   if (!bank) return;
-  const shuffled = [...bank.questions].sort(() => Math.random() - 0.5);
+  // For math subjects: generate fresh procedural questions each round
+  // For content subjects: shuffle the fixed bank
+  const generated = generateMathPool(key);
+  const pool = [...bank.questions, ...generated];
+  const shuffled = pool.sort(() => Math.random() - 0.5);
   pvState = { bankKey: key, questions: shuffled, current: 0, answers: {}, locked: false };
   renderPvQuestion();
 }
@@ -4499,8 +4573,8 @@ async function buildAdminTutorMgmt() {
           </div>
           <div style="display:flex;gap:.5rem;margin-top:.65rem;flex-wrap:wrap">
             ${t.sat_score?`<span class="adm-stat-chip" style="background:#eff6ff;color:#1e40af">SAT: ${t.sat_score}</span>`:''}
-            ${(t.ap_courses_taken||[]).slice(0,3).map(c=>`<span class="adm-stat-chip" style="background:#ecfdf5;color:#065f46">${c}</span>`).join('')}
-            ${(t.ap_courses_taken||[]).length>3?`<span class="adm-stat-chip" style="background:#f1f5f9;color:#64748b">+${t.ap_courses_taken.length-3} more</span>`:''}
+            ${(t.ap_scores||[]).slice(0,4).map(a=>`<span class="adm-stat-chip" style="background:#ecfdf5;color:#065f46">${a.course} · <strong>${a.score}</strong></span>`).join('')}
+            ${(t.ap_scores||[]).length>4?`<span class="adm-stat-chip" style="background:#f1f5f9;color:#64748b">+${t.ap_scores.length-4} more</span>`:''}
           </div>
           <div style="margin-top:.5rem;font-size:.75rem;color:#374151"><span style="font-weight:600;color:#64748b">Subjects:</span> ${subjects}</div>
           <div style="font-size:.75rem;color:#374151"><span style="font-weight:600;color:#64748b">Available:</span> ${avail}</div>
@@ -4511,7 +4585,26 @@ async function buildAdminTutorMgmt() {
               <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">SAT Score</label><input id="te-sat-${t.id}" type="number" value="${t.sat_score||''}" placeholder="e.g. 1450" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
               <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Hourly Rate ($)</label><input id="te-pay-${t.id}" type="number" step="0.5" value="${t.hourly_rate||''}" placeholder="e.g. 25" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
             </div>
-            <div style="margin-bottom:.65rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">AP Courses Taken (comma-separated)</label><input id="te-ap-${t.id}" type="text" value="${(t.ap_courses_taken||[]).join(', ')}" placeholder="AP US History, AP Calc BC…" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
+            <div style="margin-bottom:.65rem">
+              <label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.4rem">AP Exams Taken</label>
+              <table style="width:100%;border-collapse:collapse;font-size:.8rem" id="aptable-${t.id}">
+                <thead><tr style="background:#f1f5f9">
+                  <th style="text-align:left;padding:.35rem .6rem;font-size:.7rem;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb">AP Course</th>
+                  <th style="text-align:center;padding:.35rem .5rem;font-size:.7rem;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb;width:70px">Score</th>
+                  <th style="width:36px;border-bottom:1px solid #e5e7eb"></th>
+                </tr></thead>
+                <tbody id="aprows-${t.id}">
+                  ${(t.ap_scores||[]).map((a,i)=>`<tr id="aprow-${t.id}-${i}">
+                    <td style="padding:.3rem .4rem"><input type="text" value="${a.course||''}" placeholder="e.g. AP US History" style="width:100%;padding:.3rem .5rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.78rem;outline:none"></td>
+                    <td style="padding:.3rem .3rem;text-align:center"><select style="width:60px;padding:.3rem .2rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.78rem;text-align:center">
+                      <option value="">—</option>${[1,2,3,4,5].map(n=>`<option value="${n}" ${a.score==n?'selected':''}>${n}</option>`).join('')}
+                    </select></td>
+                    <td style="padding:.3rem .2rem;text-align:center"><button onclick="removeAPRow('${t.id}','aprow-${t.id}-${i}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:.9rem;padding:0">✕</button></td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+              <button onclick="addAPRow('${t.id}')" style="margin-top:.4rem;background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:6px;font-size:.75rem;font-weight:600;padding:.3rem .75rem;cursor:pointer">+ Add AP Exam</button>
+            </div>
             <div style="margin-bottom:.65rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Subjects Can Teach (comma-separated)</label><input id="te-subj-${t.id}" type="text" value="${(t.subjects_can_teach||[]).join(', ')}" placeholder="AP US History, SAT, ACT…" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
             <div style="margin-bottom:.65rem">
               <label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.4rem">Availability</label>
@@ -4536,18 +4629,46 @@ function toggleTutorEdit(id) {
   if (el) el.style.display = el.style.display==='none'?'block':'none';
 }
 
+function addAPRow(tutorId) {
+  const tbody = document.getElementById('aprows-'+tutorId);
+  if (!tbody) return;
+  const rowId = 'aprow-'+tutorId+'-'+Date.now();
+  const tr = document.createElement('tr');
+  tr.id = rowId;
+  tr.innerHTML = `
+    <td style="padding:.3rem .4rem"><input type="text" placeholder="e.g. AP Calculus BC" style="width:100%;padding:.3rem .5rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.78rem;outline:none"></td>
+    <td style="padding:.3rem .3rem;text-align:center"><select style="width:60px;padding:.3rem .2rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.78rem;text-align:center">
+      <option value="">—</option>${[1,2,3,4,5].map(n=>`<option value="${n}">${n}</option>`).join('')}
+    </select></td>
+    <td style="padding:.3rem .2rem;text-align:center"><button onclick="removeAPRow('${tutorId}','${rowId}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:.9rem;padding:0">✕</button></td>`;
+  tbody.appendChild(tr);
+  tr.querySelector('input')?.focus();
+}
+function removeAPRow(tutorId, rowId) {
+  document.getElementById(rowId)?.remove();
+}
 async function saveTutorProfile(id) {
   const sat      = parseInt(document.getElementById('te-sat-'+id)?.value)||null;
   const pay      = parseFloat(document.getElementById('te-pay-'+id)?.value)||null;
-  const apRaw    = document.getElementById('te-ap-'+id)?.value||'';
   const subjRaw  = document.getElementById('te-subj-'+id)?.value||'';
   const exp      = document.getElementById('te-exp-'+id)?.value||'';
   const bio      = document.getElementById('te-bio-'+id)?.value||'';
   const days     = [...document.querySelectorAll('.te-day-'+id+':checked')].map(cb=>cb.value);
-  const ap_courses_taken   = apRaw.split(',').map(s=>s.trim()).filter(Boolean);
   const subjects_can_teach = subjRaw.split(',').map(s=>s.trim()).filter(Boolean);
+  // Read AP scores table
+  const apRows = document.querySelectorAll('#aprows-'+id+' tr');
+  const ap_scores = [];
+  apRows.forEach(row=>{
+    const inputs = row.querySelectorAll('input,select');
+    if(inputs.length>=2){
+      const course=(inputs[0].value||'').trim();
+      const score=inputs[1].value;
+      if(course) ap_scores.push({course, score:score?parseInt(score):null});
+    }
+  });
+  const ap_courses_taken = ap_scores.map(a=>a.course);
   const { error } = await db.from('tutors').update({
-    sat_score: sat, hourly_rate: pay, ap_courses_taken, subjects_can_teach,
+    sat_score: sat, hourly_rate: pay, ap_courses_taken, ap_scores, subjects_can_teach,
     availability_days: days, experience_notes: exp||null, bio: bio||null
   }).eq('id', id);
   if (error) { showToast('Error: '+error.message,'error'); return; }
