@@ -2715,7 +2715,10 @@ function renderTutorStudentList() {
     listEl.innerHTML = `<div style="padding:.75rem 1.25rem;color:rgba(255,255,255,.4);font-size:.8rem">No students assigned yet.</div>`;
     return;
   }
-  listEl.innerHTML = tutorStudents.map(s=>`
+  const active    = tutorStudents.filter(s => s.status !== 'completed');
+  const completed = tutorStudents.filter(s => s.status === 'completed');
+
+  const activeHTML = active.map(s=>`
     <button class="t-student-btn${selectedStudent && selectedStudent.id===s.id?' active':''}" onclick="selectTutorStudent('${s.id}')">
       <div class="t-avatar">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
       <div class="t-student-info">
@@ -2723,6 +2726,23 @@ function renderTutorStudentList() {
         <div class="t-s-course">${(s.subjects||[''])[0]||s.program_type||'AP Prep'}</div>
       </div>
     </button>`).join('');
+
+  const completedHTML = completed.length ? `
+    <div style="padding:.5rem 1.25rem .25rem;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-top:.5rem;cursor:pointer;display:flex;align-items:center;gap:.4rem" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+      <span>🎓 Completed (${completed.length})</span><span style="font-size:.8em">▾</span>
+    </div>
+    <div style="display:none">
+      ${completed.map(s=>`
+        <button class="t-student-btn${selectedStudent && selectedStudent.id===s.id?' active':''}" onclick="selectTutorStudent('${s.id}')" style="opacity:.6">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#4b5563,#6b7280)">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+          <div class="t-student-info">
+            <div class="t-s-name">${s.name}</div>
+            <div class="t-s-course" style="color:rgba(255,255,255,.35)">🎓 Completed</div>
+          </div>
+        </button>`).join('')}
+    </div>` : '';
+
+  listEl.innerHTML = activeHTML + completedHTML;
 }
 
 /* ── ENROLLMENT MODAL ── */
@@ -2823,7 +2843,7 @@ function renderTutorDashboard() {
       <p>Here are your current students. Click any student to manage their materials, sessions, and assignments.</p>
     </div>
     <div class="t-students-grid">
-      ${tutorStudents.length ? tutorStudents.map((s,i)=>`
+      ${tutorStudents.filter(s=>s.status!=='completed').length ? tutorStudents.filter(s=>s.status!=='completed').map((s,i)=>`
         <div class="t-student-card anim-up" style="animation-delay:${i*.08}s" onclick="selectTutorStudent('${s.id}')">
           <div class="tsc-name">${s.name}</div>
           <div class="tsc-course">${(s.subjects||[''])[0]||s.program_type||'AP Prep'} · Exam: ${s.exam_date||'TBD'}</div>
@@ -3827,47 +3847,62 @@ async function buildAdminStudents() {
   const { data: students, error } = await db.from('students').select('*').order('name');
   if (error) { body.innerHTML = `<div class="adm-error">Error: ${error.message}</div>`; return; }
 
-  body.innerHTML = `
-    <div class="adm-section-header">${students.length} student${students.length!==1?'s':''} enrolled</div>
-    <div class="adm-students-grid">
-      ${students.map(s => {
-        const subj = (s.subjects||[]).join(', ') || '—';
-        const hoursUsed  = s.hours_used || 0;
-        const hoursTotal = s.hours_total || 0;
-        const pct = hoursTotal ? Math.min(Math.round((hoursUsed/hoursTotal)*100),100) : 0;
-        const hoursLeft  = (hoursTotal - hoursUsed).toFixed(1);
-        const initials   = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-        return `<div class="adm-student-card" id="admstu-${s.id}">
-          <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1rem">
-            <div class="adm-card-avatar" style="width:46px;height:46px;font-size:1rem">${initials}</div>
-            <div style="flex:1">
-              <div style="font-weight:700;color:#0f2044;font-size:.95rem">${s.name}</div>
-              <div style="font-size:.75rem;color:#64748b">${subj} · Grade ${s.grade||'—'}</div>
-            </div>
-            <button onclick="openAdminEditStudent('${s.id}','${s.name.replace(/'/g,"\\'")}',${hoursUsed},${hoursTotal},'${s.grade||''}','${s.code||''}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:7px;font-size:.75rem;font-weight:600;padding:.3rem .7rem;cursor:pointer">✏️ Edit</button>
-          </div>
-          <div style="margin-bottom:.5rem">
-            <div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;margin-bottom:.3rem">
-              <span style="color:#64748b">Hours used</span>
-              <span style="color:#0f2044">${hoursUsed} / ${hoursTotal}h</span>
-            </div>
-            <div style="background:#e2e8f0;border-radius:99px;height:6px;overflow:hidden">
-              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#c9a03a,#e0b84a);border-radius:99px;transition:width 1s ease"></div>
-            </div>
-            <div style="font-size:.72rem;color:${parseFloat(hoursLeft)<=2?'#ef4444':'#10b981'};font-weight:700;margin-top:.25rem">${hoursLeft}h remaining</div>
-          </div>
-          <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem">
-            <span style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#eff6ff;color:#2563eb">Code: ${s.code||'—'}</span>
-            ${s.exam_date?`<span style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#fef9ee;color:#92400e">Exam: ${s.exam_date}</span>`:''}
-          </div>
-          <div style="display:flex;gap:.5rem;margin-top:.85rem;border-top:1px solid #f1f5f9;padding-top:.75rem">
-            <button onclick="adminResetPractice('${s.id}','${s.name.replace(/'/g,"\\'")}')}" style="flex:1;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">🔄 Reset Practice</button>
-            <button onclick="adminResetHours('${s.id}','${s.name.replace(/'/g,"\\'")}')}" style="flex:1;background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">⏱️ Reset Hours</button>
-            <button onclick="adminDeleteStudent('${s.id}','${s.name.replace(/'/g,"\\'")}')}" style="flex:1;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">🗑️ Delete</button>
-          </div>
-        </div>`;
-      }).join('')}
+  const active    = (students||[]).filter(s => s.status !== 'completed');
+  const completed = (students||[]).filter(s => s.status === 'completed');
+
+  function studentCard(s, isCompleted) {
+    const subj     = (s.subjects||[]).join(', ') || '—';
+    const hoursUsed  = s.hours_used || 0;
+    const hoursTotal = s.hours_total || 0;
+    const pct      = hoursTotal ? Math.min(Math.round((hoursUsed/hoursTotal)*100),100) : 0;
+    const hoursLeft= (hoursTotal - hoursUsed).toFixed(1);
+    const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const safeName = s.name.replace(/'/g,"\\'");
+    return `<div class="adm-student-card" id="admstu-${s.id}" style="${isCompleted?'opacity:.85;border-style:dashed':''}">
+      <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1rem">
+        <div class="adm-card-avatar" style="width:46px;height:46px;font-size:1rem;${isCompleted?'background:linear-gradient(135deg,#6b7280,#9ca3af)':''}">${initials}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:#0f2044;font-size:.95rem">${s.name} ${isCompleted?'<span style="font-size:.7rem;font-weight:700;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:.1rem .5rem;border-radius:99px;margin-left:.25rem">🎓 Completed</span>':''}</div>
+          <div style="font-size:.75rem;color:#64748b">${subj} · Grade ${s.grade||'—'}</div>
+        </div>
+        <button onclick="openAdminEditStudent('${s.id}','${safeName}',${hoursUsed},${hoursTotal},'${s.grade||''}','${s.code||''}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:7px;font-size:.75rem;font-weight:600;padding:.3rem .7rem;cursor:pointer;flex-shrink:0">✏️ Edit</button>
+      </div>
+      <div style="margin-bottom:.5rem">
+        <div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;margin-bottom:.3rem">
+          <span style="color:#64748b">Hours used</span>
+          <span style="color:#0f2044">${hoursUsed} / ${hoursTotal}h</span>
+        </div>
+        <div style="background:#e2e8f0;border-radius:99px;height:6px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${isCompleted?'linear-gradient(90deg,#6b7280,#9ca3af)':'linear-gradient(90deg,#c9a03a,#e0b84a)'};border-radius:99px;transition:width 1s ease"></div>
+        </div>
+        <div style="font-size:.72rem;color:${isCompleted?'#6b7280':parseFloat(hoursLeft)<=2?'#ef4444':'#10b981'};font-weight:700;margin-top:.25rem">${isCompleted?'Program complete':''+hoursLeft+'h remaining'}</div>
+      </div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem">
+        <span style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#eff6ff;color:#2563eb">Code: ${s.code||'—'}</span>
+        ${s.exam_date?`<span style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#fef9ee;color:#92400e">Exam: ${s.exam_date}</span>`:''}
+      </div>
+      <div style="display:flex;gap:.5rem;margin-top:.85rem;border-top:1px solid #f1f5f9;padding-top:.75rem">
+        ${isCompleted
+          ? `<button onclick="adminReactivateStudent('${s.id}','${safeName}')" style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">↩️ Reactivate</button>
+             <button onclick="adminRemoveStudent('${s.id}','${safeName}')" style="flex:1;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">🗑️ Remove</button>`
+          : `<button onclick="adminResetPractice('${s.id}','${safeName}')" style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;color:#374151;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">🔄 Reset</button>
+             <button onclick="adminCompleteStudent('${s.id}','${safeName}')" style="flex:1;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">🎓 Complete</button>
+             <button onclick="adminRemoveStudent('${s.id}','${safeName}')" style="flex:1;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">🗑️ Remove</button>`
+        }
+      </div>
     </div>`;
+  }
+
+  body.innerHTML = `
+    <div class="adm-section-header">${active.length} active student${active.length!==1?'s':''}</div>
+    <div class="adm-students-grid">
+      ${active.length ? active.map(s=>studentCard(s,false)).join('') : '<div class="adm-empty" style="grid-column:1/-1">No active students.</div>'}
+    </div>
+    ${completed.length ? `
+    <div class="adm-section-header" style="margin-top:2rem">🎓 Completed Students (${completed.length})</div>
+    <div class="adm-students-grid">
+      ${completed.map(s=>studentCard(s,true)).join('')}
+    </div>` : ''}`;
 }
 
 function openAdminEditStudent(id, name, hoursUsed, hoursTotal, grade, code) {
@@ -3910,16 +3945,30 @@ async function adminResetHours(studentId, name) {
   showToast(`Hours reset for ${name}. ✅`,'success');
   buildAdminStudents();
 }
-async function adminDeleteStudent(studentId, name) {
-  if (!confirm(`Permanently delete ${name} and all their data? This CANNOT be undone.`)) return;
-  if (!confirm(`Are you absolutely sure? All sessions, homework, and files for ${name} will be deleted.`)) return;
+async function adminCompleteStudent(studentId, name) {
+  if (!confirm(`Mark ${name} as a completed student? They'll move to the Completed section. You can reactivate them anytime.`)) return;
+  const { error } = await db.from('students').update({status:'completed'}).eq('id', studentId);
+  if (error) { showToast('Error: '+error.message,'error'); return; }
+  showToast(`🎓 ${name} marked as completed!`,'success');
+  buildAdminStudents();
+}
+async function adminReactivateStudent(studentId, name) {
+  if (!confirm(`Reactivate ${name} as an active student?`)) return;
+  const { error } = await db.from('students').update({status:'active'}).eq('id', studentId);
+  if (error) { showToast('Error: '+error.message,'error'); return; }
+  showToast(`${name} reactivated! ✅`,'success');
+  buildAdminStudents();
+}
+async function adminRemoveStudent(studentId, name) {
+  if (!confirm(`Permanently remove ${name}? This deletes all their data and CANNOT be undone.`)) return;
+  if (!confirm(`Last chance — remove ${name} for good?`)) return;
   await db.from('homework').delete().eq('student_id', studentId);
   await db.from('sessions').delete().eq('student_id', studentId);
   await db.from('files').delete().eq('student_id', studentId);
   await db.from('practice_attempts').delete().eq('student_id', studentId);
   const { error } = await db.from('students').delete().eq('id', studentId);
-  if (error) { showToast('Error deleting student: '+error.message,'error'); return; }
-  showToast(`${name} deleted.`,'success');
+  if (error) { showToast('Error removing student: '+error.message,'error'); return; }
+  showToast(`${name} removed.`,'success');
   buildAdminStudents();
 }
 
