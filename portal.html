@@ -3749,7 +3749,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
     <div id="ttab-panel-progress" class="t-tab-panel"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading progress…</div></div>
     <div id="ttab-panel-sessions" class="t-tab-panel">${buildTutorSessionsPanel(sessions, studentId)}</div>
     <div id="ttab-panel-announce" class="t-tab-panel">${buildTutorAnnouncePanel(announcements, studentId)}</div>
-    <div id="ttab-panel-messages" class="t-tab-panel" style="display:none;flex-direction:column;height:calc(100vh - 220px)"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading messages…</div></div>`;
+    <div id="ttab-panel-messages" class="t-tab-panel" style="flex-direction:column;height:calc(100vh - 220px)"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading messages…</div></div>`;
   // Restore whichever tab was active (defaults to materials on first load)
   switchTutorTab(tutorActiveTab);
   // Async-load the progress panel in the background
@@ -3760,13 +3760,18 @@ async function selectTutorStudent(studentId, keepTab=false) {
 function switchTutorTab(id) {
   tutorActiveTab = id;
   document.querySelectorAll('.t-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.t-tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.t-tab-panel').forEach(p=>{
+    p.classList.remove('active');
+    p.style.display = ''; // clear any inline display so CSS takes over
+  });
   const tab   = document.getElementById('ttab-'+id);
   const panel = document.getElementById('ttab-panel-'+id);
   if (tab)   tab.classList.add('active');
   if (panel) {
     panel.style.animation='none'; void panel.offsetWidth;
     panel.style.animation='fadeInUp .22s cubic-bezier(.22,1,.36,1)';
+    // messages panel needs flex, others use block (set by CSS .t-tab-panel.active)
+    if (id === 'messages') panel.style.display = 'flex';
     panel.classList.add('active');
   }
   // Load messages panel lazily when switching to messages tab
@@ -5270,6 +5275,8 @@ async function loadAdminConvo(studentId, studentName) {
   const btn = document.getElementById('admMsgBtn-'+studentId);
   if (btn) { btn.style.borderColor='#0f2044'; btn.style.background='#f0f4ff'; }
   const area = document.getElementById('admConvoArea');
+  // Reset placeholder centering so chat fills full width
+  area.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;overflow:hidden';
   area.innerHTML='<div style="padding:2rem;color:#64748b;text-align:center">Loading…</div>';
   _markRead(studentId);
   _unsubscribeMessages();
