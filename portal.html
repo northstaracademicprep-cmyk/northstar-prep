@@ -4763,6 +4763,41 @@ async function buildAdminBilling() {
     </div>`;
 }
 
+/* ══ MATH SUBJECT HIERARCHY ══
+   A tutor who scored on a high-level math AP can teach everything below it.
+   Levels are ordered lowest → highest; getMathLevel() returns the level index. */
+const _MATH_LEVELS = [
+  { lv:1,  terms:['arithmetic','basic math','math 6','math 7','math 8','middle school math'] },
+  { lv:2,  terms:['pre-algebra','prealgebra','pre algebra'] },
+  { lv:3,  terms:['algebra 1','algebra i','algebra1','algebra one','algebra i '] },
+  { lv:4,  terms:['geometry'] },
+  { lv:5,  terms:['algebra 2','algebra ii','algebra2','algebra two'] },
+  { lv:6,  terms:['trigonometry','trig'] },
+  { lv:7,  terms:['pre-calculus','precalculus','pre calculus','pre calc'] },
+  { lv:8,  terms:['ap statistics','ap stats','statistics','stats','prob and stats'] },
+  { lv:9,  terms:['ap calculus ab','ap calc ab','calculus ab','calc ab','calculus','calc'] },
+  { lv:10, terms:['ap calculus bc','ap calc bc','calculus bc','calc bc','multivariable'] },
+];
+function _mathLevel(str) {
+  const s = (str||'').toLowerCase();
+  for (let i = _MATH_LEVELS.length-1; i>=0; i--)
+    if (_MATH_LEVELS[i].terms.some(t => s.includes(t) || t.includes(s.split(' ').slice(0,3).join(' ')))) return _MATH_LEVELS[i].lv;
+  return 0;
+}
+function _tutorMaxMath(tutor) {
+  return Math.max(0, ...[...(tutor.subjects_can_teach||[]),...(tutor.ap_scores||[]).map(a=>a.course)].map(c=>_mathLevel(c)));
+}
+function _tutorCanTeach(tutor, req) {
+  const r = (req||'').toLowerCase().trim();
+  const all = [...(tutor.subjects_can_teach||[]),...(tutor.ap_scores||[]).map(a=>a.course)].map(s=>s.toLowerCase());
+  // Direct keyword match
+  if (all.some(s => s.includes(r) || r.includes(s))) return true;
+  // Math hierarchy: if tutor's max level >= requested level, they can teach it
+  const reqLv = _mathLevel(r);
+  if (reqLv > 0 && _tutorMaxMath(tutor) >= reqLv) return true;
+  return false;
+}
+
 /* ── ADMIN: TUTOR MANAGEMENT ── */
 async function buildAdminTutorMgmt() {
   const body = document.getElementById('admBody');
@@ -4774,11 +4809,11 @@ async function buildAdminTutorMgmt() {
   body.innerHTML = `
     <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap">
       <div style="font-size:.82rem;font-weight:700;color:#64748b">🔍 Match a student — filter tutors by:</div>
-      <input id="matchSubj" type="text" placeholder="Subject (e.g. AP US History)" style="padding:.5rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.82rem;width:220px;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
-      <div style="display:flex;gap:.35rem;flex-wrap:wrap">
-        ${DAYS.map(d=>`<label style="display:flex;align-items:center;gap:.25rem;font-size:.75rem;font-weight:600;color:#374151;cursor:pointer"><input type="checkbox" value="${d}" style="accent-color:#0f2044"> ${d.slice(0,3)}</label>`).join('')}
+      <input id="matchSubj" type="text" placeholder="Subject (e.g. Algebra 2, AP Bio…)" style="padding:.5rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.82rem;width:230px;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+      <div id="matchDayFilters" style="display:flex;gap:.35rem;flex-wrap:wrap">
+        ${DAYS.map(d=>`<label style="display:flex;align-items:center;gap:.25rem;font-size:.75rem;font-weight:600;color:#374151;cursor:pointer;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:.25rem .55rem"><input type="checkbox" value="${d}" style="accent-color:#0f2044"> ${d.slice(0,3)}</label>`).join('')}
       </div>
-      <button onclick="runTutorMatch()" style="background:#0f2044;color:#fff;border:none;border-radius:8px;padding:.5rem 1rem;font-size:.8rem;font-weight:700;cursor:pointer">Find Match →</button>
+      <button onclick="runTutorMatch()" style="background:#0f2044;color:#fff;border:none;border-radius:8px;padding:.5rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer">Find Match →</button>
     </div>
     <div id="matchResult" style="margin-bottom:1.5rem"></div>
     <div class="adm-section-header">${tutors.length} tutor${tutors.length!==1?'s':''} — click to edit profile</div>
@@ -4802,7 +4837,11 @@ async function buildAdminTutorMgmt() {
             ${(t.ap_scores||[]).length>4?`<span class="adm-stat-chip" style="background:#f1f5f9;color:#64748b">+${t.ap_scores.length-4} more</span>`:''}
           </div>
           <div style="margin-top:.5rem;font-size:.75rem;color:#374151"><span style="font-weight:600;color:#64748b">Subjects:</span> ${subjects}</div>
-          <div style="font-size:.75rem;color:#374151"><span style="font-weight:600;color:#64748b">Available:</span> ${avail}</div>
+          <div style="font-size:.75rem;color:#374151"><span style="font-weight:600;color:#64748b">Available:</span> ${
+            (t.availability_schedule||[]).length
+              ? (t.availability_schedule).map(s=>`${s.day.slice(0,3)} ${s.from}–${s.to}`).join(' · ')
+              : (t.availability_days||[]).join(', ')||'Not set'
+          }</div>
           ${t.bio?`<div style="font-size:.75rem;color:#374151;font-style:italic;margin-top:.3rem">"${t.bio}"</div>`:''}
           <!-- Edit form -->
           <div id="tedit-${t.id}" style="display:none;margin-top:1rem;padding:1rem;background:#f8fafc;border-radius:10px;border:1px solid #e5e7eb">
@@ -4832,10 +4871,26 @@ async function buildAdminTutorMgmt() {
             </div>
             <div style="margin-bottom:.65rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Subjects Can Teach (comma-separated)</label><input id="te-subj-${t.id}" type="text" value="${(t.subjects_can_teach||[]).join(', ')}" placeholder="AP US History, SAT, ACT…" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
             <div style="margin-bottom:.65rem">
-              <label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.4rem">Availability</label>
-              <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-                ${DAYS.map(d=>`<label style="display:flex;align-items:center;gap:.25rem;font-size:.75rem;font-weight:600;color:#374151;cursor:pointer"><input type="checkbox" class="te-day-${t.id}" value="${d}" ${(t.availability_days||[]).includes(d)?'checked':''} style="accent-color:#0f2044"> ${d}</label>`).join('')}
-              </div>
+              <label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.4rem">Availability Schedule <span style="font-weight:400;color:#94a3b8">(day + time window)</span></label>
+              <table style="width:100%;border-collapse:collapse;font-size:.78rem" id="availtable-${t.id}">
+                <thead><tr style="background:#f1f5f9">
+                  <th style="text-align:left;padding:.3rem .5rem;font-size:.68rem;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb">Day</th>
+                  <th style="text-align:left;padding:.3rem .5rem;font-size:.68rem;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb">From</th>
+                  <th style="text-align:left;padding:.3rem .5rem;font-size:.68rem;color:#64748b;font-weight:700;border-bottom:1px solid #e5e7eb">To</th>
+                  <th style="width:32px;border-bottom:1px solid #e5e7eb"></th>
+                </tr></thead>
+                <tbody id="availrows-${t.id}">
+                  ${(t.availability_schedule||[]).map((s,i)=>`<tr id="availrow-${t.id}-${i}">
+                    <td style="padding:.25rem .3rem"><select style="width:100%;padding:.28rem .4rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.76rem">
+                      ${DAYS.map(d=>`<option value="${d}" ${s.day===d?'selected':''}>${d}</option>`).join('')}
+                    </select></td>
+                    <td style="padding:.25rem .3rem"><input type="time" value="${s.from||''}" style="padding:.28rem .4rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.76rem;width:100%"></td>
+                    <td style="padding:.25rem .3rem"><input type="time" value="${s.to||''}" style="padding:.28rem .4rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.76rem;width:100%"></td>
+                    <td style="padding:.25rem .2rem;text-align:center"><button onclick="removeAvailSlot('${t.id}','availrow-${t.id}-${i}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:.9rem;padding:0">✕</button></td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+              <button onclick="addAvailSlot('${t.id}')" style="margin-top:.4rem;background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:6px;font-size:.75rem;font-weight:600;padding:.3rem .75rem;cursor:pointer">+ Add Time Slot</button>
             </div>
             <div style="margin-bottom:.65rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Tutoring Experience</label><textarea id="te-exp-${t.id}" rows="2" placeholder="Previous tutoring experience, schools, etc." style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;font-family:'Inter',sans-serif;resize:vertical;outline:none">${t.experience_notes||''}</textarea></div>
             <div style="margin-bottom:.85rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Short Bio</label><textarea id="te-bio-${t.id}" rows="2" placeholder="A short bio shown to admin for matching…" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;font-family:'Inter',sans-serif;resize:vertical;outline:none">${t.bio||''}</textarea></div>
@@ -4853,6 +4908,24 @@ function toggleTutorEdit(id) {
   const el = document.getElementById('tedit-'+id);
   if (el) el.style.display = el.style.display==='none'?'block':'none';
 }
+
+function addAvailSlot(tutorId) {
+  const tbody = document.getElementById('availrows-'+tutorId);
+  if (!tbody) return;
+  const rowId = 'availrow-'+tutorId+'-'+Date.now();
+  const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const tr = document.createElement('tr');
+  tr.id = rowId;
+  tr.innerHTML = `
+    <td style="padding:.25rem .3rem"><select style="width:100%;padding:.28rem .4rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.76rem">
+      ${DAYS.map(d=>`<option value="${d}">${d}</option>`).join('')}
+    </select></td>
+    <td style="padding:.25rem .3rem"><input type="time" value="15:00" style="padding:.28rem .4rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.76rem;width:100%"></td>
+    <td style="padding:.25rem .3rem"><input type="time" value="18:00" style="padding:.28rem .4rem;border:1px solid #e2e8f0;border-radius:5px;font-size:.76rem;width:100%"></td>
+    <td style="padding:.25rem .2rem;text-align:center"><button onclick="removeAvailSlot('${tutorId}','${rowId}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:.9rem;padding:0">✕</button></td>`;
+  tbody.appendChild(tr);
+}
+function removeAvailSlot(tutorId, rowId) { document.getElementById(rowId)?.remove(); }
 
 function addAPRow(tutorId) {
   const tbody = document.getElementById('aprows-'+tutorId);
@@ -4878,7 +4951,6 @@ async function saveTutorProfile(id) {
   const subjRaw  = document.getElementById('te-subj-'+id)?.value||'';
   const exp      = document.getElementById('te-exp-'+id)?.value||'';
   const bio      = document.getElementById('te-bio-'+id)?.value||'';
-  const days     = [...document.querySelectorAll('.te-day-'+id+':checked')].map(cb=>cb.value);
   const subjects_can_teach = subjRaw.split(',').map(s=>s.trim()).filter(Boolean);
   // Read AP scores table
   const apRows = document.querySelectorAll('#aprows-'+id+' tr');
@@ -4892,9 +4964,27 @@ async function saveTutorProfile(id) {
     }
   });
   const ap_courses_taken = ap_scores.map(a=>a.course);
+  // Read availability schedule table
+  const availRows = document.querySelectorAll('#availrows-'+id+' tr');
+  const availability_schedule = [];
+  availRows.forEach(row=>{
+    const sel  = row.querySelector('select');
+    const times = row.querySelectorAll('input[type=time]');
+    if(sel && times.length>=2){
+      const day  = sel.value;
+      const from = times[0].value;
+      const to   = times[1].value;
+      if(day && from && to){
+        // Format time to 12h for display
+        const fmt = t => { if(!t) return ''; const [h,m]=t.split(':'); const hh=parseInt(h); return `${hh%12||12}:${m} ${hh<12?'AM':'PM'}`; };
+        availability_schedule.push({ day, from: fmt(from), to: fmt(to) });
+      }
+    }
+  });
+  const availability_days = [...new Set(availability_schedule.map(s=>s.day))];
   const { error } = await db.from('tutors').update({
     sat_score: sat, hourly_rate: pay, ap_courses_taken, ap_scores, subjects_can_teach,
-    availability_days: days, experience_notes: exp||null, bio: bio||null
+    availability_days, availability_schedule, experience_notes: exp||null, bio: bio||null
   }).eq('id', id);
   if (error) { showToast('Error: '+error.message,'error'); return; }
   showToast('Tutor profile saved! ✅','success');
@@ -4902,24 +4992,38 @@ async function saveTutorProfile(id) {
 }
 
 async function runTutorMatch() {
-  const subj = document.getElementById('matchSubj')?.value.trim().toLowerCase();
-  const selectedDays = [...document.querySelectorAll('input[type=checkbox]:checked')].map(cb=>cb.value);
+  const subj = (document.getElementById('matchSubj')?.value||'').trim();
+  const selectedDays = [...document.querySelectorAll('#matchDayFilters input[type=checkbox]:checked')].map(cb=>cb.value);
   const { data: tutors } = await db.from('tutors').select('*').order('name');
   const result = document.getElementById('matchResult');
   const matches = (tutors||[]).filter(t => {
-    const canTeach  = (t.subjects_can_teach||[]).map(s=>s.toLowerCase());
-    const avail     = t.availability_days||[];
-    const subjMatch = !subj || canTeach.some(s=>s.includes(subj)||subj.includes(s.split(' ')[0].toLowerCase()));
-    const dayMatch  = !selectedDays.length || selectedDays.some(d=>avail.includes(d));
+    const subjMatch = !subj || _tutorCanTeach(t, subj);
+    const sched = t.availability_schedule||[];
+    const avail  = t.availability_days||[];
+    const dayMatch = !selectedDays.length ||
+      selectedDays.some(d => sched.some(s=>s.day===d) || avail.includes(d));
     return subjMatch && dayMatch;
   });
   if (!matches.length) {
-    result.innerHTML=`<div style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:8px;padding:.65rem 1rem;font-size:.82rem">No tutors match these criteria. Check availability or subjects.</div>`;
+    result.innerHTML=`<div style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:8px;padding:.65rem 1rem;font-size:.82rem;font-weight:600">No tutors match. Try broader criteria or check that subjects/schedule are saved on tutor profiles.</div>`;
     return;
   }
-  result.innerHTML=`<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:.75rem 1rem">
-    <div style="font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:.5rem">✅ ${matches.length} tutor${matches.length>1?'s':''} can take this student:</div>
-    ${matches.map(t=>`<div style="font-size:.82rem;color:#0f2044;font-weight:600">· ${t.name} — Available: ${(t.availability_days||[]).join(', ')||'TBD'} ${t.hourly_rate?'· $'+t.hourly_rate+'/hr':''}</div>`).join('')}
+  result.innerHTML=`<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:.85rem 1.1rem">
+    <div style="font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:.65rem">✅ ${matches.length} tutor${matches.length!==1?'s':''} can take this student:</div>
+    ${matches.map(t=>{
+      const sched = (t.availability_schedule||[]);
+      const schedStr = sched.length ? sched.map(s=>`<span style="background:#d1fae5;color:#065f46;padding:.15rem .45rem;border-radius:5px;font-size:.7rem;font-weight:600">${s.day.slice(0,3)} ${s.from}–${s.to}</span>`).join(' ') : ((t.availability_days||[]).join(', ')||'Schedule not set');
+      const apStr = (t.ap_scores||[]).slice(0,3).map(a=>`${a.course} (${a.score})`).join(', ');
+      return `<div style="padding:.6rem .75rem;border-radius:8px;border:1px solid #a7f3d0;margin-bottom:.4rem;background:#fff">
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.3rem">
+          <div style="font-size:.88rem;font-weight:700;color:#0f2044">${t.name}</div>
+          ${t.hourly_rate?`<span style="font-size:.72rem;font-weight:700;color:#065f46;background:#ecfdf5;padding:.15rem .5rem;border-radius:99px">$${t.hourly_rate}/hr</span>`:''}
+          ${t.sat_score?`<span style="font-size:.72rem;font-weight:700;color:#1e40af;background:#eff6ff;padding:.15rem .5rem;border-radius:99px">SAT ${t.sat_score}</span>`:''}
+        </div>
+        ${apStr?`<div style="font-size:.72rem;color:#374151;margin-bottom:.3rem">📋 ${apStr}</div>`:''}
+        <div style="display:flex;gap:.3rem;flex-wrap:wrap">${schedStr}</div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
