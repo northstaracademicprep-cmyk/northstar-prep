@@ -149,6 +149,9 @@
     .notif-badge.visible{display:inline-flex}
     .nav-item .notif-badge{margin-left:auto}
     .adm-nav-item .notif-badge{margin-left:auto}
+    /* ── Floating corner badge (on top of tab / nav button) ── */
+    .corner-badge{display:none;position:absolute;top:-8px;right:-10px;min-width:19px;height:19px;border-radius:99px;background:#ef4444;color:#fff;font-size:.6rem;font-weight:900;align-items:center;justify-content:center;padding:0 4px;line-height:1;z-index:20;box-shadow:0 2px 8px rgba(239,68,68,.5);animation:popIn .25s cubic-bezier(.22,1,.36,1);pointer-events:none;white-space:nowrap}
+    .corner-badge.visible{display:inline-flex}
 
     /* iMessage typing bubble */
     .typing-wrap{display:none;align-items:flex-end;gap:.25rem;margin:.2rem 0 .1rem}
@@ -536,8 +539,8 @@
     .tsh-hours-val{font-size:1.15rem;font-weight:700;color:#0f2044}
     .tsh-hours-label{font-size:.7rem;color:#94a3b8}
     /* mgmt tabs */
-    .t-tabs{display:flex;gap:.2rem;border-bottom:2px solid #e2e8f0;margin-bottom:1.5rem;overflow-x:auto}
-    .t-tab{padding:.6rem 1rem;font-size:.84rem;font-weight:600;color:#64748b;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:.3rem}
+    .t-tabs{display:flex;gap:.2rem;border-bottom:2px solid #e2e8f0;margin-bottom:1.5rem;overflow-x:auto;overflow-y:visible}
+    .t-tab{padding:.6rem 1rem;font-size:.84rem;font-weight:600;color:#64748b;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:.3rem;position:relative;overflow:visible}
     .t-tab.active{color:#0f2044;border-bottom-color:#c9a03a}
     .t-tab:hover:not(.active){color:#1a2540;background:#f5f6fa;border-radius:6px 6px 0 0}
     .t-tab-panel{display:none}.t-tab-panel.active{display:block;animation:fadeInUp .35s cubic-bezier(.22,1,.36,1) both}.t-tab-panel#ttab-panel-messages.active{display:flex}
@@ -3895,7 +3898,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
     {id:'progress',    label:'📊 Progress'},
     {id:'sessions',    label:'📅 Sessions'},
     {id:'announce',    label:'📣 Announcements'},
-    {id:'messages',    label:`<span style="display:flex;flex-direction:column;align-items:flex-start;gap:.05rem">💬 Messages<span id="ttab-msg-from" style="display:none;font-size:.58rem;color:#ef4444;font-weight:700;line-height:1.1"></span></span><span class="notif-badge" id="ttab-msg-badge" style="margin-left:.5rem"></span>`, raw:true},
+    {id:'messages',    label:`💬 Messages<span id="ttab-msg-from" style="display:none;font-size:.58rem;color:#ef4444;font-weight:700;line-height:1.1;margin-left:.25rem"></span><span class="corner-badge" id="ttab-msg-badge"></span>`, raw:true},
   ];
 
   document.getElementById('tContent').innerHTML = `
@@ -5488,7 +5491,7 @@ async function loadAdminConvo(studentId, studentName) {
 .adm-sidebar-sub{font-size:.72rem;color:rgba(255,255,255,.4);margin-top:.15rem}
 .adm-nav{flex:1;padding:1rem 0}
 .adm-nav-label{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);padding:.75rem 1.25rem .3rem}
-.adm-nav-item{display:flex;align-items:center;gap:.7rem;padding:.6rem 1.25rem;font-size:.85rem;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border-left:3px solid transparent;transition:all .18s;user-select:none}
+.adm-nav-item{display:flex;align-items:center;gap:.7rem;padding:.6rem 1.25rem;font-size:.85rem;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border-left:3px solid transparent;transition:all .18s;user-select:none;position:relative;overflow:visible}
 .adm-nav-item:hover{color:#fff;background:rgba(255,255,255,.05)}
 .adm-nav-item.active{color:#c9a03a;background:rgba(201,160,58,.1);border-left-color:#c9a03a}
 .adm-nav-icon{font-size:1.05rem;width:20px;text-align:center;flex-shrink:0}
@@ -5574,7 +5577,7 @@ async function loadAdminConvo(studentId, studentName) {
             <span>Messages</span>
             <span id="admMsgFromLabel" style="display:none;font-size:.62rem;color:#fca5a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2"></span>
           </span>
-          <span class="notif-badge" id="admMsgBadge"></span>
+          <span class="corner-badge" id="admMsgBadge" style="top:4px;right:10px"></span>
         </div>
       </nav>
       <div class="adm-sidebar-footer">
