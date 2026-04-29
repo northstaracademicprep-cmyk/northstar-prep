@@ -131,6 +131,12 @@
     .msg-bubble.me{background:#0f2044;color:#fff;border-radius:18px 18px 4px 18px;animation:msgSlideRight .22s cubic-bezier(.22,1,.36,1)}
     .msg-bubble.them{background:#e9ebef;color:#1a1a2e;animation:msgSlideLeft .22s cubic-bezier(.22,1,.36,1)}
     .msg-meta{font-size:.65rem;color:#94a3b8;margin:.18rem .3rem}
+    /* ── NOTIFICATION BADGES ── */
+    .notif-badge{display:none;min-width:18px;height:18px;border-radius:99px;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;align-items:center;justify-content:center;padding:0 4px;margin-left:auto;animation:popIn .25s cubic-bezier(.22,1,.36,1);line-height:1;flex-shrink:0}
+    .notif-badge.visible{display:inline-flex}
+    .nav-item .notif-badge{margin-left:auto}
+    .adm-nav-item .notif-badge{margin-left:auto}
+
     /* iMessage typing bubble */
     .typing-wrap{display:none;align-items:flex-end;gap:.25rem;margin:.2rem 0 .1rem}
     .typing-wrap.visible{display:flex;animation:msgSlideLeft .2s cubic-bezier(.22,1,.36,1)}
@@ -3106,6 +3112,110 @@ function buildAnnouncements(){
     </div>`).join('')+`</div>`;
 }
 
+/* ══════════════════════════════════════════════════════════
+   NOTIFICATION SYSTEM  (favicon + tab title + in-app badges)
+══════════════════════════════════════════════════════════ */
+let _unreadByStudent = {};  // { studentId: unreadCount }
+let _bgNotifChannels = {};  // { studentId: channel } — always-on background listeners
+
+function _totalUnread() { return Object.values(_unreadByStudent).reduce((a,b)=>a+b,0); }
+
+/* Increment unread for a student (skip if sender is self or chat is open) */
+function _countUnread(studentId, senderRole, myRole) {
+  if (senderRole === myRole) return;
+  if (_activeMsgCtx?.studentId === studentId) return; // chat currently open
+  _unreadByStudent[studentId] = (_unreadByStudent[studentId]||0) + 1;
+  _refreshAllBadges();
+}
+
+/* Clear unread for a student when they open the chat */
+function _markRead(studentId) {
+  delete _unreadByStudent[studentId];
+  _refreshAllBadges();
+}
+
+/* Update every badge surface */
+function _refreshAllBadges() {
+  const total = _totalUnread();
+  _faviconBadge(total);
+  _titleBadge(total);
+  // Student nav badge
+  _setBadge('msgBadge', total);
+  // Admin nav badge
+  _setBadge('admMsgBadge', total);
+  // Tutor: messages tab badge for selected student
+  if (selectedStudent) _setBadge('ttab-msg-badge', _unreadByStudent[selectedStudent.id]||0);
+  // Tutor sidebar: per-student badges
+  Object.keys(_unreadByStudent).forEach(sid => _setBadge('tstu-badge-'+sid, _unreadByStudent[sid]||0));
+  document.querySelectorAll('[id^="tstu-badge-"]').forEach(el => {
+    const sid = el.id.replace('tstu-badge-','');
+    if (!_unreadByStudent[sid]) _setBadge(el.id, 0);
+  });
+  // Admin conversation list: per-student badges
+  Object.keys(_unreadByStudent).forEach(sid => _setBadge('admstu-badge-'+sid, _unreadByStudent[sid]||0));
+  document.querySelectorAll('[id^="admstu-badge-"]').forEach(el => {
+    const sid = el.id.replace('admstu-badge-','');
+    if (!_unreadByStudent[sid]) _setBadge(el.id, 0);
+  });
+}
+
+function _setBadge(id, count) {
+  const el = typeof id === 'string' ? document.getElementById(id) : id;
+  if (!el) return;
+  el.textContent = count > 99 ? '99+' : String(count);
+  el.classList.toggle('visible', count > 0);
+}
+
+function _titleBadge(count) {
+  const base = document.title.replace(/^\(\d+\+?\)\s*/,'');
+  document.title = count > 0 ? `(${Math.min(count,99)}${count>99?'+':''}) ${base}` : base;
+}
+
+function _faviconBadge(count) {
+  const link = document.querySelector("link[rel*='icon']");
+  if (!link) return;
+  if (count === 0) { link.href = 'logo.png'; return; }
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, 32, 32);
+    const label = count > 99 ? '99+' : String(count);
+    const radius = label.length > 1 ? 10 : 8;
+    // Red circle
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath(); ctx.arc(26, 6, radius, 0, Math.PI*2); ctx.fill();
+    // White number
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${label.length > 1 ? 7 : 9}px -apple-system,Arial,sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, 26, 6);
+    link.href = canvas.toDataURL('image/png');
+  };
+  img.onerror = () => {};
+  img.src = 'logo.png';
+}
+
+/* Subscribe background notification listeners for all a user's students.
+   These stay alive the whole session so badges update even when chat isn't open. */
+function _initBgNotifs(studentIds, myRole) {
+  studentIds.forEach(sid => {
+    if (_bgNotifChannels[sid]) return;
+    _bgNotifChannels[sid] = db.channel('notif-bg-' + sid)
+      .on('broadcast', { event:'new_message' }, ({ payload }) => {
+        _countUnread(sid, payload.sender_role, myRole);
+      })
+      .subscribe();
+  });
+}
+
+function _cleanupBgNotifs() {
+  Object.values(_bgNotifChannels).forEach(ch => { try { db.removeChannel(ch); } catch(e){} });
+  _bgNotifChannels = {};
+  _unreadByStudent = {};
+}
+
 /* ── MESSAGES (STUDENT) ── */
 /* ══════════════════════════════════════════════════════════
    REAL-TIME MESSAGING  (iMessage-style)
@@ -3244,6 +3354,8 @@ function _subscribeChat(studentId, myRole, myName) {
       // Clear typing for the sender
       delete _typingUsers[msg.sender_role];
       _updateTypingUI();
+      // Notification: if sender isn't us, ping badges (chat IS open here so _countUnread skips)
+      _countUnread(studentId, msg.sender_role, myRole);
     })
     /* ── typing indicator broadcast ── */
     .on('broadcast', { event:'typing' }, ({ payload }) => {
@@ -3323,6 +3435,7 @@ async function buildStudentMessages() {
   const studentId = currentStudent?.studentId;
   if (!studentId) { container.innerHTML='<div style="padding:2rem;text-align:center;color:#9ca3af">Unable to load messages.</div>'; return; }
   container.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b">Loading…</div>';
+  _markRead(studentId);
   _unsubscribeMessages();
   const { data: msgs, error } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at', {ascending:true});
   if (error) { container.innerHTML=`<div style="color:#ef4444;padding:1rem">${error.message}</div>`; return; }
@@ -3342,6 +3455,7 @@ async function buildTutorMessagesPanel(studentId) {
   }
 
   // New student or first load — tear down old channel and rebuild
+  _markRead(studentId);
   _unsubscribeMessages();
   panel.innerHTML = '<div style="padding:2rem;text-align:center;color:#94a3b8;font-size:.85rem">Loading…</div>';
   const { data: msgs, error } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at', {ascending:true});
@@ -3368,6 +3482,8 @@ async function bootTutorPortal() {
   tutorStudents = students || [];
   renderTutorStudentList();
   renderTutorDashboard();
+  // Subscribe background notification listeners for all students
+  _initBgNotifs((tutorStudents||[]).map(s=>s.id), 'tutor');
 }
 
 function renderTutorStudentList() {
@@ -3386,6 +3502,7 @@ function renderTutorStudentList() {
         <div class="t-s-name">${s.name}</div>
         <div class="t-s-course">${(s.subjects||[''])[0]||s.program_type||'AP Prep'}</div>
       </div>
+      <span class="notif-badge" id="tstu-badge-${s.id}"></span>
     </button>`).join('');
 
   const completedHTML = completed.length ? `
@@ -3571,7 +3688,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
     {id:'progress',    label:'📊 Progress'},
     {id:'sessions',    label:'📅 Sessions'},
     {id:'announce',    label:'📣 Announcements'},
-    {id:'messages',    label:'💬 Messages'},
+    {id:'messages',    label:`💬 Messages<span class="notif-badge" id="ttab-msg-badge" style="margin-left:.4rem"></span>`, raw:true},
   ];
 
   document.getElementById('tContent').innerHTML = `
@@ -4337,6 +4454,10 @@ async function bootAdminPortal() {
     const badge = document.getElementById('admEnrBadge');
     if (badge && data?.length) { badge.textContent=data.length; badge.style.display='inline'; }
   });
+  // Subscribe background notification listeners for all students
+  db.from('students').select('id').then(({data})=>{
+    if (data?.length) _initBgNotifs(data.map(s=>s.id), 'admin');
+  });
   showAdminSection('approvals');
 }
 
@@ -5101,7 +5222,8 @@ async function buildAdminMessages() {
           <button id="admMsgBtn-${s.id}" onclick="loadAdminConvo('${s.id}','${s.name.replace(/'/g,"\\'")}')"
             style="text-align:left;padding:.6rem .9rem;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.83rem;font-weight:600;color:#0f2044;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:.6rem">
             <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0f2044,#2a4a8a);color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
-            ${s.name}
+            <span style="flex:1">${s.name}</span>
+            <span class="notif-badge" id="admstu-badge-${s.id}"></span>
           </button>`).join('')}
       </div>
       <div style="flex:1;background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 20px rgba(15,32,68,.06)">
@@ -5119,6 +5241,7 @@ async function loadAdminConvo(studentId, studentName) {
   if (btn) { btn.style.borderColor='#0f2044'; btn.style.background='#f0f4ff'; }
   const area = document.getElementById('admConvoArea');
   area.innerHTML='<div style="padding:2rem;color:#64748b;text-align:center">Loading…</div>';
+  _markRead(studentId);
   _unsubscribeMessages();
   const { data: msgs } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at',{ascending:true});
   renderMessagesUI(area, msgs||[], studentId, 'admin', 'Northstar Admin');
@@ -5199,7 +5322,7 @@ async function loadAdminConvo(studentId, studentName) {
         <div class="adm-nav-item" data-id="billing" onclick="showAdminSection('billing')"><span class="adm-nav-icon">💰</span> Hours &amp; Billing</div>
         <div class="adm-nav-label">Tools</div>
         <div class="adm-nav-item" data-id="tutor-mgmt" onclick="showAdminSection('tutor-mgmt')"><span class="adm-nav-icon">🎓</span> Tutor Management</div>
-        <div class="adm-nav-item" data-id="adm-messages" onclick="showAdminSection('adm-messages')"><span class="adm-nav-icon">💬</span> Messages</div>
+        <div class="adm-nav-item" data-id="adm-messages" onclick="showAdminSection('adm-messages')"><span class="adm-nav-icon">💬</span> Messages<span class="notif-badge" id="admMsgBadge"></span></div>
       </nav>
       <div class="adm-sidebar-footer">
         <button class="adm-logout" onclick="adminLogout()">↩ Sign Out</button>
