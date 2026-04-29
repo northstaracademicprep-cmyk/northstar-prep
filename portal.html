@@ -795,7 +795,7 @@
         <div id="pvContent"></div>
       </section>
 
-      <section class="page-section" id="sec-messages" style="height:calc(100vh - 120px);display:flex;flex-direction:column">
+      <section class="page-section" id="sec-messages" style="height:calc(100vh - 120px);flex-direction:column">
         <div id="messagesBody" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
       </section>
 
@@ -1573,7 +1573,8 @@ function buildNav() {
 }
 
 function showSection(id, navEl) {
-  document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
+  // Clear active + reset any inline display overrides (messages section uses display:flex)
+  document.querySelectorAll('.page-section').forEach(s=>{ s.classList.remove('active'); s.style.display=''; });
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const sec = document.getElementById('sec-'+id);
   if (sec) {
@@ -1582,6 +1583,8 @@ function showSection(id, navEl) {
     void sec.offsetWidth;
     sec.style.animation = '';
     sec.classList.add('active');
+    // Messages section needs flex layout; everything else is block (handled by CSS)
+    if (id === 'messages') sec.style.display = 'flex';
   }
   if (navEl) navEl.classList.add('active');
   const titles = {dashboard:'Dashboard',progress:'My Progress',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault',messages:'Messages'};
@@ -1907,19 +1910,176 @@ function animateAllBars(){document.querySelectorAll('.score-bar').forEach(bar=>{
 /* ── SUBJECT ROUTING ── */
 function getPracticeBank(subjects) {
   const raw = ((subjects||[])[0]||'').toLowerCase();
-  if (raw.includes('ap us hist')||raw.includes('apush'))   return { bank: APUSH_BANK, label:'AP US History', type:'apush' };
-  if (raw.includes('sat'))                                  return { bank: SAT_BANK,   label:'SAT Prep',      type:'sat' };
-  if (raw.includes('act'))                                  return { bank: ACT_BANK,   label:'ACT Prep',      type:'act' };
-  if (raw.includes('hiset'))                                return { bank: HISET_BANK, label:'HiSET Prep',    type:'hiset' };
-  if (raw.includes('ged'))                                  return { bank: GED_BANK,   label:'GED Prep',      type:'ged' };
-  if (raw.includes('ap world'))                             return { bank: APWH_BANK,  label:'AP World History', type:'apwh' };
-  if (raw.includes('ap bio'))                               return { bank: APBIO_BANK, label:'AP Biology',    type:'apbio' };
-  if (raw.includes('ap chem'))                              return { bank: APCHEM_BANK,label:'AP Chemistry',  type:'apchem' };
-  if (raw.includes('ap calc'))                              return { bank: APCALC_BANK,label:'AP Calculus',   type:'apcalc' };
-  if (raw.includes('ap stat'))                              return { bank: APSTAT_BANK,label:'AP Statistics', type:'apstat' };
-  if (raw.includes('ap gov'))                               return { bank: APGOV_BANK, label:'AP Gov & Politics', type:'apgov' };
+  if (raw.includes('ap us hist')||raw.includes('apush'))         return { bank: APUSH_BANK,   label:'AP US History',        type:'apush' };
+  if (raw.includes('sat'))                                        return { bank: SAT_BANK,     label:'SAT Prep',             type:'sat'   };
+  if (raw.includes('act'))                                        return { bank: ACT_BANK,     label:'ACT Prep',             type:'act'   };
+  if (raw.includes('hiset'))                                      return { bank: HISET_BANK,   label:'HiSET Prep',           type:'hiset' };
+  if (raw.includes('ged'))                                        return { bank: GED_BANK,     label:'GED Prep',             type:'ged'   };
+  if (raw.includes('ap world'))                                   return { bank: APWH_BANK,    label:'AP World History',     type:'apwh'  };
+  if (raw.includes('ap bio'))                                     return { bank: APBIO_BANK,   label:'AP Biology',           type:'apbio' };
+  if (raw.includes('ap chem'))                                    return { bank: APCHEM_BANK,  label:'AP Chemistry',         type:'apchem'};
+  if (raw.includes('ap calc'))                                    return { bank: APCALC_BANK,  label:'AP Calculus',          type:'apcalc'};
+  if (raw.includes('ap stat'))                                    return { bank: APSTAT_BANK,  label:'AP Statistics',        type:'apstat'};
+  if (raw.includes('ap gov'))                                     return { bank: APGOV_BANK,   label:'AP Gov & Politics',    type:'apgov' };
+  if (raw.includes('algebra 2')||raw.includes('algebra ii')||raw.includes('alg 2')||raw.includes('alg2')||raw.includes('algebra2'))
+                                                                  return { bank: ALGEBRA2_BANK,label:'Algebra 2',            type:'alg2'  };
   return null;
 }
+
+/* ══════════════════════════════════════
+   ALGEBRA 2 PRACTICE VAULT
+══════════════════════════════════════ */
+const ALGEBRA2_BANK = [
+  { key:'alg2-linear', label:'Linear Functions & Inequalities', icon:'📈', color:'#1d4ed8', bg:'#dbeafe',
+    questions:[
+      {id:'a2l1',q:'A line has slope −2 and y-intercept 5. Which is its equation?',choices:{A:'y=−2x+5',B:'y=5x−2',C:'y=−2x−5',D:'y=2x+5'},answer:'A',explanation:'Slope-intercept form y=mx+b: m=−2, b=5 → y=−2x+5.'},
+      {id:'a2l2',q:'Slope of the line through (1,3) and (5,11)?',choices:{A:'2',B:'4',C:'½',D:'8'},answer:'A',explanation:'m=(11−3)/(5−1)=8/4=2.'},
+      {id:'a2l3',q:'A line perpendicular to y=¼x+1 has slope:',choices:{A:'−4',B:'4',C:'¼',D:'−¼'},answer:'A',explanation:'Perpendicular slopes are negative reciprocals: −1÷(¼)=−4.'},
+      {id:'a2l4',q:'Solve: |2x−4|=10',choices:{A:'x=7 or x=−3',B:'x=7 or x=3',C:'x=5 or x=−5',D:'x=7 only'},answer:'A',explanation:'2x−4=10 → x=7; or 2x−4=−10 → x=−3.'},
+      {id:'a2l5',q:'If f(x)=−3x+7, then f(−2)=?',choices:{A:'13',B:'1',C:'−13',D:'−1'},answer:'A',explanation:'f(−2)=−3(−2)+7=6+7=13.'},
+      {id:'a2l6',q:'Solve: 5−2x<11',choices:{A:'x>−3',B:'x<−3',C:'x>3',D:'x<3'},answer:'A',explanation:'−2x<6 → x>−3 (flip sign when dividing by negative).'},
+      {id:'a2l7',q:'y-intercept of 6x−3y=12?',choices:{A:'−4',B:'4',C:'2',D:'−2'},answer:'A',explanation:'Set x=0: −3y=12 → y=−4.'},
+      {id:'a2l8',q:'A line through (0,−3) parallel to y=2x+1 has equation:',choices:{A:'y=2x−3',B:'y=−3x+2',C:'y=½x−3',D:'y=2x+3'},answer:'A',explanation:'Parallel lines share the same slope (2). Passes through (0,−3): y=2x−3.'},
+    ]
+  },
+  { key:'alg2-systems', label:'Systems of Equations', icon:'🔗', color:'#065f46', bg:'#dcfce7',
+    questions:[
+      {id:'a2s1',q:'Solve by substitution: y=2x+1, 3x+y=16',choices:{A:'x=3, y=7',B:'x=5, y=11',C:'x=2, y=5',D:'x=4, y=9'},answer:'A',explanation:'3x+(2x+1)=16 → 5x=15 → x=3. y=2(3)+1=7.'},
+      {id:'a2s2',q:'Solve: 3x+2y=16, x−y=2',choices:{A:'x=4, y=2',B:'x=2, y=4',C:'x=5, y=1',D:'x=3, y=3'},answer:'A',explanation:'From 2nd: x=y+2. Sub: 3(y+2)+2y=16 → 5y=10 → y=2, x=4.'},
+      {id:'a2s3',q:'The system x+y=5, x+y=8 has:',choices:{A:'No solution',B:'One solution',C:'Infinitely many',D:'Two solutions'},answer:'A',explanation:'Same slope, different y-intercepts → parallel lines → no intersection.'},
+      {id:'a2s4',q:'Two numbers sum to 40 and differ by 8. The larger number is:',choices:{A:'24',B:'20',C:'32',D:'16'},answer:'A',explanation:'x+y=40, x−y=8 → 2x=48 → x=24.'},
+      {id:'a2s5',q:'Solve: x+y=8, 2x−y=4',choices:{A:'x=4, y=4',B:'x=6, y=2',C:'x=3, y=5',D:'x=2, y=6'},answer:'A',explanation:'Add equations: 3x=12 → x=4. 4+y=8 → y=4.'},
+      {id:'a2s6',q:'Which system has infinitely many solutions?',choices:{A:'2x+y=4 and 6x+3y=12',B:'2x+y=4 and 2x+y=6',C:'x+y=3 and x−y=1',D:'y=x and y=−x+2'},answer:'A',explanation:'6x+3y=12 is exactly 3×(2x+y=4) — the same line → infinitely many solutions.'},
+      {id:'a2s7',q:'Adult tickets $8, child tickets $5. 20 tickets sold for $124. Number of adult tickets?',choices:{A:'8',B:'12',C:'10',D:'6'},answer:'A',explanation:'a+c=20, 8a+5c=124. c=20−a → 8a+5(20−a)=124 → 3a=24 → a=8.'},
+      {id:'a2s8',q:'Solve the system: y=x², y=x+6',choices:{A:'(−2,4) and (3,9)',B:'(2,4) and (3,9)',C:'(0,6) and (3,9)',D:'(−2,4) only'},answer:'A',explanation:'x²=x+6 → x²−x−6=0 → (x−3)(x+2)=0 → x=3 or x=−2. Points: (3,9) and (−2,4).'},
+    ]
+  },
+  { key:'alg2-quad', label:'Quadratic Functions', icon:'⛰️', color:'#7c3aed', bg:'#ede9fe',
+    questions:[
+      {id:'a2q1',q:'Factor: x²+5x+6',choices:{A:'(x+2)(x+3)',B:'(x+1)(x+6)',C:'(x+2)(x+4)',D:'(x+3)(x+3)'},answer:'A',explanation:'Find two numbers: product=6, sum=5 → 2 and 3. So (x+2)(x+3).'},
+      {id:'a2q2',q:'Vertex of y=x²−4x+1?',choices:{A:'(2,−3)',B:'(−2,13)',C:'(2,3)',D:'(4,1)'},answer:'A',explanation:'x=−b/2a=4/2=2. y=4−8+1=−3. Vertex: (2,−3).'},
+      {id:'a2q3',q:'Discriminant of x²−3x−10=0?',choices:{A:'49',B:'−31',C:'9',D:'1'},answer:'A',explanation:'b²−4ac=(−3)²−4(1)(−10)=9+40=49. Two distinct real roots.'},
+      {id:'a2q4',q:'Solve: x²−25=0',choices:{A:'x=5 or x=−5',B:'x=5 only',C:'x=±√5',D:'x=25'},answer:'A',explanation:'x²=25 → x=±5.'},
+      {id:'a2q5',q:'Solve using the quadratic formula: x²−5x+6=0',choices:{A:'x=2 or x=3',B:'x=−2 or x=−3',C:'x=1 or x=6',D:'x=5±1'},answer:'A',explanation:'x=(5±√(25−24))/2=(5±1)/2 → x=3 or x=2.'},
+      {id:'a2q6',q:'y=−2(x−1)²+8 opens __ and has vertex at __',choices:{A:'downward; (1,8)',B:'upward; (1,8)',C:'downward; (−1,8)',D:'upward; (0,8)'},answer:'A',explanation:'a=−2<0 → opens downward. Vertex form y=a(x−h)²+k → vertex (1,8).'},
+      {id:'a2q7',q:'Ball height: h(t)=−16t²+32t. Time of max height?',choices:{A:'1 second',B:'2 seconds',C:'½ second',D:'4 seconds'},answer:'A',explanation:'t=−b/2a=−32/(2×−16)=1 second.'},
+      {id:'a2q8',q:'Complete the square: x²+10x+___ is a perfect square',choices:{A:'25',B:'10',C:'5',D:'100'},answer:'A',explanation:'(b/2)²=(10/2)²=25. x²+10x+25=(x+5)².'},
+      {id:'a2q9',q:'How many real solutions does x²+9=0 have?',choices:{A:'None',B:'One',C:'Two',D:'Four'},answer:'A',explanation:'x²=−9 has no real solutions (square of a real number cannot be negative).'},
+    ]
+  },
+  { key:'alg2-poly', label:'Polynomial Functions', icon:'〰️', color:'#0369a1', bg:'#e0f2fe',
+    questions:[
+      {id:'a2p1',q:'(2x²+3x−1)+(x²−5x+4)=?',choices:{A:'3x²−2x+3',B:'3x²+8x+3',C:'x²−2x+3',D:'3x²−2x−3'},answer:'A',explanation:'2x²+x²=3x², 3x−5x=−2x, −1+4=3 → 3x²−2x+3.'},
+      {id:'a2p2',q:'Degree of the product of a degree-3 and degree-2 polynomial?',choices:{A:'5',B:'6',C:'3',D:'2'},answer:'A',explanation:'Multiply leading terms: x³·x²=x⁵ → degree 5.'},
+      {id:'a2p3',q:'As x→∞, f(x)=−x⁴+2x approaches:',choices:{A:'−∞',B:'+∞',C:'0',D:'2'},answer:'A',explanation:'Leading term −x⁴: even degree, negative leading coefficient → both ends go to −∞.'},
+      {id:'a2p4',q:'By the Remainder Theorem, remainder when f(x)=x²+3x−5 is divided by (x−2)?',choices:{A:'5',B:'9',C:'−3',D:'0'},answer:'A',explanation:'f(2)=4+6−5=5.'},
+      {id:'a2p5',q:'A degree-4 polynomial has at most how many real zeros?',choices:{A:'4',B:'3',C:'5',D:'2'},answer:'A',explanation:'A polynomial of degree n has at most n real zeros.'},
+      {id:'a2p6',q:'Factor: x²−5x+6',choices:{A:'(x−2)(x−3)',B:'(x+2)(x+3)',C:'(x−1)(x−6)',D:'(x−2)(x+3)'},answer:'A',explanation:'Need two numbers: product=6, sum=−5 → −2 and −3. So (x−2)(x−3).'},
+      {id:'a2p7',q:'Expand: (x+2)(x²−2x+4)',choices:{A:'x³+8',B:'x³−8',C:'x³+4x',D:'x³+8x'},answer:'A',explanation:'This is the sum of cubes pattern: (a+b)(a²−ab+b²)=a³+b³ → x³+8.'},
+      {id:'a2p8',q:'If x=3 is a zero of f(x)=x²−x−6, which is true?',choices:{A:'(x−3) is a factor',B:'(x+3) is a factor',C:'f(3)=6',D:'f(−3)=0'},answer:'A',explanation:'If x=3 is a zero, then f(3)=0, meaning (x−3) divides f(x) exactly.'},
+    ]
+  },
+  { key:'alg2-radical', label:'Radical & Rational Expressions', icon:'✳️', color:'#b45309', bg:'#fef3c7',
+    questions:[
+      {id:'a2r1',q:'Simplify: √75',choices:{A:'5√3',B:'3√5',C:'15√3',D:'25√3'},answer:'A',explanation:'√75=√(25·3)=5√3.'},
+      {id:'a2r2',q:'Solve: √(x−3)=4',choices:{A:'19',B:'7',C:'13',D:'1'},answer:'A',explanation:'Square both sides: x−3=16 → x=19. Check: √16=4 ✓'},
+      {id:'a2r3',q:'√8·√2=?',choices:{A:'4',B:'8',C:'2√2',D:'4√2'},answer:'A',explanation:'√8·√2=√16=4.'},
+      {id:'a2r4',q:'Simplify: (x²−9)/(x+3)',choices:{A:'x−3',B:'x+3',C:'x²−3',D:'(x−3)/(x+3)'},answer:'A',explanation:'x²−9=(x+3)(x−3). Cancel (x+3) → x−3.'},
+      {id:'a2r5',q:'Which value is excluded from domain of 5/(x−4)?',choices:{A:'x=4',B:'x=−4',C:'x=5',D:'x=0'},answer:'A',explanation:'Denominator≠0: x−4≠0 → x≠4.'},
+      {id:'a2r6',q:'Rationalize the denominator: 10/√5',choices:{A:'2√5',B:'√50',C:'5√2',D:'2/√5'},answer:'A',explanation:'10/√5·√5/√5=10√5/5=2√5.'},
+      {id:'a2r7',q:'Solve: 3/x+1/x=2',choices:{A:'2',B:'4',C:'½',D:'3'},answer:'A',explanation:'4/x=2 → x=2.'},
+      {id:'a2r8',q:'Simplify: 3√12−√48',choices:{A:'2√3',B:'6√3',C:'4√3',D:'0'},answer:'A',explanation:'3√12=3·2√3=6√3; √48=4√3. 6√3−4√3=2√3.'},
+    ]
+  },
+  { key:'alg2-explog', label:'Exponential & Logarithmic Functions', icon:'📉', color:'#166534', bg:'#dcfce7',
+    questions:[
+      {id:'a2e1',q:'log₂(32)=?',choices:{A:'5',B:'4',C:'6',D:'16'},answer:'A',explanation:'2⁵=32, so log₂(32)=5.'},
+      {id:'a2e2',q:'Solve: 10^x=1000',choices:{A:'3',B:'100',C:'4',D:'2'},answer:'A',explanation:'10³=1000 → x=3.'},
+      {id:'a2e3',q:'Convert 3²=9 to logarithmic form:',choices:{A:'log₃(9)=2',B:'log₂(9)=3',C:'log₉(3)=2',D:'log₃(2)=9'},answer:'A',explanation:'bˣ=y ↔ logb(y)=x. So 3²=9 ↔ log₃(9)=2.'},
+      {id:'a2e4',q:'log(a·b) equals:',choices:{A:'log a + log b',B:'log a · log b',C:'log a − log b',D:'log(a+b)'},answer:'A',explanation:'Product rule: log(a·b)=log a+log b.'},
+      {id:'a2e5',q:'Solve: 2^x=64',choices:{A:'6',B:'8',C:'32',D:'4'},answer:'A',explanation:'2⁶=64 → x=6.'},
+      {id:'a2e6',q:'Bacteria doubles every 3 hrs, starts at 100. After 9 hrs:',choices:{A:'800',B:'900',C:'600',D:'1200'},answer:'A',explanation:'9 hrs = 3 doubling periods. 100·2³=100·8=800.'},
+      {id:'a2e7',q:'log(x/y) equals:',choices:{A:'log x − log y',B:'log x + log y',C:'log x ÷ log y',D:'log(x−y)'},answer:'A',explanation:'Quotient rule: log(x/y)=log x−log y.'},
+      {id:'a2e8',q:'Which equation models exponential decay?',choices:{A:'A=A₀(0.85)^t',B:'A=A₀(1.15)^t',C:'A=A₀+0.85t',D:'A=A₀·t^0.85'},answer:'A',explanation:'Exponential decay: A=A₀·b^t where 0<b<1. Only 0.85^t has base between 0 and 1.'},
+    ]
+  },
+  { key:'alg2-seq', label:'Sequences & Series', icon:'🔢', color:'#9f1239', bg:'#fff1f2',
+    questions:[
+      {id:'a2sq1',q:'Arithmetic sequence: 3,7,11,… What is the 10th term?',choices:{A:'39',B:'43',C:'35',D:'40'},answer:'A',explanation:'aₙ=a₁+(n−1)d=3+9·4=3+36=39.'},
+      {id:'a2sq2',q:'Geometric sequence: 2,6,18,… What is the 5th term?',choices:{A:'162',B:'54',C:'486',D:'108'},answer:'A',explanation:'aₙ=a₁·r^(n−1)=2·3⁴=2·81=162.'},
+      {id:'a2sq3',q:'Sum of first 8 terms of 4,7,10,13,…?',choices:{A:'116',B:'108',C:'124',D:'100'},answer:'A',explanation:'a₈=4+7·3=25. S=8(4+25)/2=4·29=116.'},
+      {id:'a2sq4',q:'Common ratio of 4,12,36,108,…?',choices:{A:'3',B:'4',C:'8',D:'2'},answer:'A',explanation:'12÷4=3. Each term is multiplied by 3.'},
+      {id:'a2sq5',q:'Is 2,4,8,16,… arithmetic or geometric?',choices:{A:'Geometric, r=2',B:'Arithmetic, d=2',C:'Geometric, r=4',D:'Neither'},answer:'A',explanation:'Each term is multiplied by 2 (constant ratio r=2), so it\'s geometric.'},
+      {id:'a2sq6',q:'Arithmetic series: first term 10, last term 46, 10 terms. Sum=?',choices:{A:'280',B:'460',C:'230',D:'140'},answer:'A',explanation:'S=n(a₁+aₙ)/2=10(10+46)/2=5·56=280.'},
+      {id:'a2sq7',q:'Common ratio of 3,−6,12,−24,…?',choices:{A:'−2',B:'2',C:'−3',D:'3'},answer:'A',explanation:'−6÷3=−2. The ratio is −2 (sign alternates because ratio is negative).'},
+      {id:'a2sq8',q:'Find the 6th term of the arithmetic sequence with a₁=5 and d=−3',choices:{A:'−10',B:'−7',C:'−13',D:'20'},answer:'A',explanation:'a₆=5+(6−1)(−3)=5−15=−10.'},
+    ]
+  },
+  { key:'alg2-stats', label:'Statistics & Probability', icon:'🎲', color:'#4338ca', bg:'#eef2ff',
+    questions:[
+      {id:'a2st1',q:'How many ways can you choose 2 students from a group of 5? (C(5,2))',choices:{A:'10',B:'20',C:'5',D:'15'},answer:'A',explanation:'C(5,2)=5!/(2!·3!)=5·4/2=10.'},
+      {id:'a2st2',q:'P(5,3) = how many ordered arrangements of 3 from 5?',choices:{A:'60',B:'10',C:'20',D:'120'},answer:'A',explanation:'P(5,3)=5!/(5−3)!=5·4·3=60.'},
+      {id:'a2st3',q:'3 shirts, 4 pants, 2 shoes. How many outfits?',choices:{A:'24',B:'9',C:'12',D:'48'},answer:'A',explanation:'Fundamental counting: 3·4·2=24 distinct outfits.'},
+      {id:'a2st4',q:'Bag: 5 red, 10 blue. P(drawing red)?',choices:{A:'1/3',B:'1/2',C:'1/5',D:'2/3'},answer:'A',explanation:'P=5/15=1/3.'},
+      {id:'a2st5',q:'P(A)=0.4, P(B)=0.3, mutually exclusive. P(A or B)=?',choices:{A:'0.7',B:'0.12',C:'0.58',D:'1.0'},answer:'A',explanation:'For mutually exclusive events: P(A or B)=P(A)+P(B)=0.4+0.3=0.7.'},
+      {id:'a2st6',q:'In a normal distribution, ~__% of data falls within 1 standard deviation of the mean?',choices:{A:'68%',B:'95%',C:'99.7%',D:'50%'},answer:'A',explanation:'The Empirical Rule (68-95-99.7): ~68% within 1 SD, ~95% within 2 SD, ~99.7% within 3 SD.'},
+      {id:'a2st7',q:'P(at least one head in 2 coin flips)?',choices:{A:'3/4',B:'1/2',C:'1/4',D:'1'},answer:'A',explanation:'P(at least one H)=1−P(TT)=1−¼=¾.'},
+      {id:'a2st8',q:'P(rolling a 5 or 6 on a fair die)?',choices:{A:'1/3',B:'1/6',C:'1/2',D:'2/3'},answer:'A',explanation:'2 favorable outcomes out of 6: P=2/6=1/3.'},
+    ]
+  },
+];
+
+/* ── ALGEBRA 2 PROCEDURAL GENERATORS ── */
+const _ALG2_TEMPLATES = [
+  // Absolute value: |x − a| = b
+  ()=>{const a=_rnd(1,9),b=_rnd(1,6);const x1=a+b,x2=a-b;
+    return _mkQ(`Solve: |x − ${a}| = ${b}`,`x=${x1} or x=${x2}`,[`x=${x1+1} or x=${x2}`,`x=${x1} or x=${x2+1}`,`x=${a} or x=${b}`].filter(v=>v!==`x=${x1} or x=${x2}`),`|x−${a}|=${b}: x−${a}=${b} → x=${x1}; or x−${a}=−${b} → x=${x2}.`);},
+  // Slope between two points
+  ()=>{const x1=_rnd(0,4),y1=_rnd(0,6),dx=_rnd(1,5),dy=_rnd(-6,6);if(dy===0)return null;const x2=x1+dx,y2=y1+dy;const g=_gcd(Math.abs(dy),dx);const sn=dy/g,sd=dx/g;const s=sd===1?`${sn}`:`${sn}/${sd}`;
+    return _mkQ(`Slope through (${x1},${y1}) and (${x2},${y2})?`,s,[`${sn+1}/${sd}`,`${sn-1}/${sd}`,`${sd}/${sn}`].filter(v=>v!==s),`m=(${y2}−${y1})/(${x2}−${x1})=${dy}/${dx}${g>1?'='+s:''}.`);},
+  // Factor x² + bx + c (positive roots)
+  ()=>{const r1=_rnd(1,7),r2=_rnd(1,7);const B=r1+r2,C=r1*r2;
+    return _mkQ(`Factor: x² + ${B}x + ${C}`,`(x+${r1})(x+${r2})`,[`(x+${r1+1})(x+${r2})`,`(x+${r1})(x+${r2+1})`,`(x−${r1})(x−${r2})`],`Two numbers: product=${C}, sum=${B} → ${r1} and ${r2}.`);},
+  // Factor x² − (r1+r2)x + r1*r2 (both negative roots)
+  ()=>{const r1=_rnd(1,6),r2=_rnd(1,6);const B=r1+r2,C=r1*r2;
+    return _mkQ(`Solve: x² − ${B}x + ${C} = 0`,`x=${r1} or x=${r2}`,[`x=${r1+1} or x=${r2}`,`x=${r1} or x=${r2+1}`,`x=−${r1} or x=−${r2}`],`Factor: (x−${r1})(x−${r2})=0 → x=${r1} or x=${r2}.`);},
+  // Vertex x-coordinate −b/2a
+  ()=>{const a=_rnd(1,3),hb=_rnd(1,5)*2;const B=hb*a*2;const vx=hb;
+    return _mkQ(`y=${a}x²−${B}x+3. x-coordinate of vertex?`,vx,[vx+1,vx-1,vx+2].filter(v=>v!==vx&&v>0),`x=−b/2a=−(−${B})/(2·${a})=${B}/${2*a}=${vx}.`);},
+  // Complete the square: x²+bx needs (b/2)²
+  ()=>{const b=_rnd(2,10)*2;const c=(b/2)*(b/2);
+    return _mkQ(`x²+${b}x+___ is a perfect square trinomial. Fill in the blank.`,c,[c+b,c-b/2,c+4].filter(v=>v!==c&&v>0),`(b/2)²=(${b}/2)²=${b/2}²=${c}.`);},
+  // Arithmetic nth term
+  ()=>{const a1=_rnd(2,10),d=_rnd(1,5),n=_rnd(6,14);const an=a1+(n-1)*d;
+    return _mkQ(`Arithmetic seq: a₁=${a1}, d=${d}. Find the ${n}th term.`,an,[an+d,an-d,an+2*d].filter(v=>v!==an),`aₙ=${a1}+(${n}−1)·${d}=${a1}+${(n-1)*d}=${an}.`);},
+  // Geometric nth term
+  ()=>{const a1=_rnd(1,4),r=[2,3][_rnd(0,1)],n=_rnd(3,6);const an=a1*Math.pow(r,n-1);
+    return _mkQ(`Geometric seq: a₁=${a1}, r=${r}. Find the ${n}th term.`,an,[an*r,an/r,an+r].filter(v=>v!==an&&v>0),`aₙ=${a1}·${r}^${n-1}=${a1}·${Math.pow(r,n-1)}=${an}.`);},
+  // Arithmetic series sum
+  ()=>{const a1=_rnd(2,8),d=_rnd(2,4),n=_rnd(5,10);const an=a1+(n-1)*d;const S=n*(a1+an)/2;
+    return _mkQ(`Sum of first ${n} terms: a₁=${a1}, d=${d}?`,S,[S+n*d,S-n,S+d].filter(v=>v!==S&&v>0),`a${n}=${an}. S=${n}(${a1}+${an})/2=${n}·${a1+an}/2=${S}.`);},
+  // Simplify radical √(a²·b)
+  ()=>{const a=_rnd(2,7),b=[2,3,5,7][_rnd(0,3)];const inside=a*a*b;
+    return _mkQ(`Simplify: √${inside}`,`${a}√${b}`,[`${a+1}√${b}`,`${a}√${b+1}`,`${a-1}√${b}`].filter(v=>v!==`${a}√${b}`),`√${inside}=√(${a}²·${b})=${a}√${b}.`);},
+  // Radical equation √(x+a)=b
+  ()=>{const b=_rnd(2,7),a=_rnd(1,12);const x=b*b-a;if(x<0)return null;
+    return _mkQ(`Solve: √(x+${a})=${b}`,x,[x+1,x-1,x+b].filter(v=>v!==x&&v>=0),`Square both sides: x+${a}=${b*b} → x=${x}. Check: √${b*b}=${b} ✓`);},
+  // Solve 2^x = 2^n (same base)
+  ()=>{const base=[2,3][_rnd(0,1)],n=_rnd(2,7);const val=Math.pow(base,n);
+    return _mkQ(`Solve: ${base}^x=${val}`,n,[n+1,n-1,n+2].filter(v=>v!==n&&v>0),`${base}^x=${base}^${n} → x=${n}.`);},
+  // Log evaluation log_b(b^n)
+  ()=>{const bases=[2,3,10];const base=bases[_rnd(0,2)];const n=_rnd(1,5);const val=Math.pow(base,n);
+    return _mkQ(`Evaluate: log${base===10?'':base===2?'₂':'₃'}(${val})`,n,[n+1,n-1,n*base].filter(v=>v!==n&&v>0),`${base}^${n}=${val} → log(${val})=${n}.`);},
+  // nCr combinations
+  ()=>{const n=_rnd(4,7),r=2;let ncr=n*(n-1)/2;
+    return _mkQ(`C(${n},${r}) = ways to choose ${r} from ${n}?`,ncr,[ncr+n,ncr-r,ncr+r].filter(v=>v!==ncr&&v>0),`C(${n},2)=${n}·${n-1}/2=${ncr}.`);},
+  // Function evaluation
+  ()=>{const a=_rnd(1,4),b=_rnd(-5,5),x=_rnd(-3,4);const val=a*x+b;
+    return _mkQ(`If f(x)=${a}x${b>=0?'+':'-'}${Math.abs(b)}, find f(${x}).`,val,[val+a,val-a,val+1].filter(v=>v!==val),`f(${x})=${a}(${x})${b>=0?'+':'-'}${Math.abs(b)}=${a*x}${b>=0?'+':'-'}${Math.abs(b)}=${val}.`);},
+];
+
+// Per-unit template overrides (falls back to _ALG2_TEMPLATES if key not found)
+const _ALG2_TEMPLATES_BY_KEY = {};
 
 /* ── SAT BANK ── */
 const SAT_BANK = [
@@ -2592,7 +2752,7 @@ function buildPracticeVault() {
 }
 
 function findBankSection(key) {
-  const all = [APUSH_BANK, SAT_BANK, ACT_BANK, HISET_BANK, APWH_BANK, APBIO_BANK, APCHEM_BANK, APCALC_BANK, APSTAT_BANK, APGOV_BANK];
+  const all = [APUSH_BANK, SAT_BANK, ACT_BANK, HISET_BANK, APWH_BANK, APBIO_BANK, APCHEM_BANK, APCALC_BANK, APSTAT_BANK, APGOV_BANK, ALGEBRA2_BANK];
   for (const b of all) { const found = b.find(s=>s.key===key); if (found) return found; }
   return null;
 }
@@ -2654,13 +2814,15 @@ const _MATH_TEMPLATES = [
     return _mkQ(`Split ${total} in ratio ${a}:${b}. Larger share = ?`,Math.max(share,total-share),[Math.max(share,total-share)+a,Math.max(share,total-share)-b,total-Math.min(share,total-share)+1].filter(n=>n!==Math.max(share,total-share)&&n>0),`Total parts=${a+b}. One part=${total}/(${a+b})≈${+(total/(a+b)).toFixed(1)}. Larger=${Math.max(share,total-share)}.`);},
 ];
 
-const MATH_BANK_KEYS = new Set(['sat-math-nc','sat-math-c','act-math','hiset-math','calc-limits','calc-derivatives','calc-integrals','stat-data','stat-probability','stat-inference']);
+const MATH_BANK_KEYS = new Set(['sat-math-nc','sat-math-c','act-math','hiset-math','calc-limits','calc-derivatives','calc-integrals','stat-data','stat-probability','stat-inference','alg2-linear','alg2-systems','alg2-quad','alg2-poly','alg2-radical','alg2-explog','alg2-seq','alg2-stats']);
 
 function generateMathPool(key, count=18) {
   if (!MATH_BANK_KEYS.has(key)) return [];
+  // Algebra 2 keys use subject-specific procedural templates
+  const templates = key.startsWith('alg2-') ? (_ALG2_TEMPLATES_BY_KEY[key] || _ALG2_TEMPLATES) : _MATH_TEMPLATES;
   const out=[];
   for(let i=0;i<count;i++){
-    const fn=_MATH_TEMPLATES[Math.floor(Math.random()*_MATH_TEMPLATES.length)];
+    const fn=templates[Math.floor(Math.random()*templates.length)];
     try{ const q=fn(); if(q) out.push(q); }catch(e){}
   }
   return out;
