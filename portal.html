@@ -62,6 +62,7 @@
     .nav-item{display:flex;align-items:center;gap:.75rem;padding:.65rem 1.5rem;font-size:.875rem;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border-left:3px solid transparent;transition:all .18s;user-select:none}
     .nav-item:hover{color:var(--white);background:rgba(255,255,255,.05)}
     .nav-item.active{color:var(--gold);background:rgba(201,160,58,.1);border-left-color:var(--gold)}
+    .nav-item.has-unread:not(.active){border-left-color:#ef4444;background:rgba(239,68,68,.08)}
     .nav-icon{font-size:1.05rem;width:20px;text-align:center;flex-shrink:0}
     .nav-badge{margin-left:auto;background:var(--gold);color:var(--navy);font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:99px}
     .sidebar-footer{padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,.07)}
@@ -150,8 +151,8 @@
     .nav-item .notif-badge{margin-left:auto}
     .adm-nav-item .notif-badge{margin-left:auto}
     /* ── Floating corner badge (on top of tab / nav button) ── */
-    .corner-badge{display:none;position:absolute;top:-8px;right:-10px;min-width:19px;height:19px;border-radius:99px;background:#ef4444;color:#fff;font-size:.6rem;font-weight:900;align-items:center;justify-content:center;padding:0 4px;line-height:1;z-index:20;box-shadow:0 2px 8px rgba(239,68,68,.5);animation:popIn .25s cubic-bezier(.22,1,.36,1);pointer-events:none;white-space:nowrap}
-    .corner-badge.visible{display:inline-flex}
+    .corner-badge{display:none;position:absolute;top:-8px;right:-10px;min-width:19px;height:19px;border-radius:99px;background:#ef4444;color:#fff;font-size:.6rem;font-weight:900;align-items:center;justify-content:center;padding:0 4px;line-height:1;z-index:20;pointer-events:none;white-space:nowrap}
+    .corner-badge.visible{display:inline-flex;animation:popIn .25s cubic-bezier(.22,1,.36,1),badgePulse 1.8s ease-out .25s infinite}
 
     /* iMessage typing bubble */
     .typing-wrap{display:none;align-items:flex-end;gap:.25rem;margin:.2rem 0 .1rem}
@@ -456,6 +457,7 @@
     @keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     @keyframes popIn{0%{opacity:0;transform:scale(.8)}65%{transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+    @keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}60%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
     @keyframes slideLeft{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
 
     /* Login entrance */
@@ -539,7 +541,7 @@
     .tsh-hours-val{font-size:1.15rem;font-weight:700;color:#0f2044}
     .tsh-hours-label{font-size:.7rem;color:#94a3b8}
     /* mgmt tabs */
-    .t-tabs{display:flex;gap:.2rem;border-bottom:2px solid #e2e8f0;margin-bottom:1.5rem;overflow-x:auto;overflow-y:visible}
+    .t-tabs{display:flex;gap:.2rem;border-bottom:2px solid #e2e8f0;margin-bottom:1.5rem;overflow-x:auto;overflow-y:visible;padding-top:12px}
     .t-tab{padding:.6rem 1rem;font-size:.84rem;font-weight:600;color:#64748b;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:.3rem;position:relative;overflow:visible}
     .t-tab.active{color:#0f2044;border-bottom-color:#c9a03a}
     .t-tab:hover:not(.active){color:#1a2540;background:#f5f6fa;border-radius:6px 6px 0 0}
@@ -636,7 +638,7 @@
       .t-menu-btn{display:block}
       .t-content{padding:.85rem}
       .t-students-grid{grid-template-columns:1fr}
-      .t-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;white-space:nowrap;padding-bottom:1px}
+      .t-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;white-space:nowrap;padding-bottom:1px;padding-top:12px}
       .t-tabs::-webkit-scrollbar{display:none}
       .t-tab{flex-shrink:0}
       .t-card{padding:1rem}
@@ -1497,10 +1499,10 @@ function buildNav() {
         ${isMessages
           ? `<div style="flex:1;display:flex;flex-direction:column;gap:.05rem;min-width:0">
                <span>${item.label}</span>
-               <span id="msgFromLabel" style="display:none;font-size:.62rem;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2"></span>
+               <span id="msgFromLabel" style="display:none;font-size:.62rem;color:#ef4444;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2"></span>
              </div>`
           : `<span style="flex:1">${item.label}</span>`}
-        ${item.badge ? `<span class="nav-badge" id="${item.badge}" style="display:none">0</span>` : ''}
+        ${item.badge ? `<span class="notif-badge" id="${item.badge}">0</span>` : ''}
       </div>`;
     });
   });
@@ -3198,8 +3200,10 @@ function _refreshAllBadges() {
   _faviconBadge(total);
   _titleBadge(total);
 
-  // ── Student nav badge + "from [name]" label ──
+  // ── Student nav badge + "from [name]" label + nav highlight ──
   _setBadge('msgBadge', total);
+  const msgNavItem = document.getElementById('nav-messages');
+  if (msgNavItem) msgNavItem.classList.toggle('has-unread', total > 0);
   const fromLabel = document.getElementById('msgFromLabel');
   if (fromLabel) {
     const names = [...new Set(Object.values(_unreadSenders))];
@@ -3207,8 +3211,10 @@ function _refreshAllBadges() {
     fromLabel.style.display = total > 0 ? '' : 'none';
   }
 
-  // ── Admin nav badge + "from [student name]" label + per-student badges ──
+  // ── Admin nav badge + "from [student name]" label + per-student badges + nav highlight ──
   _setBadge('admMsgBadge', total);
+  const admMsgNavItem = document.querySelector('.adm-nav-item[data-id="adm-messages"]');
+  if (admMsgNavItem) admMsgNavItem.classList.toggle('has-unread', total > 0);
   const admFromLabel = document.getElementById('admMsgFromLabel');
   if (admFromLabel) {
     const senderNames = [...new Set(Object.values(_unreadSenders))];
@@ -3222,9 +3228,8 @@ function _refreshAllBadges() {
   });
 
   // ── Tutor: Messages tab badge + "from [student name]" sub-label + sidebar badges ──
-  if (typeof selectedStudent !== 'undefined' && selectedStudent) {
-    _setBadge('ttab-msg-badge', _unreadByStudent[selectedStudent.id]||0);
-  }
+  // Always show total unread on the Messages tab badge (not just selected student)
+  _setBadge('ttab-msg-badge', total);
   // Tutor tab "from" label — show the student name(s) with unread
   const tutorTabFrom = document.getElementById('ttab-msg-from');
   if (tutorTabFrom) {
@@ -5494,6 +5499,7 @@ async function loadAdminConvo(studentId, studentName) {
 .adm-nav-item{display:flex;align-items:center;gap:.7rem;padding:.6rem 1.25rem;font-size:.85rem;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border-left:3px solid transparent;transition:all .18s;user-select:none;position:relative;overflow:visible}
 .adm-nav-item:hover{color:#fff;background:rgba(255,255,255,.05)}
 .adm-nav-item.active{color:#c9a03a;background:rgba(201,160,58,.1);border-left-color:#c9a03a}
+.adm-nav-item.has-unread:not(.active){border-left-color:#ef4444;background:rgba(239,68,68,.08)}
 .adm-nav-icon{font-size:1.05rem;width:20px;text-align:center;flex-shrink:0}
 .adm-sidebar-footer{padding:1rem 1.25rem;border-top:1px solid rgba(255,255,255,.07)}
 .adm-logout{display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:rgba(255,255,255,.35);cursor:pointer;background:none;border:none;width:100%}
@@ -5575,7 +5581,7 @@ async function loadAdminConvo(studentId, studentName) {
           <span class="adm-nav-icon">💬</span>
           <span style="flex:1;display:flex;flex-direction:column;gap:.04rem;min-width:0">
             <span>Messages</span>
-            <span id="admMsgFromLabel" style="display:none;font-size:.62rem;color:#fca5a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2"></span>
+            <span id="admMsgFromLabel" style="display:none;font-size:.62rem;color:#ef4444;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2"></span>
           </span>
           <span class="corner-badge" id="admMsgBadge" style="top:4px;right:10px"></span>
         </div>
