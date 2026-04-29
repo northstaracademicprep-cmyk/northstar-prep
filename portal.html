@@ -791,24 +791,7 @@
         </div>
         <div>
           <label style="display:block;font-size:.75rem;font-weight:700;color:#374151;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em">Primary Subject *</label>
-          <select id="enr-subject" oninput="updateEnrCode()" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none;background:#fff;cursor:pointer" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
-            <option value="">Select subject…</option>
-            <option value="AP US History">AP US History</option>
-            <option value="AP World History">AP World History</option>
-            <option value="AP European History">AP European History</option>
-            <option value="AP US Government">AP US Government</option>
-            <option value="AP English Language">AP English Language</option>
-            <option value="AP English Literature">AP English Literature</option>
-            <option value="AP Biology">AP Biology</option>
-            <option value="AP Chemistry">AP Chemistry</option>
-            <option value="AP Physics">AP Physics</option>
-            <option value="AP Calculus AB">AP Calculus AB</option>
-            <option value="AP Calculus BC">AP Calculus BC</option>
-            <option value="AP Statistics">AP Statistics</option>
-            <option value="SAT Prep">SAT Prep</option>
-            <option value="ACT Prep">ACT Prep</option>
-            <option value="General Tutoring">General Tutoring</option>
-          </select>
+          <input id="enr-subject" type="text" placeholder="e.g. AP US History, SAT Prep, HiSET…" oninput="updateEnrCode()" style="width:100%;padding:.7rem .9rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.9rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
         </div>
       </div>
 
@@ -1764,6 +1747,302 @@ function animateAllBars(){document.querySelectorAll('.score-bar').forEach(bar=>{
 /* ══════════════════════════════════════
    PRACTICE VAULT — APUSH QUESTION BANK
 ══════════════════════════════════════ */
+/* ── SUBJECT ROUTING ── */
+function getPracticeBank(subjects) {
+  const raw = ((subjects||[])[0]||'').toLowerCase();
+  if (raw.includes('ap us hist')||raw.includes('apush'))   return { bank: APUSH_BANK, label:'AP US History', type:'apush' };
+  if (raw.includes('sat'))                                  return { bank: SAT_BANK,   label:'SAT Prep',      type:'sat' };
+  if (raw.includes('act'))                                  return { bank: ACT_BANK,   label:'ACT Prep',      type:'act' };
+  if (raw.includes('hiset'))                                return { bank: HISET_BANK, label:'HiSET Prep',    type:'hiset' };
+  if (raw.includes('ged'))                                  return { bank: GED_BANK,   label:'GED Prep',      type:'ged' };
+  if (raw.includes('ap world'))                             return { bank: APWH_BANK,  label:'AP World History', type:'apwh' };
+  if (raw.includes('ap bio'))                               return { bank: APBIO_BANK, label:'AP Biology',    type:'apbio' };
+  if (raw.includes('ap chem'))                              return { bank: APCHEM_BANK,label:'AP Chemistry',  type:'apchem' };
+  if (raw.includes('ap calc'))                              return { bank: APCALC_BANK,label:'AP Calculus',   type:'apcalc' };
+  if (raw.includes('ap stat'))                              return { bank: APSTAT_BANK,label:'AP Statistics', type:'apstat' };
+  if (raw.includes('ap gov'))                               return { bank: APGOV_BANK, label:'AP Gov & Politics', type:'apgov' };
+  return null;
+}
+
+/* ── SAT BANK ── */
+const SAT_BANK = [
+  { key:'sat-reading', label:'Reading', icon:'📖', color:'#1e40af', bg:'#eff6ff',
+    questions:[
+      { id:'sr1', q:'A passage states: "The scientist\'s findings, though initially dismissed, ultimately reshaped the field." The word "ultimately" most nearly means:', choices:{A:'eventually',B:'rarely',C:'partially',D:'reluctantly'}, answer:'A', explanation:'"Ultimately" means in the end or finally, making (A) the best fit.' },
+      { id:'sr2', q:'Which of the following best describes the central idea of a passage arguing that urban green spaces improve mental health?', choices:{A:'Cities should eliminate all concrete structures',B:'Access to nature in cities positively affects residents\' wellbeing',C:'Mental health is solely determined by environment',D:'Green spaces are too expensive for most cities'}, answer:'B', explanation:'The central idea summarizes the main argument — that urban nature benefits mental health — without overstating or distorting it.' },
+      { id:'sr3', q:'A student wants to add evidence to support the claim that reading improves vocabulary. Which source would be MOST relevant?', choices:{A:'A study on smartphone screen time',B:'A longitudinal study tracking vocabulary growth in avid readers vs. non-readers',C:'A biography of a famous author',D:'An article about library funding cuts'}, answer:'B', explanation:'A longitudinal study directly comparing readers and non-readers provides the strongest empirical evidence for the claim.' },
+      { id:'sr4', q:'In context, the phrase "the data tells a different story" most likely suggests:', choices:{A:'The data is incorrect',B:'The evidence contradicts a previously held assumption',C:'The story was told using statistics',D:'The researcher changed their hypothesis'}, answer:'B', explanation:'"Tells a different story" is an idiom meaning the evidence leads to a conclusion that differs from expectations.' },
+      { id:'sr5', q:'A passage\'s author uses rhetorical questions throughout. This technique most likely serves to:', choices:{A:'Confuse the reader about the topic',B:'Engage the reader and prompt reflection on the argument',C:'Provide factual evidence for claims',D:'Introduce counterarguments'}, answer:'B', explanation:'Rhetorical questions are used to draw readers in and encourage them to think about the issue, not to genuinely ask for answers.' },
+      { id:'sr6', q:'Which choice best supports the claim that social media affects teen sleep patterns?', choices:{A:'"Teens spend an average of 7 hours per day on screens."',B:'"A 2022 study found teens who used phones after 10 PM fell asleep 45 minutes later on average."',C:'"Sleep disorders have increased among all age groups."',D:'"Social media platforms have added screen time features."'}, answer:'B', explanation:'Only (B) provides a direct, specific, quantified link between social media use and sleep timing.' },
+    ]
+  },
+  { key:'sat-writing', label:'Writing & Language', icon:'✍️', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'sw1', q:'Choose the option that best combines the two sentences: "The report was long. It was detailed." ', choices:{A:'The report was long, and it was detailed.',B:'The report was long but detailed.',C:'The report was long; it was also detailed.',D:'The report, which was long and detailed.'}, answer:'A', explanation:'(A) is grammatically correct and natural. (D) creates a sentence fragment.' },
+      { id:'sw2', q:'Which transition word best fits a sentence showing contrast: "She studied every night. ___, she failed the exam."', choices:{A:'Therefore',B:'Furthermore',C:'Nevertheless',D:'Similarly'}, answer:'C', explanation:'"Nevertheless" signals an unexpected contrast — studying did not lead to the expected result.' },
+      { id:'sw3', q:'Identify the error: "Each of the students have submitted their assignments."', choices:{A:'No error',B:'"have" should be "has"',C:'"their" should be "his or her"',D:'"submitted" should be "submits"'}, answer:'B', explanation:'"Each" is singular, so it requires the singular verb "has," not the plural "have."' },
+      { id:'sw4', q:'Which version is most concise without losing meaning? Original: "Due to the fact that it was raining, the game was cancelled."', choices:{A:'Because it was raining, the game was cancelled.',B:'Due to the rainy weather conditions, the game was cancelled.',C:'The game was cancelled on account of rain falling.',D:'Since there was rain, the cancellation of the game occurred.'}, answer:'A', explanation:'"Because" replaces the wordy "due to the fact that" without any loss of meaning.' },
+      { id:'sw5', q:'A writer wants to add a sentence to conclude a paragraph about renewable energy. Which best fits?', choices:{A:'"Coal remains a widely used energy source."',B:'"These advancements suggest a future less dependent on fossil fuels."',C:'"Many people disagree about climate change."',D:'"Solar panels were invented in the 1950s."'}, answer:'B', explanation:'A conclusion should synthesize the paragraph\'s argument. Only (B) wraps up the renewable energy theme with a forward-looking statement.' },
+    ]
+  },
+  { key:'sat-math-nc', label:'Math – No Calculator', icon:'🔢', color:'#7c3aed', bg:'#f5f3ff',
+    questions:[
+      { id:'sm1', q:'If 3x + 7 = 22, what is the value of x?', choices:{A:'3',B:'4',C:'5',D:'6'}, answer:'C', explanation:'3x = 22 − 7 = 15, so x = 5.' },
+      { id:'sm2', q:'A line passes through (0, 3) and (2, 7). What is its slope?', choices:{A:'1',B:'2',C:'3',D:'4'}, answer:'B', explanation:'Slope = (7−3)/(2−0) = 4/2 = 2.' },
+      { id:'sm3', q:'Which expression is equivalent to (x + 3)²?', choices:{A:'x² + 9',B:'x² + 3x + 9',C:'x² + 6x + 9',D:'x² + 6x + 3'}, answer:'C', explanation:'(x+3)² = x² + 2(3)(x) + 9 = x² + 6x + 9.' },
+      { id:'sm4', q:'If f(x) = 2x − 1, what is f(4)?', choices:{A:'6',B:'7',C:'8',D:'9'}, answer:'B', explanation:'f(4) = 2(4) − 1 = 8 − 1 = 7.' },
+      { id:'sm5', q:'Solve: |2x − 4| = 6', choices:{A:'x = 5 only',B:'x = −1 only',C:'x = 5 or x = −1',D:'x = 1 or x = 5'}, answer:'C', explanation:'2x−4 = 6 → x=5; 2x−4 = −6 → x=−1.' },
+    ]
+  },
+  { key:'sat-math-c', label:'Math – Calculator', icon:'🧮', color:'#b45309', bg:'#fffbeb',
+    questions:[
+      { id:'sc1', q:'A store sells a jacket originally priced at $80 at a 25% discount. What is the sale price?', choices:{A:'$55',B:'$60',C:'$65',D:'$70'}, answer:'B', explanation:'25% of $80 = $20 discount. $80 − $20 = $60.' },
+      { id:'sc2', q:'A data set has values: 4, 7, 7, 9, 13. What is the median?', choices:{A:'7',B:'8',C:'9',D:'13'}, answer:'A', explanation:'Ordered: 4, 7, 7, 9, 13. The middle value (3rd of 5) is 7.' },
+      { id:'sc3', q:'If y varies directly with x and y = 12 when x = 4, what is y when x = 7?', choices:{A:'18',B:'21',C:'24',D:'28'}, answer:'B', explanation:'Direct variation: y = kx. k = 12/4 = 3. When x=7, y = 3(7) = 21.' },
+      { id:'sc4', q:'A car travels 150 miles in 2.5 hours. At the same speed, how far will it travel in 4 hours?', choices:{A:'200 miles',B:'220 miles',C:'240 miles',D:'260 miles'}, answer:'C', explanation:'Speed = 150/2.5 = 60 mph. Distance = 60 × 4 = 240 miles.' },
+      { id:'sc5', q:'In a class of 30 students, 40% passed a test. How many students passed?', choices:{A:'10',B:'12',C:'14',D:'18'}, answer:'B', explanation:'40% of 30 = 0.40 × 30 = 12.' },
+    ]
+  },
+];
+
+/* ── ACT BANK ── */
+const ACT_BANK = [
+  { key:'act-english', label:'English', icon:'📝', color:'#1e40af', bg:'#eff6ff',
+    questions:[
+      { id:'ae1', q:'Choose the best version: "Running through the park, the flowers were beautiful."', choices:{A:'No change',B:'Running through the park, I noticed the beautiful flowers.',C:'The beautiful flowers were running through the park.',D:'Through the park, running, the flowers were beautiful.'}, answer:'B', explanation:'The original has a dangling modifier — the flowers weren\'t running. (B) correctly places the subject "I" after the modifier.' },
+      { id:'ae2', q:'Which punctuation correctly separates two independent clauses?', choices:{A:'She loves math, she hates history.',B:'She loves math; she hates history.',C:'She loves math: she hates history.',D:'She loves math — she hates history.'}, answer:'B', explanation:'A semicolon correctly joins two independent clauses. A comma alone creates a comma splice.' },
+      { id:'ae3', q:'"The committee have made their decision." For a formal American English context, this should be:', choices:{A:'No change',B:'"The committee has made its decision."',C:'"The committee have made its decision."',D:'"The committees have made their decision."'}, answer:'B', explanation:'In American English, collective nouns like "committee" take singular verbs and pronouns.' },
+      { id:'ae4', q:'Which is the most precise word to replace "said" in "She said the results were inaccurate"?', choices:{A:'told',B:'argued',C:'whispered',D:'asked'}, answer:'B', explanation:'"Argued" conveys that she was making a case against the results, which is more specific than the neutral "said."' },
+      { id:'ae5', q:'Identify the error: "Between you and I, this plan won\'t work."', choices:{A:'No error',B:'"Between" should be "Among"',C:'"I" should be "me"',D:'"won\'t" should be "will not"'}, answer:'C', explanation:'Prepositions take object pronouns. "Between you and me" is correct, not "between you and I."' },
+    ]
+  },
+  { key:'act-math', label:'Math', icon:'📐', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'am1', q:'What is the value of 3² + 4²?', choices:{A:'14',B:'25',C:'49',D:'7'}, answer:'B', explanation:'3² = 9, 4² = 16. 9 + 16 = 25.' },
+      { id:'am2', q:'If a triangle has sides of length 5, 12, and 13, it is:', choices:{A:'Equilateral',B:'Obtuse',C:'Right',D:'Acute'}, answer:'C', explanation:'5² + 12² = 25 + 144 = 169 = 13². Since it satisfies the Pythagorean theorem, it\'s a right triangle.' },
+      { id:'am3', q:'What is 15% of 200?', choices:{A:'20',B:'25',C:'30',D:'35'}, answer:'C', explanation:'15% × 200 = 0.15 × 200 = 30.' },
+      { id:'am4', q:'Simplify: (2x³)(3x²)', choices:{A:'5x⁵',B:'6x⁵',C:'5x⁶',D:'6x⁶'}, answer:'B', explanation:'Multiply coefficients: 2×3=6. Add exponents: 3+2=5. Result: 6x⁵.' },
+      { id:'am5', q:'The sum of interior angles of a hexagon is:', choices:{A:'540°',B:'360°',C:'720°',D:'900°'}, answer:'C', explanation:'Formula: (n−2)×180°. For hexagon: (6−2)×180 = 4×180 = 720°.' },
+    ]
+  },
+  { key:'act-reading', label:'Reading', icon:'📚', color:'#7c3aed', bg:'#f5f3ff',
+    questions:[
+      { id:'ar1', q:'A passage describes a scientist who "refused to abandon her hypothesis despite repeated failures." This suggests the scientist was:', choices:{A:'careless',B:'persistent',C:'naive',D:'indecisive'}, answer:'B', explanation:'"Refused to abandon despite failures" directly conveys persistence and determination.' },
+      { id:'ar2', q:'When an author uses first-person narration ("I"), the effect is typically to:', choices:{A:'Create emotional distance from events',B:'Present a purely objective view',C:'Allow readers to experience events more personally',D:'Avoid revealing the narrator\'s opinions'}, answer:'C', explanation:'First-person narration brings readers inside the narrator\'s perspective, creating intimacy and subjectivity.' },
+      { id:'ar3', q:'A passage states a factory "breathed thick smoke into the sky day and night." This is an example of:', choices:{A:'Simile',B:'Personification',C:'Alliteration',D:'Hyperbole'}, answer:'B', explanation:'Giving the factory the human action of "breathing" is personification.' },
+      { id:'ar4', q:'An author\'s tone in a passage about animal testing can be described as "clinical." This most likely means the writing is:', choices:{A:'Warm and sympathetic',B:'Objective and detached',C:'Angry and passionate',D:'Humorous and light'}, answer:'B', explanation:'"Clinical" tone means the author presents facts without emotional engagement, focusing on precision.' },
+    ]
+  },
+  { key:'act-science', label:'Science', icon:'🔬', color:'#b45309', bg:'#fffbeb',
+    questions:[
+      { id:'as1', q:'A scientist increases temperature in an experiment and observes that reaction rate doubles. This relationship is best described as:', choices:{A:'Inverse',B:'No relationship',C:'Direct (positive)',D:'Exponential decay'}, answer:'C', explanation:'When one variable increases and the other increases proportionally, the relationship is direct/positive.' },
+      { id:'as2', q:'Two scientists reach different conclusions from the same data. The MOST likely explanation is:', choices:{A:'One scientist made a math error',B:'They used different experimental methods',C:'They interpreted the data using different assumptions or models',D:'The data was fabricated'}, answer:'C', explanation:'In science, conflicting viewpoints usually stem from different theoretical frameworks or assumptions, not errors.' },
+      { id:'as3', q:'A control group in an experiment is best defined as:', choices:{A:'The group that receives the experimental treatment',B:'The group used to establish a baseline by not receiving the treatment',C:'The group with the largest sample size',D:'The group selected randomly'}, answer:'B', explanation:'The control group receives no treatment, providing a baseline to compare the experimental group against.' },
+      { id:'as4', q:'A graph shows CO₂ levels rising steadily from 1960 to 2020. Which conclusion is best supported?', choices:{A:'CO₂ levels have fluctuated randomly',B:'CO₂ levels have consistently increased over 60 years',C:'CO₂ levels peaked in 1990',D:'CO₂ levels will decrease after 2020'}, answer:'B', explanation:'A steady rise over the depicted period directly supports (B). Future trends and past fluctuations cannot be concluded from the described graph.' },
+    ]
+  },
+];
+
+/* ── HISET BANK ── */
+const HISET_BANK = [
+  { key:'hiset-math', label:'Mathematical Reasoning', icon:'🔢', color:'#1e40af', bg:'#eff6ff',
+    questions:[
+      { id:'hm1', q:'A recipe calls for 2½ cups of flour. If you want to make 3 batches, how much flour do you need?', choices:{A:'5 cups',B:'6 cups',C:'7 cups',D:'7½ cups'}, answer:'D', explanation:'2.5 × 3 = 7.5 cups = 7½ cups.' },
+      { id:'hm2', q:'Solve for x: 4x − 8 = 20', choices:{A:'3',B:'5',C:'7',D:'9'}, answer:'C', explanation:'4x = 20 + 8 = 28. x = 28/4 = 7.' },
+      { id:'hm3', q:'A store marks up a $40 item by 30%. What is the selling price?', choices:{A:'$48',B:'$52',C:'$54',D:'$70'}, answer:'B', explanation:'30% of $40 = $12. $40 + $12 = $52.' },
+      { id:'hm4', q:'What is the area of a rectangle that is 8 feet long and 5 feet wide?', choices:{A:'13 sq ft',B:'26 sq ft',C:'40 sq ft',D:'45 sq ft'}, answer:'C', explanation:'Area = length × width = 8 × 5 = 40 sq ft.' },
+      { id:'hm5', q:'Which of the following is equivalent to 75%?', choices:{A:'¾',B:'7/5',C:'3/5',D:'7/4'}, answer:'A', explanation:'75% = 75/100 = ¾.' },
+      { id:'hm6', q:'A car travels at 60 mph. How long does it take to travel 210 miles?', choices:{A:'2.5 hours',B:'3 hours',C:'3.5 hours',D:'4 hours'}, answer:'C', explanation:'Time = Distance ÷ Speed = 210 ÷ 60 = 3.5 hours.' },
+    ]
+  },
+  { key:'hiset-reading', label:'Language Arts – Reading', icon:'📖', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'hr1', q:'A passage says a character "swallowed his pride and apologized." This phrase most likely means he:', choices:{A:'Ate something before speaking',B:'Was too proud to apologize',C:'Suppressed his ego to do something difficult',D:'Spoke quietly'}, answer:'C', explanation:'"Swallowed his pride" is an idiom meaning to overcome one\'s ego to do something humbling.' },
+      { id:'hr2', q:'The main purpose of a persuasive essay is to:', choices:{A:'Entertain readers with a story',B:'Present factual information only',C:'Convince readers to agree with a viewpoint',D:'Describe a process step by step'}, answer:'C', explanation:'Persuasive writing aims to change or reinforce the reader\'s opinion through argument and evidence.' },
+      { id:'hr3', q:'Which sentence states a fact rather than an opinion?', choices:{A:'"History is the most important subject."',B:'"The Civil War ended in 1865."',C:'"Math is too difficult for most people."',D:'"Science classes are more fun than English."'}, answer:'B', explanation:'(B) can be verified as objectively true. The others reflect personal judgments.' },
+      { id:'hr4', q:'A passage uses the word "ambiguous." Based on context clues (the situation is unclear and both sides disagree), "ambiguous" most likely means:', choices:{A:'Obvious',B:'Detailed',C:'Open to more than one interpretation',D:'Incorrect'}, answer:'C', explanation:'"Ambiguous" means unclear or open to multiple interpretations, consistent with the context clues given.' },
+      { id:'hr5', q:'What is the most likely purpose of a text that opens with shocking statistics about poverty?', choices:{A:'To entertain readers',B:'To grab attention and establish urgency about the issue',C:'To prove poverty does not exist',D:'To define the word poverty'}, answer:'B', explanation:'Opening with striking statistics is a rhetorical strategy to engage readers and emphasize the severity of an issue.' },
+    ]
+  },
+  { key:'hiset-writing', label:'Language Arts – Writing', icon:'✍️', color:'#7c3aed', bg:'#f5f3ff',
+    questions:[
+      { id:'hw1', q:'Which sentence has correct subject-verb agreement?', choices:{A:'"The group of students are ready."',B:'"The group of students is ready."',C:'"The students group are ready."',D:'"A group students is ready."'}, answer:'B', explanation:'"Group" is the subject (singular), so the correct verb is "is."' },
+      { id:'hw2', q:'Which is a complete sentence?', choices:{A:'"Running down the street."',B:'"Because she was tired."',C:'"The dog barked loudly."',D:'"When he arrived home."'}, answer:'C', explanation:'A complete sentence has a subject (the dog) and a predicate (barked loudly). The others are fragments.' },
+      { id:'hw3', q:'Which revision makes this sentence clearer? Original: "The man the woman saw left."', choices:{A:'No change',B:'"The man that the woman saw left."',C:'"The man, whom the woman saw, left."',D:'"The woman saw the man left."'}, answer:'C', explanation:'Adding the relative pronoun "whom" and commas clarifies the sentence structure.' },
+      { id:'hw4', q:'Which transition best shows a cause-and-effect relationship?', choices:{A:'"However"',B:'"In addition"',C:'"Therefore"',D:'"Meanwhile"'}, answer:'C', explanation:'"Therefore" signals that what follows is a result of what came before, indicating cause and effect.' },
+    ]
+  },
+  { key:'hiset-science', label:'Science', icon:'🔬', color:'#b45309', bg:'#fffbeb',
+    questions:[
+      { id:'hs1', q:'Which of the following is an example of a chemical change?', choices:{A:'Ice melting into water',B:'Salt dissolving in water',C:'Wood burning',D:'Glass breaking'}, answer:'C', explanation:'Burning is a chemical change — new substances (ash, CO₂) are formed. The others are physical changes.' },
+      { id:'hs2', q:'Which organ is responsible for pumping blood through the body?', choices:{A:'Lungs',B:'Liver',C:'Kidneys',D:'Heart'}, answer:'D', explanation:'The heart is the muscular organ that pumps blood through the circulatory system.' },
+      { id:'hs3', q:'What is the main function of the mitochondria in a cell?', choices:{A:'Store genetic information',B:'Produce energy (ATP)',C:'Digest waste materials',D:'Control cell division'}, answer:'B', explanation:'Mitochondria are called the "powerhouse of the cell" because they produce ATP through cellular respiration.' },
+      { id:'hs4', q:'Which of the following is a renewable energy source?', choices:{A:'Coal',B:'Natural gas',C:'Solar power',D:'Nuclear energy'}, answer:'C', explanation:'Solar power comes from the sun, which is inexhaustible on human timescales. Coal and natural gas are fossil fuels.' },
+      { id:'hs5', q:'Newton\'s First Law of Motion states that:', choices:{A:'Force equals mass times acceleration',B:'Every action has an equal and opposite reaction',C:'An object at rest stays at rest unless acted on by a force',D:'Energy cannot be created or destroyed'}, answer:'C', explanation:'Newton\'s First Law (the law of inertia) states objects maintain their state of motion unless an external force acts on them.' },
+    ]
+  },
+  { key:'hiset-social', label:'Social Studies', icon:'🌍', color:'#374151', bg:'#f9fafb',
+    questions:[
+      { id:'hss1', q:'The primary purpose of the Bill of Rights is to:', choices:{A:'Establish the three branches of government',B:'Protect individual liberties from government overreach',C:'Define the powers of the president',D:'Create a national currency'}, answer:'B', explanation:'The Bill of Rights (first 10 amendments) protects individual freedoms like speech, religion, and due process.' },
+      { id:'hss2', q:'Supply and demand tells us that when the price of a product rises, demand will generally:', choices:{A:'Increase',B:'Stay the same',C:'Decrease',D:'Double'}, answer:'C', explanation:'Higher prices typically reduce consumer demand — fewer people are willing or able to purchase the product.' },
+      { id:'hss3', q:'Which of the following best describes the purpose of the Civil Rights Act of 1964?', choices:{A:'To end the Civil War',B:'To give women the right to vote',C:'To prohibit discrimination based on race, color, religion, sex, or national origin',D:'To establish Social Security benefits'}, answer:'C', explanation:'The Civil Rights Act of 1964 outlawed discrimination in public accommodations and employment.' },
+      { id:'hss4', q:'The term "checks and balances" refers to:', choices:{A:'A system of government spending limits',B:'A method of balancing the national budget',C:'The system by which each branch of government limits the power of the others',D:'A banking regulation policy'}, answer:'C', explanation:'Checks and balances ensures no single branch (legislative, executive, judicial) becomes too powerful by giving each branch oversight over the others.' },
+    ]
+  },
+];
+
+/* ── GED BANK ── (reuses HiSET structure with GED-specific framing) */
+const GED_BANK = HISET_BANK; // Same core skills
+
+/* ── AP WORLD HISTORY BANK ── */
+const APWH_BANK = [
+  { key:'apwh-1', label:'Period 1 (to 600 BCE)', icon:'🏺', color:'#92400e', bg:'#fef9ee',
+    questions:[
+      { id:'wh1q1', q:'The development of agriculture in multiple regions around 10,000 BCE is best explained by:', choices:{A:'Trade networks spreading seeds across continents',B:'Climate change that made hunting less viable and encouraged sedentary food production',C:'Government mandates requiring farmers to cultivate land',D:'Religious beliefs that prohibited hunting animals'}, answer:'B', explanation:'The end of the last Ice Age changed climates worldwide, making sedentary agriculture more viable as plant growth became more predictable.' },
+      { id:'wh1q2', q:'Which characteristic was MOST common to early river valley civilizations?', choices:{A:'Democratic political systems',B:'Monotheistic religious beliefs',C:'Centralized political authority and complex social hierarchies',D:'Nomadic lifestyles'}, answer:'C', explanation:'Early civilizations in Mesopotamia, Egypt, the Indus Valley, and China all developed complex governments and social stratification.' },
+      { id:'wh1q3', q:'The Silk Roads\' significance before 600 CE was PRIMARILY due to:', choices:{A:'The transfer of industrial technology',B:'The spread of goods, ideas, and diseases across Afro-Eurasia',C:'The movement of enslaved people between empires',D:'Military conquest by Chinese emperors'}, answer:'B', explanation:'The Silk Roads connected civilizations from China to Rome, facilitating exchange of silk, spices, religions, and diseases.' },
+    ]
+  },
+  { key:'apwh-2', label:'Period 2 (600 BCE–600 CE)', icon:'🏛️', color:'#1e40af', bg:'#eff6ff',
+    questions:[
+      { id:'wh2q1', q:'The fall of the Western Roman Empire in 476 CE is BEST attributed to:', choices:{A:'A single military defeat by the Huns',B:'A combination of internal political instability, economic problems, and external pressures',C:'The rise of Christianity weakening Roman military values',D:'A plague that killed most of the Roman population'}, answer:'B', explanation:'Historians point to multiple causes: political corruption, overextension, economic strain, and Germanic invasions working together.' },
+      { id:'wh2q2', q:'Buddhism spread from India along trade routes primarily because:', choices:{A:'Indian armies conquered much of Asia',B:'Merchants and missionaries carried Buddhist teachings to new regions',C:'The Chinese emperor mandated Buddhist conversion',D:'Buddhism replaced all existing local religions'}, answer:'B', explanation:'Buddhist missionaries and merchants spread the faith along the Silk Roads and Indian Ocean trade networks.' },
+      { id:'wh2q3', q:'The Han dynasty and Roman Empire are BEST compared as examples of:', choices:{A:'Theocratic governments',B:'Large empires using centralized bureaucracies to govern diverse populations',C:'Maritime empires built on sea trade',D:'Democratic republics with elected leaders'}, answer:'B', explanation:'Both empires used sophisticated bureaucracies, road systems, and military forces to govern vast territories.' },
+    ]
+  },
+  { key:'apwh-3', label:'Period 3 (600–1450 CE)', icon:'🕌', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'wh3q1', q:'The rapid expansion of Islam in the 7th–8th centuries was PRIMARILY due to:', choices:{A:'Forced conversion of all conquered peoples',B:'Military conquest combined with appeal of Islamic teachings and political unity',C:'The weakness of the Byzantine Empire alone',D:'Economic incentives offered by the Umayyad Caliphate'}, answer:'B', explanation:'Islamic expansion combined military success with a message of equality and monotheism that appealed to diverse populations.' },
+      { id:'wh3q2', q:'The Mongol conquests of the 13th century had which long-term effect on trade?', choices:{A:'Trade collapsed permanently along the Silk Roads',B:'The Pax Mongolica temporarily facilitated trade and exchange across Eurasia',C:'Mongols banned all merchant activity in conquered lands',D:'Trade shifted entirely to sea routes'}, answer:'B', explanation:'The Mongol Peace created relative stability across their vast empire, allowing merchants and diplomats to travel more safely.' },
+      { id:'wh3q3', q:'The Black Death (1347–1353) most significantly impacted Europe by:', choices:{A:'Causing the collapse of the Catholic Church',B:'Permanently reducing Europe\'s population by two-thirds',C:'Disrupting feudal labor systems and accelerating social change',D:'Ending the Crusades'}, answer:'C', explanation:'Labor scarcity after the plague gave surviving peasants more bargaining power, contributing to the decline of serfdom.' },
+    ]
+  },
+  { key:'apwh-4', label:'Period 4 (1450–1750)', icon:'⛵', color:'#7c3aed', bg:'#f5f3ff',
+    questions:[
+      { id:'wh4q1', q:'The Columbian Exchange most significantly impacted the Americas by:', choices:{A:'Introducing new crops that improved Native American nutrition',B:'Bringing European diseases that devastated indigenous populations',C:'Establishing democratic governments',D:'Creating trade partnerships between equals'}, answer:'B', explanation:'European diseases like smallpox killed an estimated 50-90% of indigenous Americans, the most catastrophic demographic collapse in history.' },
+      { id:'wh4q2', q:'The Atlantic slave trade fundamentally transformed African societies by:', choices:{A:'Bringing economic prosperity to all regions',B:'Depopulating many West African regions and disrupting political stability',C:'Introducing new technologies from Europe',D:'Creating strong alliances between African kingdoms'}, answer:'B', explanation:'The forced removal of millions of Africans weakened societies, fueled internal conflicts, and created lasting demographic damage.' },
+    ]
+  },
+];
+
+/* ── AP BIO BANK ── */
+const APBIO_BANK = [
+  { key:'bio-cell', label:'Cell Biology', icon:'🔬', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'ab1', q:'Which organelle is responsible for producing ATP through cellular respiration?', choices:{A:'Ribosome',B:'Golgi apparatus',C:'Mitochondria',D:'Lysosome'}, answer:'C', explanation:'Mitochondria carry out cellular respiration, converting glucose and oxygen into ATP energy.' },
+      { id:'ab2', q:'The cell membrane is described as "selectively permeable." This means:', choices:{A:'It allows all molecules to pass freely',B:'It blocks all molecules from passing',C:'It allows some molecules to pass while restricting others',D:'It only allows water to pass'}, answer:'C', explanation:'Selective permeability allows the cell to control what enters and exits, maintaining homeostasis.' },
+      { id:'ab3', q:'During mitosis, chromosomes are duplicated and then separated into two daughter cells. The purpose of mitosis is:', choices:{A:'Sexual reproduction',B:'Growth and repair of somatic (body) cells',C:'Production of gametes',D:'Reducing chromosome number by half'}, answer:'B', explanation:'Mitosis produces genetically identical cells for growth, development, and tissue repair.' },
+      { id:'ab4', q:'Which of the following best describes the role of enzymes?', choices:{A:'They provide energy for reactions',B:'They are consumed in reactions',C:'They lower activation energy to speed up reactions',D:'They change the products of reactions'}, answer:'C', explanation:'Enzymes are biological catalysts that lower the activation energy needed for chemical reactions, without being consumed.' },
+    ]
+  },
+  { key:'bio-genetics', label:'Genetics & Heredity', icon:'🧬', color:'#7c3aed', bg:'#f5f3ff',
+    questions:[
+      { id:'ag1', q:'In a monohybrid cross between two heterozygous parents (Aa × Aa), what is the expected phenotype ratio?', choices:{A:'1:2:1',B:'3:1',C:'1:1',D:'2:1'}, answer:'B', explanation:'Aa × Aa produces 1 AA : 2 Aa : 1 aa. Since A is dominant, 3 show the dominant phenotype and 1 shows recessive = 3:1.' },
+      { id:'ag2', q:'DNA replication is described as "semi-conservative." This means:', choices:{A:'Only half of the DNA is copied',B:'Each new strand pairs with an old strand as its template',C:'DNA is copied every other cell division',D:'Replication conserves ATP'}, answer:'B', explanation:'Semi-conservative replication means each daughter DNA molecule contains one original strand and one newly synthesized strand.' },
+      { id:'ag3', q:'A mutation that changes a single DNA base pair is called a:', choices:{A:'Frameshift mutation',B:'Point mutation',C:'Chromosomal deletion',D:'Inversion'}, answer:'B', explanation:'A point mutation is a change in a single nucleotide, which may or may not affect the protein produced.' },
+    ]
+  },
+  { key:'bio-evolution', label:'Evolution & Natural Selection', icon:'🦕', color:'#b45309', bg:'#fffbeb',
+    questions:[
+      { id:'ae1', q:'Natural selection acts on which of the following?', choices:{A:'Genotype only',B:'Phenotype — traits that are expressed',C:'Random mutations in DNA',D:'The entire gene pool equally'}, answer:'B', explanation:'Natural selection acts on the phenotype (expressed traits) — organisms with advantageous traits survive and reproduce more.' },
+      { id:'ae2', q:'Which of the following provides evidence for evolution?', choices:{A:'The fossil record only',B:'DNA similarities between species only',C:'Fossil record, comparative anatomy, molecular biology, and biogeography together',D:'The absence of transitional fossils'}, answer:'C', explanation:'Multiple independent lines of evidence — fossils, homologous structures, DNA, and geographic distribution — all support evolution.' },
+      { id:'ae3', q:'Genetic drift is MOST significant in:', choices:{A:'Large, stable populations',B:'Small populations where random chance has greater impact',C:'Populations under strong natural selection',D:'Populations with high gene flow'}, answer:'B', explanation:'In small populations, chance events can dramatically change allele frequencies, unlike in large populations where chance effects average out.' },
+    ]
+  },
+];
+
+/* ── AP CHEMISTRY BANK ── */
+const APCHEM_BANK = [
+  { key:'chem-atoms', label:'Atomic Structure', icon:'⚛️', color:'#1e40af', bg:'#eff6ff',
+    questions:[
+      { id:'ac1', q:'The atomic number of an element is defined as the number of:', choices:{A:'Neutrons in the nucleus',B:'Protons in the nucleus',C:'Electrons in the outer shell',D:'Nucleons in the nucleus'}, answer:'B', explanation:'The atomic number uniquely identifies an element and equals the number of protons in its nucleus.' },
+      { id:'ac2', q:'Isotopes of the same element have the same number of protons but different numbers of:', choices:{A:'Electrons',B:'Protons',C:'Neutrons',D:'Quarks'}, answer:'C', explanation:'Isotopes are atoms of the same element (same proton count) with different numbers of neutrons, giving them different mass numbers.' },
+      { id:'ac3', q:'Which quantum number describes the shape of an orbital?', choices:{A:'Principal quantum number (n)',B:'Angular momentum quantum number (l)',C:'Magnetic quantum number (mₗ)',D:'Spin quantum number (mₛ)'}, answer:'B', explanation:'The angular momentum quantum number (l) determines orbital shape: l=0 is s (spherical), l=1 is p (dumbbell), etc.' },
+    ]
+  },
+  { key:'chem-bonding', label:'Chemical Bonding', icon:'🔗', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'cb1', q:'An ionic bond forms between:', choices:{A:'Two nonmetals sharing electrons',B:'A metal and nonmetal through electron transfer',C:'Two metals sharing electrons',D:'Atoms of the same element'}, answer:'B', explanation:'Ionic bonds form when a metal transfers electrons to a nonmetal, creating oppositely charged ions that attract each other.' },
+      { id:'cb2', q:'A molecule with a bent shape and polar bonds, like water (H₂O), is:', choices:{A:'Nonpolar because the bonds cancel',B:'Polar because the asymmetric shape creates a net dipole',C:'Ionic because of the oxygen',D:'Nonpolar because it contains only H and O'}, answer:'B', explanation:'Water\'s bent geometry means its polar O-H bonds don\'t cancel, resulting in a net dipole moment and polar molecule.' },
+      { id:'cb3', q:'Electronegativity difference determines bond character. A difference greater than 1.7 generally indicates:', choices:{A:'A nonpolar covalent bond',B:'A polar covalent bond',C:'An ionic bond',D:'A metallic bond'}, answer:'C', explanation:'Large electronegativity differences (>1.7) mean one atom strongly attracts electrons from the other, resulting in ionic character.' },
+    ]
+  },
+  { key:'chem-thermo', label:'Thermodynamics', icon:'🌡️', color:'#b45309', bg:'#fffbeb',
+    questions:[
+      { id:'ct1', q:'An exothermic reaction is one that:', choices:{A:'Absorbs heat from the surroundings',B:'Releases heat to the surroundings',C:'Requires light energy to proceed',D:'Only occurs at high temperatures'}, answer:'B', explanation:'Exothermic reactions release energy (negative ΔH), warming the surroundings. Combustion is a common example.' },
+      { id:'ct2', q:'According to Hess\'s Law:', choices:{A:'Energy is always conserved in exothermic reactions',B:'The total enthalpy change of a reaction is independent of the pathway taken',C:'Reactions always proceed to the lowest energy state',D:'Temperature and enthalpy are always proportional'}, answer:'B', explanation:'Hess\'s Law states that the total enthalpy change depends only on initial and final states, not on the specific steps taken.' },
+    ]
+  },
+];
+
+/* ── AP CALCULUS BANK ── */
+const APCALC_BANK = [
+  { key:'calc-limits', label:'Limits & Continuity', icon:'♾️', color:'#1e40af', bg:'#eff6ff',
+    questions:[
+      { id:'cl1', q:'What is lim(x→2) of (x² - 4)/(x - 2)?', choices:{A:'0',B:'2',C:'4',D:'undefined'}, answer:'C', explanation:'Factor: (x²-4)/(x-2) = (x+2)(x-2)/(x-2) = x+2. As x→2, this equals 4.' },
+      { id:'cl2', q:'A function f is continuous at x = a if:', choices:{A:'f(a) is defined only',B:'lim(x→a) f(x) exists only',C:'f(a) is defined, the limit exists, and they are equal',D:'f(a) = 0'}, answer:'C', explanation:'Continuity requires three conditions: f(a) exists, the limit as x→a exists, and both values are equal.' },
+      { id:'cl3', q:'lim(x→∞) of (3x² + 2)/(x² - 5) equals:', choices:{A:'0',B:'1',C:'3',D:'∞'}, answer:'C', explanation:'Divide numerator and denominator by x²: (3 + 2/x²)/(1 - 5/x²). As x→∞, the small terms vanish, giving 3/1 = 3.' },
+    ]
+  },
+  { key:'calc-derivatives', label:'Derivatives', icon:'📈', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'cd1', q:'The derivative of f(x) = x³ is:', choices:{A:'x²',B:'3x',C:'3x²',D:'x⁴/4'}, answer:'C', explanation:'Using the power rule: d/dx(xⁿ) = nxⁿ⁻¹. So d/dx(x³) = 3x².' },
+      { id:'cd2', q:'What does the derivative of a function represent geometrically?', choices:{A:'The area under the curve',B:'The slope of the tangent line at a point',C:'The maximum value of the function',D:'The y-intercept'}, answer:'B', explanation:'The derivative f\'(x) gives the instantaneous rate of change, which geometrically represents the slope of the tangent line.' },
+      { id:'cd3', q:'Using the chain rule, the derivative of f(x) = (2x + 1)⁴ is:', choices:{A:'4(2x+1)³',B:'8(2x+1)³',C:'4(2x+1)⁴',D:'(2x+1)⁴'}, answer:'B', explanation:'Chain rule: d/dx[(2x+1)⁴] = 4(2x+1)³ · d/dx(2x+1) = 4(2x+1)³ · 2 = 8(2x+1)³.' },
+      { id:'cd4', q:'If f\'(x) > 0 on an interval, then f is:', choices:{A:'Concave up',B:'Decreasing',C:'Increasing',D:'At a maximum'}, answer:'C', explanation:'A positive first derivative means the function is increasing on that interval.' },
+    ]
+  },
+  { key:'calc-integrals', label:'Integrals', icon:'∫', color:'#7c3aed', bg:'#f5f3ff',
+    questions:[
+      { id:'ci1', q:'∫x² dx equals:', choices:{A:'2x',B:'x³',C:'x³/3 + C',D:'3x³ + C'}, answer:'C', explanation:'Power rule for integration: ∫xⁿ dx = xⁿ⁺¹/(n+1) + C. So ∫x² dx = x³/3 + C.' },
+      { id:'ci2', q:'The Fundamental Theorem of Calculus connects:', choices:{A:'Limits and derivatives',B:'Derivatives and integrals',C:'Integrals and sequences',D:'Limits and series'}, answer:'B', explanation:'The FTC shows that differentiation and integration are inverse operations, and allows evaluation of definite integrals using antiderivatives.' },
+      { id:'ci3', q:'∫₀² 3x dx equals:', choices:{A:'3',B:'6',C:'9',D:'12'}, answer:'B', explanation:'∫3x dx = 3x²/2. Evaluate from 0 to 2: 3(4)/2 - 0 = 6.' },
+    ]
+  },
+];
+
+/* ── AP STATISTICS BANK ── */
+const APSTAT_BANK = [
+  { key:'stat-data', label:'Exploring Data', icon:'📊', color:'#1e40af', bg:'#eff6ff',
+    questions:[
+      { id:'ast1', q:'A distribution is described as right-skewed. This means:', choices:{A:'The mean equals the median',B:'There are outliers on the left side',C:'The tail extends to the right; mean > median',D:'All data is concentrated on the right'}, answer:'C', explanation:'Right skew means the tail pulls to the right, dragging the mean above the median.' },
+      { id:'ast2', q:'The standard deviation of a data set measures:', choices:{A:'The middle value of the data',B:'The spread of data around the mean',C:'The highest value minus the lowest value',D:'The most frequent value'}, answer:'B', explanation:'Standard deviation quantifies how spread out values are from the mean.' },
+      { id:'ast3', q:'A boxplot\'s "whiskers" typically extend to:', choices:{A:'The mean ± 2 standard deviations',B:'The minimum and maximum values always',C:'1.5 × IQR beyond the quartiles',D:'The 10th and 90th percentiles'}, answer:'C', explanation:'Standard boxplots extend whiskers to 1.5 × IQR from Q1 and Q3; points beyond are marked as outliers.' },
+    ]
+  },
+  { key:'stat-probability', label:'Probability', icon:'🎲', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'ap1', q:'If P(A) = 0.4 and P(B) = 0.3, and A and B are independent, then P(A and B) =', choices:{A:'0.7',B:'0.12',C:'0.1',D:'0.58'}, answer:'B', explanation:'For independent events: P(A and B) = P(A) × P(B) = 0.4 × 0.3 = 0.12.' },
+      { id:'ap2', q:'The complement of event A has probability:', choices:{A:'P(A)',B:'1 + P(A)',C:'1 − P(A)',D:'P(A) − 1'}, answer:'C', explanation:'Since all probabilities sum to 1, the complement (not A) has probability 1 − P(A).' },
+      { id:'ap3', q:'A normal distribution is symmetric. What percentage of data falls within 1 standard deviation of the mean?', choices:{A:'50%',B:'68%',C:'95%',D:'99.7%'}, answer:'B', explanation:'The empirical rule: ~68% within 1σ, ~95% within 2σ, ~99.7% within 3σ.' },
+    ]
+  },
+  { key:'stat-inference', label:'Statistical Inference', icon:'🔍', color:'#7c3aed', bg:'#f5f3ff',
+    questions:[
+      { id:'si1', q:'A p-value of 0.03 means:', choices:{A:'There is a 3% chance the null hypothesis is true',B:'There is a 3% probability of getting results this extreme if the null hypothesis is true',C:'The alternative hypothesis is 97% likely',D:'The sample size is too small'}, answer:'B', explanation:'The p-value is the probability of observing results at least as extreme as the data, assuming the null hypothesis is true.' },
+      { id:'si2', q:'A 95% confidence interval for a mean means:', choices:{A:'95% of data falls within the interval',B:'We are 95% confident the true population mean lies within this interval',C:'There is a 5% chance the sample is wrong',D:'The mean has a 95% chance of being correct'}, answer:'B', explanation:'A 95% CI means: if we repeated this process many times, 95% of the intervals constructed would contain the true parameter.' },
+    ]
+  },
+];
+
+/* ── AP GOV BANK ── */
+const APGOV_BANK = [
+  { key:'gov-foundations', label:'Foundations of Democracy', icon:'🗽', color:'#1e40af', bg:'#eff6ff',
+    questions:[
+      { id:'ag1', q:'The principle of federalism in the U.S. Constitution refers to:', choices:{A:'The separation of powers among three branches',B:'The division of power between national and state governments',C:'The system of checks and balances',D:'The protection of individual rights'}, answer:'B', explanation:'Federalism divides sovereignty between the federal government and the states, a key feature of the U.S. system.' },
+      { id:'ag2', q:'Judicial review — the power to declare laws unconstitutional — was established in:', choices:{A:'The Constitution directly',B:'Marbury v. Madison (1803)',C:'McCulloch v. Maryland (1819)',D:'The Bill of Rights'}, answer:'B', explanation:'Chief Justice John Marshall established judicial review in Marbury v. Madison, though the power isn\'t explicitly in the Constitution.' },
+      { id:'ag3', q:'The elastic clause grants Congress the power to:', choices:{A:'Override Supreme Court decisions',B:'Make all laws "necessary and proper" to carry out its enumerated powers',C:'Declare war without the President',D:'Amend the Constitution directly'}, answer:'B', explanation:'The Necessary and Proper Clause (Article I, Sec. 8) allows Congress to expand its legislative powers beyond what is explicitly listed.' },
+    ]
+  },
+  { key:'gov-institutions', label:'Branches of Government', icon:'🏛️', color:'#065f46', bg:'#ecfdf5',
+    questions:[
+      { id:'gi1', q:'A presidential veto can be overridden by:', choices:{A:'A simple majority in Congress',B:'A two-thirds vote in both chambers of Congress',C:'The Supreme Court',D:'A national referendum'}, answer:'B', explanation:'The Constitution requires a two-thirds supermajority in both the House and Senate to override a presidential veto.' },
+      { id:'gi2', q:'The practice of "senatorial courtesy" means:', choices:{A:'Senators always vote for presidential nominees',B:'The President consults senators from a nominee\'s home state before appointing federal judges',C:'Senior senators get priority in committee assignments',D:'Senators never debate judicial nominees'}, answer:'B', explanation:'Senatorial courtesy is the informal tradition of presidents consulting home-state senators before nominating federal judges in that state.' },
+      { id:'gi3', q:'Which of the following is an example of a bureaucratic iron triangle?', choices:{A:'The President, Congress, and Supreme Court working together',B:'An interest group, congressional committee, and federal agency mutually supporting each other',C:'State governments negotiating with the federal government',D:'Voters, candidates, and political parties'}, answer:'B', explanation:'Iron triangles describe the mutually beneficial relationships among interest groups, congressional subcommittees, and the relevant federal agencies.' },
+    ]
+  },
+];
+
 const APUSH_BANK = [
   { key:'period1', period:1, label:'Period 1 (1491–1607)', icon:'🌎', color:'#065f46', bg:'#ecfdf5',
     questions:[
@@ -2114,22 +2393,38 @@ let pvState = { bankKey: null, questions: [], current: 0, answers: {}, locked: f
 function buildPracticeVault() {
   const container = document.getElementById('pvContent');
   if (!container) return;
-  // Load best scores from sessionStorage
-  const html = `
+  const result = getPracticeBank(currentStudent?.subjects);
+  if (!result) {
+    const subj = (currentStudent?.subjects||[])[0] || 'your subject';
+    container.innerHTML = `
+      <div class="pv-hero">
+        <div class="pv-hero-text">
+          <h2>🎯 Practice Vault</h2>
+          <p>Practice questions for <strong>${subj}</strong></p>
+        </div>
+      </div>
+      <div style="text-align:center;padding:3rem 1rem;color:#64748b;background:#fff;border-radius:12px;border:1px solid #e5e7eb">
+        <div style="font-size:2.5rem;margin-bottom:1rem">🚧</div>
+        <div style="font-size:1rem;font-weight:700;color:#0f2044;margin-bottom:.5rem">Practice questions coming soon for ${subj}</div>
+        <div style="font-size:.85rem;line-height:1.7">Your tutor will be adding custom practice questions for this subject.<br>Check back soon!</div>
+      </div>`;
+    return;
+  }
+  const { bank, label } = result;
+  container.innerHTML = `
     <div class="pv-hero">
       <div class="pv-hero-text">
         <h2>🎯 Practice Vault</h2>
-        <p>Real AP US History MCQs from released College Board exams — auto-graded instantly.</p>
+        <p>${label} — auto-graded MCQ practice, unlimited rounds.</p>
       </div>
     </div>
     <div class="pv-grid">
-      ${APUSH_BANK.map(b => {
+      ${bank.map(b => {
         const best = sessionStorage.getItem('pv_best_'+b.key);
         return `<div class="pv-period-card" onclick="startPractice('${b.key}')">
           <div class="pv-period-icon">${b.icon}</div>
-          <div class="pv-period-num" style="color:${b.color}">Period ${b.period}</div>
-          <div class="pv-period-name">${b.label}</div>
-          <div class="pv-period-meta">${b.questions.length} questions · Stimulus-based MCQ</div>
+          <div class="pv-period-num" style="color:${b.color}">${b.label}</div>
+          <div class="pv-period-meta">${b.questions.length} questions · MCQ</div>
           <div class="pv-period-footer">
             <span class="pv-q-count">${b.questions.length} Qs</span>
             ${best ? `<span class="pv-best">Best: ${best}%</span>` : '<span style="font-size:.72rem;color:var(--muted)">Not attempted</span>'}
@@ -2137,13 +2432,16 @@ function buildPracticeVault() {
         </div>`;
       }).join('')}
     </div>`;
-  container.innerHTML = html;
 }
 
+function findBankSection(key) {
+  const all = [APUSH_BANK, SAT_BANK, ACT_BANK, HISET_BANK, APWH_BANK, APBIO_BANK, APCHEM_BANK, APCALC_BANK, APSTAT_BANK, APGOV_BANK];
+  for (const b of all) { const found = b.find(s=>s.key===key); if (found) return found; }
+  return null;
+}
 function startPractice(key) {
-  const bank = APUSH_BANK.find(b => b.key === key);
+  const bank = findBankSection(key);
   if (!bank) return;
-  // Fisher-Yates shuffle so each round feels fresh
   const shuffled = [...bank.questions].sort(() => Math.random() - 0.5);
   pvState = { bankKey: key, questions: shuffled, current: 0, answers: {}, locked: false };
   renderPvQuestion();
@@ -2152,7 +2450,7 @@ function startPractice(key) {
 function renderPvQuestion() {
   const container = document.getElementById('pvContent');
   const { questions, current, bankKey, answers } = pvState;
-  const bank = APUSH_BANK.find(b => b.key === bankKey);
+  const bank = findBankSection(bankKey);
   const q = questions[current];
   const total = questions.length;
   const pct = Math.round((current / total) * 100);
@@ -2231,7 +2529,7 @@ function pvNextQuestion() {
 
 async function pvFinish() {
   const { questions, answers, bankKey } = pvState;
-  const bank = APUSH_BANK.find(b => b.key === bankKey);
+  const bank = findBankSection(bankKey);
   const correct = questions.filter(q => answers[q.id] === q.answer).length;
   const total = questions.length;
   const pct = Math.round((correct/total)*100);
@@ -2765,23 +3063,37 @@ function closeEnrollModal() {
 }
 function updateEnrCode() {
   const name    = document.getElementById('enr-name').value.trim();
-  const subj    = document.getElementById('enr-subject').value;
+  const subj    = document.getElementById('enr-subject').value.trim();
   const examRaw = document.getElementById('enr-examdate').value;
   if (!name) { document.getElementById('enr-code-preview').textContent='—'; return; }
-  // Build initials from first name
   const initials = name.split(' ').map(w=>w[0]?.toUpperCase()||'').filter(Boolean).slice(0,3).join('');
-  // Subject abbreviation
-  const subjMap = {
-    'AP US History':'APUSH','AP World History':'APWH','AP European History':'APEH',
-    'AP US Government':'APGOV','AP English Language':'APLANG','AP English Literature':'APLIT',
-    'AP Biology':'APBIO','AP Chemistry':'APCHEM','AP Physics':'APPHY',
-    'AP Calculus AB':'APCAB','AP Calculus BC':'APCBC','AP Statistics':'APSTAT',
-    'SAT Prep':'SAT','ACT Prep':'ACT','General Tutoring':'GEN'
-  };
-  const subjCode = subj ? (subjMap[subj]||subj.replace(/[^A-Z]/g,'').slice(0,6)) : 'NAP';
-  // Year suffix from exam date or current year
+  const subjCode = subj ? subjectAbbr(subj) : 'NAP';
   const yr = examRaw ? examRaw.slice(2,4) : String(new Date().getFullYear()).slice(2);
   document.getElementById('enr-code-preview').textContent = `${initials}-${subjCode}${yr}`;
+}
+function subjectAbbr(subj) {
+  const s = subj.toLowerCase();
+  if (s.includes('ap us hist') || s.includes('apush')) return 'APUSH';
+  if (s.includes('ap world'))   return 'APWH';
+  if (s.includes('ap euro'))    return 'APEH';
+  if (s.includes('ap gov'))     return 'APGOV';
+  if (s.includes('ap lang'))    return 'APLANG';
+  if (s.includes('ap lit'))     return 'APLIT';
+  if (s.includes('ap bio'))     return 'APBIO';
+  if (s.includes('ap chem'))    return 'APCHEM';
+  if (s.includes('ap phys'))    return 'APPHY';
+  if (s.includes('ap calc'))    return 'APCALC';
+  if (s.includes('ap stat'))    return 'APSTAT';
+  if (s.includes('ap psych'))   return 'APPSY';
+  if (s.includes('ap econ'))    return 'APECON';
+  if (s.includes('sat'))        return 'SAT';
+  if (s.includes('act'))        return 'ACT';
+  if (s.includes('hiset'))      return 'HISET';
+  if (s.includes('ged'))        return 'GED';
+  if (s.includes('lsat'))       return 'LSAT';
+  if (s.includes('gre'))        return 'GRE';
+  // Fallback: uppercase first word, max 6 chars
+  return subj.trim().split(/\s+/)[0].toUpperCase().replace(/[^A-Z]/g,'').slice(0,6)||'NAP';
 }
 async function submitEnrollment() {
   const name    = document.getElementById('enr-name').value.trim();
