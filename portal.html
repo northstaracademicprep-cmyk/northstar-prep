@@ -3333,7 +3333,17 @@ async function buildStudentMessages() {
 async function buildTutorMessagesPanel(studentId) {
   const panel = document.getElementById('ttab-panel-messages');
   if (!panel) return;
+
+  // Already live on this student's chat — just scroll to bottom, don't rebuild
+  if (_activeMsgCtx?.studentId === studentId && _chatChannel) {
+    const feed = document.getElementById(_activeMsgCtx.feedId);
+    if (feed) feed.scrollTop = feed.scrollHeight;
+    return;
+  }
+
+  // New student or first load — tear down old channel and rebuild
   _unsubscribeMessages();
+  panel.innerHTML = '<div style="padding:2rem;text-align:center;color:#94a3b8;font-size:.85rem">Loading…</div>';
   const { data: msgs, error } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at', {ascending:true});
   if (error) { panel.innerHTML=`<div style="color:#ef4444;padding:1rem">${error.message}</div>`; return; }
   const tutorName = currentTutor?.name || 'Tutor';
@@ -3522,9 +3532,12 @@ function renderTutorDashboard() {
 }
 
 async function selectTutorStudent(studentId, keepTab=false) {
+  const switchingStudent = selectedStudent?.id !== studentId;
   selectedStudent = tutorStudents.find(s=>s.id===studentId) || null;
   if (!selectedStudent) return;
   if (!keepTab) tutorActiveTab = 'materials'; // fresh nav = start at materials
+  // If switching to a different student, tear down the old chat channel
+  if (switchingStudent) _unsubscribeMessages();
   renderTutorStudentList();
   document.getElementById('tTopbarTitle').textContent = selectedStudent.name;
   document.getElementById('tContent').innerHTML = `<div style="text-align:center;padding:2rem;color:#64748b">Loading…</div>`;
