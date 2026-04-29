@@ -396,40 +396,44 @@
     @media(max-width:700px){
       .sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}
       .sidebar-overlay.open{display:block}.main{margin-left:0}
-      .topbar-menu-btn{display:block}.content{padding:1rem}
+      .topbar-menu-btn{display:block}.content{padding:.85rem}
       .stats-grid{grid-template-columns:repeat(2,1fr)}
       .phases-grid{grid-template-columns:repeat(2,1fr)}
       .college-grid{grid-template-columns:1fr}
       .resources-grid{grid-template-columns:1fr}
-      .welcome-banner{flex-direction:column;gap:.75rem}
+      .welcome-banner{flex-direction:column;gap:.75rem;padding:1.25rem}
       .welcome-badge{width:100%;text-align:left}
       .stat-value{font-size:1.3rem}
       .essay-top{flex-direction:column;gap:.4rem}
       .essay-status{align-self:flex-start}
       .essay-footer{gap:.35rem}
-      .action-item{flex-wrap:nowrap}
       .session-item{gap:.65rem}
       .session-date-block,.session-num-block{min-width:44px;padding:.4rem .5rem}
       .session-day,.session-num-val{font-size:1.1rem}
       .card-header{flex-wrap:wrap;gap:.5rem}
       .topbar{padding:.75rem 1rem}
       .topbar-title{font-size:.95rem}
+      /* Messages full-height on mobile */
+      #sec-messages{height:calc(100vh - 108px)!important}
+      .msg-input{font-size:16px!important} /* prevent iOS zoom */
     }
     @media(max-width:480px){
       .login-card{padding:2rem 1.25rem}
       .login-title{font-size:1.35rem}
       .login-input{font-size:1rem;letter-spacing:.15em}
-      .stats-grid{grid-template-columns:repeat(2,1fr)}
+      .stats-grid{grid-template-columns:1fr 1fr}
       .phases-grid{grid-template-columns:1fr 1fr}
-      .stat-card{padding:1rem}
-      .welcome-banner{padding:1.25rem}
-      .welcome-text h2{font-size:1.2rem}
+      .stat-card{padding:.85rem}
+      .stat-value{font-size:1.2rem}
+      .welcome-banner{padding:1rem}
+      .welcome-text h2{font-size:1.15rem}
       .college-card{flex-direction:column;align-items:flex-start;gap:.3rem}
       .session-topic{font-size:.75rem}
       .session-subject{font-size:.85rem}
       .academic-row{flex-direction:column;align-items:flex-start;gap:.15rem}
       .academic-val{text-align:left}
       .tier-label{font-size:.65rem}
+      .content{padding:.6rem}
     }
 
     /* ── ANIMATIONS ───────────────────────────────────────── */
@@ -523,7 +527,7 @@
     .t-tab{padding:.6rem 1rem;font-size:.84rem;font-weight:600;color:#64748b;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:.3rem}
     .t-tab.active{color:#0f2044;border-bottom-color:#c9a03a}
     .t-tab:hover:not(.active){color:#1a2540;background:#f5f6fa;border-radius:6px 6px 0 0}
-    .t-tab-panel{display:none}.t-tab-panel.active{display:block;animation:fadeInUp .35s cubic-bezier(.22,1,.36,1) both}
+    .t-tab-panel{display:none}.t-tab-panel.active{display:block;animation:fadeInUp .35s cubic-bezier(.22,1,.36,1) both}.t-tab-panel#ttab-panel-messages.active{display:flex}
     /* upload card */
     .t-card{background:#fff;border-radius:14px;padding:1.35rem;border:1px solid #e2e8f0;margin-bottom:1.1rem}
     .t-card h3{font-size:.95rem;font-weight:700;color:#1a2540;margin-bottom:1rem;display:flex;align-items:center;gap:.4rem}
@@ -614,8 +618,22 @@
       .t-sidebar.open{transform:translateX(0)}
       .t-main{margin-left:0}
       .t-menu-btn{display:block}
-      .t-content{padding:1rem}
+      .t-content{padding:.85rem}
       .t-students-grid{grid-template-columns:1fr}
+      .t-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;white-space:nowrap;padding-bottom:1px}
+      .t-tabs::-webkit-scrollbar{display:none}
+      .t-tab{flex-shrink:0}
+      .t-card{padding:1rem}
+      #ttab-panel-messages{height:calc(100vh - 200px)!important}
+      .t-student-header{flex-wrap:wrap;gap:.5rem}
+      .msg-input{font-size:16px!important}
+    }
+    @media(max-width:480px){
+      .t-content{padding:.6rem}
+      .t-card h3{font-size:.88rem}
+      .t-input,.t-textarea{font-size:15px}
+      .t-btn{padding:.55rem .9rem;font-size:.8rem}
+      .tsh-name{font-size:1rem}
     }
   </style>
 </head>
@@ -758,8 +776,8 @@
         <div id="pvContent"></div>
       </section>
 
-      <section class="page-section" id="sec-messages">
-        <div id="messagesBody"></div>
+      <section class="page-section" id="sec-messages" style="height:calc(100vh - 120px);display:flex;flex-direction:column">
+        <div id="messagesBody" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
       </section>
 
     </div>
@@ -3120,10 +3138,22 @@ let _bgNotifChannels = {};  // { studentId: channel } — always-on background l
 
 function _totalUnread() { return Object.values(_unreadByStudent).reduce((a,b)=>a+b,0); }
 
-/* Increment unread for a student (skip if sender is self or chat is open) */
+/* True only when the messages UI for this student is actually on screen */
+function _isChatVisible(studentId) {
+  if (_activeMsgCtx?.studentId !== studentId) return false;
+  // Student portal: Messages section must be active
+  if (document.getElementById('sec-messages')?.classList.contains('active')) return true;
+  // Tutor portal: Messages tab panel must be active
+  if (document.getElementById('ttab-panel-messages')?.classList.contains('active')) return true;
+  // Admin portal: adm-messages nav item must be active
+  if (document.querySelector('.adm-nav-item[data-id="adm-messages"].active')) return true;
+  return false;
+}
+
+/* Increment unread for a student (skip if sender is self or chat is visible) */
 function _countUnread(studentId, senderRole, myRole) {
   if (senderRole === myRole) return;
-  if (_activeMsgCtx?.studentId === studentId) return; // chat currently open
+  if (_isChatVisible(studentId)) return;
   _unreadByStudent[studentId] = (_unreadByStudent[studentId]||0) + 1;
   _refreshAllBadges();
 }
@@ -3198,11 +3228,11 @@ function _faviconBadge(count) {
 }
 
 /* Subscribe background notification listeners for all a user's students.
-   These stay alive the whole session so badges update even when chat isn't open. */
+   MUST use the same channel name ('chat-{sid}') that sendMessage broadcasts on. */
 function _initBgNotifs(studentIds, myRole) {
   studentIds.forEach(sid => {
     if (_bgNotifChannels[sid]) return;
-    _bgNotifChannels[sid] = db.channel('notif-bg-' + sid)
+    _bgNotifChannels[sid] = db.channel('chat-' + sid)
       .on('broadcast', { event:'new_message' }, ({ payload }) => {
         _countUnread(sid, payload.sender_role, myRole);
       })
@@ -3241,8 +3271,8 @@ function renderMessagesUI(container, msgs, studentId, myRole, myName) {
   const typingId  = 'msgTyping-' + studentId;
 
   container.innerHTML = `
-    <div style="max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:0">
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(15,32,68,.07)">
+    <div style="width:100%;height:100%;display:flex;flex-direction:column;gap:0">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(15,32,68,.07);flex:1;min-height:0">
         <!-- header -->
         <div style="padding:1rem 1.4rem;border-bottom:1px solid #f0f2f5;background:linear-gradient(135deg,#0f2044 0%,#1a3260 100%);display:flex;align-items:center;gap:.75rem">
           <div style="width:36px;height:36px;border-radius:50%;background:rgba(201,160,58,.25);display:flex;align-items:center;justify-content:center;font-size:1rem">💬</div>
@@ -3253,7 +3283,7 @@ function renderMessagesUI(container, msgs, studentId, myRole, myName) {
           <div style="margin-left:auto;width:9px;height:9px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.2)" title="Live"></div>
         </div>
         <!-- feed -->
-        <div id="${feedId}" style="padding:1.25rem 1.25rem .75rem;display:flex;flex-direction:column;gap:.1rem;min-height:300px;max-height:440px;overflow-y:auto;scroll-behavior:smooth">
+        <div id="${feedId}" style="padding:1.25rem 1.25rem .75rem;display:flex;flex-direction:column;gap:.1rem;flex:1;min-height:200px;overflow-y:auto;scroll-behavior:smooth">
           ${msgs.length===0 ? `<div data-empty="1" style="text-align:center;color:#9ca3af;font-size:.85rem;padding:2.5rem 1rem;animation:fadeIn .3s">No messages yet — say hello! 👋</div>` :
             _renderMsgBubbles(msgs, myRole)}
         </div>
@@ -3719,7 +3749,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
     <div id="ttab-panel-progress" class="t-tab-panel"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading progress…</div></div>
     <div id="ttab-panel-sessions" class="t-tab-panel">${buildTutorSessionsPanel(sessions, studentId)}</div>
     <div id="ttab-panel-announce" class="t-tab-panel">${buildTutorAnnouncePanel(announcements, studentId)}</div>
-    <div id="ttab-panel-messages" class="t-tab-panel"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading messages…</div></div>`;
+    <div id="ttab-panel-messages" class="t-tab-panel" style="display:none;flex-direction:column;height:calc(100vh - 220px)"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading messages…</div></div>`;
   // Restore whichever tab was active (defaults to materials on first load)
   switchTutorTab(tutorActiveTab);
   // Async-load the progress panel in the background
@@ -5215,7 +5245,7 @@ async function buildAdminMessages() {
   if (!students?.length) { body.innerHTML='<div class="adm-empty">No students yet.</div>'; return; }
 
   body.innerHTML = `
-    <div style="display:flex;gap:1.25rem;height:calc(100vh - 140px);min-height:500px">
+    <div style="display:flex;gap:1.25rem;height:calc(100vh - 120px)">
       <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:.35rem;overflow-y:auto">
         <div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;padding:.25rem 0">Conversations</div>
         ${students.map(s=>`
@@ -5299,13 +5329,33 @@ async function loadAdminConvo(studentId, studentName) {
 .adm-stat-chip{font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:99px}
 .adm-empty{text-align:center;padding:3.5rem 1rem;color:#64748b;font-size:.9rem;line-height:2}
 .adm-error{padding:1.5rem;background:#fef2f2;color:#dc2626;border-radius:12px;font-size:.85rem}
-@media(max-width:700px){.adm-sidebar{transform:translateX(-100%)}.adm-main{margin-left:0}.adm-students-grid{grid-template-columns:1fr}}
+@media(max-width:768px){
+  .adm-sidebar{transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);z-index:200}
+  .adm-sidebar.open{transform:translateX(0)}
+  #admMenuBtn{display:block!important}
+  .adm-main{margin-left:0}
+  .adm-students-grid{grid-template-columns:1fr}
+  .adm-topbar{padding:.75rem 1rem;gap:.5rem}
+  .adm-content{padding:1rem}
+  /* Messages: stack sidebar + chat vertically on mobile */
+  #admBody [style*="display:flex"][style*="gap:1.25rem"]{flex-direction:column;height:auto!important}
+  #admBody [style*="width:210px"]{width:100%!important;flex-direction:row!important;overflow-x:auto;gap:.5rem;flex-wrap:nowrap;padding-bottom:.5rem}
+  #admBody [style*="flex:1"][style*="border-radius:16px"]{height:calc(100vh - 340px)}
+  .msg-input{font-size:16px!important}
+}
+@media(max-width:480px){
+  .adm-content{padding:.7rem}
+  .adm-card{padding:1rem}
+  .adm-card-actions{flex-wrap:wrap}
+  .adm-btn{font-size:.75rem;padding:.4rem .8rem}
+  .adm-topbar-title{font-size:.9rem}
+}
 </style>
 
 <!-- ADMIN SHELL HTML -->
 <div id="adminShell">
   <div class="adm-layout">
-    <aside class="adm-sidebar">
+    <aside class="adm-sidebar" id="admSidebar">
       <div class="adm-sidebar-brand">
         <div class="adm-sidebar-logo">Northstar Academic Prep</div>
         <div class="adm-sidebar-title">Admin Portal</div>
@@ -5330,6 +5380,7 @@ async function loadAdminConvo(studentId, studentName) {
     </aside>
     <div class="adm-main">
       <header class="adm-topbar">
+        <button onclick="document.getElementById('admSidebar').classList.toggle('open')" style="display:none;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#0f2044;padding:0;margin-right:.5rem" id="admMenuBtn">☰</button>
         <div class="adm-topbar-title" id="admTopbarTitle">Pending Approvals</div>
         <div class="adm-topbar-tag">🔐 Admin</div>
       </header>
