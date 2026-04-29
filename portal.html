@@ -3226,6 +3226,17 @@ function _refreshAllBadges() {
     const sid = el.id.replace('admstu-badge-','');
     if (!_unreadByStudent[sid]) _setBadge(el.id, 0);
   });
+  // Highlight admin conversation buttons that have unread messages
+  // (skip buttons already styled as "active/selected" — blue border)
+  document.querySelectorAll('[id^="admMsgBtn-"]').forEach(btn => {
+    const sid = btn.id.replace('admMsgBtn-','');
+    const hasUnread = (_unreadByStudent[sid]||0) > 0;
+    const isActive  = btn.style.borderColor === '#0f2044';
+    if (!isActive) {
+      btn.style.borderColor = hasUnread ? '#ef4444' : '#e5e7eb';
+      btn.style.background   = hasUnread ? '#fff5f5' : '#fff';
+    }
+  });
 
   // ── Tutor: Messages tab badge + "from [student name]" sub-label + sidebar badges ──
   // Always show total unread on the Messages tab badge (not just selected student)
@@ -3670,7 +3681,9 @@ async function buildTutorMessagesPanel(studentId) {
   }
 
   // New student or first load — tear down old channel and rebuild
-  _markRead(studentId);
+  // NOTE: _markRead is NOT called here — it's called only when the tutor
+  // actually clicks the Messages tab (switchTutorTab), so the badge stays
+  // visible until the tutor deliberately opens the conversation.
   _unsubscribeMessages();
   panel.innerHTML = '<div style="padding:2rem;text-align:center;color:#94a3b8;font-size:.85rem">Loading…</div>';
   const { data: msgs, error } = await db.from('messages').select('*').eq('student_id', studentId).order('created_at', {ascending:true});
@@ -3966,7 +3979,11 @@ function switchTutorTab(id) {
     else { tc.style.maxWidth = ''; tc.style.paddingBottom = ''; }
   }
   // Load messages panel lazily when switching to messages tab
-  if (id === 'messages' && selectedStudent) buildTutorMessagesPanel(selectedStudent.id);
+  // Mark read here (not during preload) so badge persists until the tutor actually opens Messages
+  if (id === 'messages' && selectedStudent) {
+    _markRead(selectedStudent.id);
+    buildTutorMessagesPanel(selectedStudent.id);
+  }
 }
 
 /* ── MATERIALS PANEL ── */
@@ -5465,6 +5482,8 @@ async function buildAdminMessages() {
         </div>
       </div>
     </div>`;
+  // Populate any existing unread badges now that the elements exist in DOM
+  _refreshAllBadges();
 }
 
 async function loadAdminConvo(studentId, studentName) {
