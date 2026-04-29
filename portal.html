@@ -3239,23 +3239,19 @@ function _refreshAllBadges() {
   });
 
   // ── Tutor: Messages tab badge + "from [student name]" sub-label + sidebar badges ──
-  // Always show total unread on the Messages tab badge (not just selected student)
-  _setBadge('ttab-msg-badge', total);
-  // Tutor tab "from" label — show the student name(s) with unread
+  // Badge and "from" label are scoped to the CURRENTLY SELECTED student only.
+  // Other students' unreads show only on their individual sidebar buttons (tstu-badge-{id}).
+  const selSid = (typeof selectedStudent !== 'undefined' && selectedStudent) ? selectedStudent.id : null;
+  const selUnread = selSid ? (_unreadByStudent[selSid] || 0) : 0;
+  _setBadge('ttab-msg-badge', selUnread);
   const tutorTabFrom = document.getElementById('ttab-msg-from');
   if (tutorTabFrom) {
-    const sidsWithUnread = Object.keys(_unreadByStudent).filter(s => (_unreadByStudent[s]||0) > 0);
-    // Find the student names from the tutorStudents list
-    const names = sidsWithUnread.map(sid => {
-      if (typeof tutorStudents !== 'undefined') {
-        const s = tutorStudents.find(st => st.id === sid);
-        if (s) return s.name.split(' ')[0];
-      }
-      return _unreadSenders[sid] || '';
-    }).filter(Boolean);
-    if (names.length) {
-      tutorTabFrom.textContent = 'from ' + names[0] + (names.length > 1 ? ` +${names.length-1}` : '');
-      tutorTabFrom.style.display = '';
+    if (selUnread > 0 && selSid) {
+      // Show the sender name for the currently viewed student only
+      const senderName = _unreadSenders[selSid] ||
+        (typeof tutorStudents !== 'undefined' ? (tutorStudents.find(s=>s.id===selSid)?.name?.split(' ')[0]||'') : '');
+      tutorTabFrom.textContent = senderName ? 'from ' + senderName : '';
+      tutorTabFrom.style.display = senderName ? '' : 'none';
     } else {
       tutorTabFrom.style.display = 'none';
     }
@@ -3950,6 +3946,9 @@ async function selectTutorStudent(studentId, keepTab=false) {
     <div id="ttab-panel-messages" class="t-tab-panel" style="flex-direction:column;height:calc(100vh - 220px);overflow:hidden"><div style="padding:1rem;color:#64748b;font-size:.85rem">Loading messages…</div></div>`;
   // Restore whichever tab was active (defaults to materials on first load)
   switchTutorTab(tutorActiveTab);
+  // Refresh badges now that selectedStudent has changed — this scopes the
+  // Messages tab badge to the newly selected student's unread count.
+  _refreshAllBadges();
   // Async-load the progress panel in the background
   buildTutorProgressPanel(homework, studentId, subj);
   buildTutorMessagesPanel(studentId);
