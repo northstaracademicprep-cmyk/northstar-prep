@@ -4763,38 +4763,97 @@ async function buildAdminBilling() {
     </div>`;
 }
 
-/* ══ MATH SUBJECT HIERARCHY ══
-   A tutor who scored on a high-level math AP can teach everything below it.
-   Levels are ordered lowest → highest; getMathLevel() returns the level index. */
-const _MATH_LEVELS = [
-  { lv:1,  terms:['arithmetic','basic math','math 6','math 7','math 8','middle school math'] },
-  { lv:2,  terms:['pre-algebra','prealgebra','pre algebra'] },
-  { lv:3,  terms:['algebra 1','algebra i','algebra1','algebra one','algebra i '] },
-  { lv:4,  terms:['geometry'] },
-  { lv:5,  terms:['algebra 2','algebra ii','algebra2','algebra two'] },
-  { lv:6,  terms:['trigonometry','trig'] },
-  { lv:7,  terms:['pre-calculus','precalculus','pre calculus','pre calc'] },
-  { lv:8,  terms:['ap statistics','ap stats','statistics','stats','prob and stats'] },
-  { lv:9,  terms:['ap calculus ab','ap calc ab','calculus ab','calc ab','calculus','calc'] },
-  { lv:10, terms:['ap calculus bc','ap calc bc','calculus bc','calc bc','multivariable'] },
+/* ══ UNIVERSAL SUBJECT HIERARCHY ══
+   Each entry has a category (cat) and level (lv).
+   A tutor qualified at level N in a category can teach all levels ≤ N
+   in that same category. Categories are completely independent. */
+const _SUBJ_HIER = [
+  // ── MATH ──────────────────────────────────────────────────────
+  { cat:'math', lv:1,  terms:['arithmetic','basic math','math 6','math 7','math 8','middle school math','elementary math'] },
+  { cat:'math', lv:2,  terms:['pre-algebra','prealgebra','pre algebra'] },
+  { cat:'math', lv:3,  terms:['algebra 1','algebra i','algebra1','algebra one'] },
+  { cat:'math', lv:4,  terms:['geometry'] },
+  { cat:'math', lv:5,  terms:['algebra 2','algebra ii','algebra2','algebra two'] },
+  { cat:'math', lv:6,  terms:['trigonometry','trig'] },
+  { cat:'math', lv:7,  terms:['pre-calculus','precalculus','pre calculus','pre calc'] },
+  { cat:'math', lv:8,  terms:['ap statistics','ap stats','statistics','stats','prob and stats','probability'] },
+  { cat:'math', lv:9,  terms:['ap calculus ab','ap calc ab','calculus ab','calc ab','calculus','calc'] },
+  { cat:'math', lv:10, terms:['ap calculus bc','ap calc bc','calculus bc','calc bc','multivariable calculus'] },
+  // ── SCIENCE ───────────────────────────────────────────────────
+  { cat:'science', lv:1, terms:['general science','life science','earth science','physical science','middle school science'] },
+  { cat:'science', lv:2, terms:['biology','general biology','bio'] },
+  { cat:'science', lv:3, terms:['chemistry','general chemistry','chem'] },
+  { cat:'science', lv:4, terms:['ap biology','ap bio'] },
+  { cat:'science', lv:5, terms:['ap chemistry','ap chem'] },
+  { cat:'science', lv:6, terms:['ap physics 1','ap physics1','physics 1','physics','ap physics'] },
+  { cat:'science', lv:7, terms:['ap physics 2','ap physics2','physics 2'] },
+  { cat:'science', lv:8, terms:['ap physics c','physics c','ap physics c mechanics','ap physics c electricity'] },
+  { cat:'science', lv:9, terms:['ap environmental science','environmental science','apes'] },
+  // ── HISTORY / SOCIAL STUDIES ──────────────────────────────────
+  { cat:'history', lv:1, terms:['social studies','civics','middle school history'] },
+  { cat:'history', lv:2, terms:['world history','global history','modern world history'] },
+  { cat:'history', lv:3, terms:['us history','american history','united states history'] },
+  { cat:'history', lv:4, terms:['ap world history','ap world','apwh','ap world history modern'] },
+  { cat:'history', lv:5, terms:['ap us history','apush','ap united states history','ap american history'] },
+  { cat:'history', lv:6, terms:['ap government','ap gov','ap us government','ap politics','ap comparative government','ap macroeconomics','ap microeconomics','ap economics','ap human geography','ap psychology'] },
+  // ── ENGLISH / WRITING ─────────────────────────────────────────
+  { cat:'english', lv:1, terms:['grammar','basic writing','reading comprehension','middle school english'] },
+  { cat:'english', lv:2, terms:['writing','composition','english','english language arts','ela'] },
+  { cat:'english', lv:3, terms:['ap language','ap lang','ap english language','ap language and composition','ap english language and composition'] },
+  { cat:'english', lv:4, terms:['ap literature','ap lit','ap english literature','ap english literature and composition'] },
+  // ── COMPUTER SCIENCE ──────────────────────────────────────────
+  { cat:'cs', lv:1, terms:['computer basics','digital literacy','intro to computers'] },
+  { cat:'cs', lv:2, terms:['computer science principles','ap computer science principles','ap csp','ap cs principles'] },
+  { cat:'cs', lv:3, terms:['programming','python','java','intro to programming','introduction to programming'] },
+  { cat:'cs', lv:4, terms:['ap computer science a','ap cs a','ap computer science','data structures','algorithms'] },
 ];
-function _mathLevel(str) {
+
+/* Return the hierarchy category that best matches a subject string */
+function _subjectCat(str) {
   const s = (str||'').toLowerCase();
-  for (let i = _MATH_LEVELS.length-1; i>=0; i--)
-    if (_MATH_LEVELS[i].terms.some(t => s.includes(t) || t.includes(s.split(' ').slice(0,3).join(' ')))) return _MATH_LEVELS[i].lv;
+  for (const {cat, terms} of _SUBJ_HIER)
+    if (terms.some(t => s.includes(t) || t.includes(s))) return cat;
+  return null;
+}
+
+/* Return the hierarchy level of a subject string within a given category */
+function _subjectLv(str, cat) {
+  const s = (str||'').toLowerCase();
+  const entries = _SUBJ_HIER.filter(e => e.cat === cat);
+  for (let i = entries.length-1; i>=0; i--)
+    if (entries[i].terms.some(t => s.includes(t) || t.includes(s))) return entries[i].lv;
   return 0;
 }
-function _tutorMaxMath(tutor) {
-  return Math.max(0, ...[...(tutor.subjects_can_teach||[]),...(tutor.ap_scores||[]).map(a=>a.course)].map(c=>_mathLevel(c)));
+
+/* Return the highest level a tutor has in a given category (from subjects + AP scores) */
+function _tutorMaxInCat(tutor, cat) {
+  const all = [...(tutor.subjects_can_teach||[]), ...(tutor.ap_scores||[]).map(a=>a.course)];
+  return Math.max(0, ...all.map(c => _subjectLv(c, cat)));
 }
+
+/* Core matching: can this tutor teach the requested subject? */
 function _tutorCanTeach(tutor, req) {
   const r = (req||'').toLowerCase().trim();
-  const all = [...(tutor.subjects_can_teach||[]),...(tutor.ap_scores||[]).map(a=>a.course)].map(s=>s.toLowerCase());
-  // Direct keyword match
+  const all = [...(tutor.subjects_can_teach||[]), ...(tutor.ap_scores||[]).map(a=>a.course)].map(s=>s.toLowerCase());
+
+  // 1. Direct keyword match (explicit subjects listed by tutor)
   if (all.some(s => s.includes(r) || r.includes(s))) return true;
-  // Math hierarchy: if tutor's max level >= requested level, they can teach it
-  const reqLv = _mathLevel(r);
-  if (reqLv > 0 && _tutorMaxMath(tutor) >= reqLv) return true;
+
+  // 2. Hierarchy match — find the category + level of the requested subject,
+  //    then check if the tutor's max level in that category covers it
+  const cat = _subjectCat(r);
+  if (cat) {
+    const reqLv = _subjectLv(r, cat);
+    if (reqLv > 0 && _tutorMaxInCat(tutor, cat) >= reqLv) return true;
+  }
+
+  // 3. Test-prep subjects (SAT / ACT / HiSET / GED) need strong math + English
+  if (/\b(sat|act|hiset|ged|psat)\b/.test(r)) {
+    const mathLv = _tutorMaxInCat(tutor, 'math');
+    const engLv  = _tutorMaxInCat(tutor, 'english');
+    if (mathLv >= 5 || engLv >= 2) return true; // Algebra 2 OR basic English
+  }
+
   return false;
 }
 
