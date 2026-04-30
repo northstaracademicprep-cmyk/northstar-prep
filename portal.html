@@ -4373,15 +4373,29 @@ function _showPvLoading(bank) {
     </div>`;
 }
 
-/* ── Question tracking — never show the same question twice ── */
+/* ══════════════════════════════════════════════════════════════════
+   QUESTION BANK ENGINE
+   - Tracks every question a student has seen (per-student, per-section)
+   - Saves every AI-generated question permanently so the bank grows
+   - Pool = static questions + every AI question ever generated for that topic
+   - Result: bank starts at ~15, grows by 10 every session, never repeats
+   ══════════════════════════════════════════════════════════════════ */
+
 function _pvSeenKey(bankKey) {
   const sid = currentStudent?.studentId || 'guest';
   return `pv_seen_${sid}_${bankKey}`;
 }
+function _pvAIBankKey(bankKey) {
+  return `pv_aibank_${bankKey}`; // shared across students — all AI Qs benefit everyone
+}
+
+/* Get IDs of questions this student has already seen */
 function _getSeenIds(bankKey) {
   try { return new Set(JSON.parse(localStorage.getItem(_pvSeenKey(bankKey)) || '[]')); }
   catch { return new Set(); }
 }
+
+/* Mark a set of questions as seen for the current student */
 function _markSeen(bankKey, questions) {
   try {
     const seen = _getSeenIds(bankKey);
@@ -4389,21 +4403,52 @@ function _markSeen(bankKey, questions) {
     localStorage.setItem(_pvSeenKey(bankKey), JSON.stringify([...seen]));
   } catch {}
 }
-function _getUnseenPool(bank, extraPool) {
-  // Build full pool = static bank questions + any extra (procedural) questions
-  const all = [...(bank.questions || []), ...(extraPool || [])];
-  if (!all.length) return [];
-  const seen = _getSeenIds(bank.key);
-  const unseen = all.filter(q => !seen.has(q.id));
-  // If fewer unseen than needed, reset tracking and start fresh
-  if (unseen.length < QUESTIONS_PER_SESSION) {
-    try { localStorage.removeItem(_pvSeenKey(bank.key)); } catch {}
-    return [...all]; // start fresh — full pool, nothing filtered
-  }
-  return unseen;
+
+/* Permanently save AI-generated questions into the growing local bank */
+function _saveAIToBank(bankKey, questions) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(_pvAIBankKey(bankKey)) || '[]');
+    const existingIds = new Set(existing.map(q => q.id));
+    const newOnes = questions.filter(q => q.id && !existingIds.has(q.id));
+    if (newOnes.length) {
+      localStorage.setItem(_pvAIBankKey(bankKey), JSON.stringify([...existing, ...newOnes]));
+    }
+  } catch {}
 }
 
-/* ── Main practice launcher — AI first, static fallback with no-repeat tracking ── */
+/* Get the full pool: static + saved AI questions, filtered to unseen */
+function _getUnseenPool(bank, extraPool) {
+  // Start with static bank + any procedurally generated extras
+  const all = [...(bank.questions || []), ...(extraPool || [])];
+
+  // Add every AI question ever saved for this topic (the growing bank)
+  try {
+    const aiSaved = JSON.parse(localStorage.getItem(_pvAIBankKey(bank.key)) || '[]');
+    const staticIds = new Set(all.map(q => q.id));
+    aiSaved.forEach(q => { if (q.id && !staticIds.has(q.id)) all.push(q); });
+  } catch {}
+
+  if (!all.length) return { pool: [], total: 0, reset: false };
+
+  const seen = _getSeenIds(bank.key);
+  const unseen = all.filter(q => !seen.has(q.id));
+
+  // Pool exhausted — reset seen tracker, go again from the full bank
+  if (unseen.length < QUESTIONS_PER_SESSION) {
+    try { localStorage.removeItem(_pvSeenKey(bank.key)); } catch {}
+    return { pool: [...all].sort(() => Math.random() - 0.5), total: all.length, reset: true };
+  }
+
+  return { pool: unseen.sort(() => Math.random() - 0.5), total: all.length, reset: false };
+}
+
+/* How many AI questions have been saved for a section */
+function _aiCacheSize(bankKey) {
+  try { return JSON.parse(localStorage.getItem(_pvAIBankKey(bankKey)) || '[]').length; }
+  catch { return 0; }
+}
+
+/* ── Main practice launcher ── */
 async function startPractice(key) {
   const bank = findBankSection(key);
   if (!bank) return;
@@ -4416,31 +4461,47 @@ async function startPractice(key) {
     const studentId = currentStudent?.studentId;
     const weakAreas = studentId ? await _getStudentWeakAreas(studentId) : { weakSections: [], weakHW: [] };
     const aiQuestions = await generateAIQuestions(key, bank.label, subjectLabel, weakAreas);
-    // AI questions are always fresh — mark them seen so if AI fails next time
-    // we don't accidentally serve the same static questions as "new"
+
+    // Save AI questions permanently to the growing bank
+    _saveAIToBank(key, aiQuestions);
     _markSeen(key, aiQuestions);
-    pvState = { bankKey: key, questions: aiQuestions, current: 0, answers: {}, locked: false, aiGenerated: true };
+
+    const totalInBank = (bank.questions?.length || 0) + _aiCacheSize(key);
+    pvState = {
+      bankKey: key,
+      questions: aiQuestions,
+      current: 0, answers: {}, locked: false,
+      aiGenerated: true,
+      bankSize: totalInBank
+    };
     renderPvQuestion();
   } catch(err) {
-    console.warn('AI generation failed, using tracked static bank:', err.message);
+    console.warn('AI generation failed, using growing static bank:', err.message);
     const generated = generateMathPool(key);
-    const pool = _getUnseenPool(bank, generated);
+    const { pool, total, reset } = _getUnseenPool(bank, generated);
+
     if (!pool.length) {
       document.getElementById('pvContent').innerHTML = `
         <div class="card"><div class="card-body" style="text-align:center;padding:3rem 1rem">
           <div style="font-size:2rem;margin-bottom:1rem">⚠️</div>
-          <div style="font-weight:700;color:#0f2044;margin-bottom:.5rem">Couldn't load questions</div>
-          <div style="font-size:.85rem;color:#64748b;margin-bottom:1.5rem">No questions available for this section right now.</div>
+          <div style="font-weight:700;color:#0f2044;margin-bottom:.5rem">No questions available</div>
+          <div style="font-size:.85rem;color:#64748b;margin-bottom:1.5rem">Check your internet connection and try again — AI questions will load shortly.</div>
           <button class="btn btn-primary" onclick="startPractice('${key}')">Try Again</button>
           <button class="btn btn-outline-secondary ms-2" onclick="buildPracticeVault()">← Back</button>
         </div></div>`;
       return;
     }
-    // Shuffle, pick session, mark them seen
-    const shuffled = pool.sort(() => Math.random() - 0.5);
-    const session = shuffled.slice(0, QUESTIONS_PER_SESSION);
+
+    const session = pool.slice(0, QUESTIONS_PER_SESSION);
     _markSeen(key, session);
-    pvState = { bankKey: key, questions: session, current: 0, answers: {}, locked: false, aiGenerated: false };
+    pvState = {
+      bankKey: key,
+      questions: session,
+      current: 0, answers: {}, locked: false,
+      aiGenerated: false,
+      bankSize: total,
+      poolReset: reset
+    };
     renderPvQuestion();
   }
 }
@@ -4463,8 +4524,8 @@ function renderPvQuestion() {
         </div>
         <div class="pv-quiz-progress-bar"><div class="pv-quiz-progress-fill" style="width:${pct}%"></div></div>
         ${pvState.aiGenerated
-          ? `<div class="pv-ai-badge">✨ AI-Personalized · Fresh every session</div>`
-          : `<div class="pv-ai-badge" style="color:#92400e;background:#fef3c7">📚 Practice Mode · ${pvState.questions.length} questions shuffled</div>`
+          ? `<div class="pv-ai-badge">✨ AI-Personalized · ${pvState.bankSize || '?'}+ questions in your bank · grows every session</div>`
+          : `<div class="pv-ai-badge" style="color:#92400e;background:#fef3c7">📚 ${pvState.bankSize || pvState.questions.length} questions in bank${pvState.poolReset ? ' · bank reset, starting fresh' : ''}</div>`
         }
         <div class="pv-q-num">Question ${current+1} of ${total}</div>
         ${q.stimulus ? `<div class="pv-stimulus">${q.stimulus}</div>` : ''}
