@@ -1464,7 +1464,7 @@ function bootPortal() {
   const initials = (s.name||'Student').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('sidebarInitials').textContent = initials;
   document.getElementById('sidebarName').textContent = s.name||'Student';
-  document.getElementById('sidebarTag').textContent = s.grade + (s.subjects.length ? ' · ' + s.subjects.join(', ') : '');
+  document.getElementById('sidebarTag').textContent = s.grade + ((s.subjects||[]).length ? ' · ' + (s.subjects||[]).join(', ') : '');
   buildNav();
   buildDashboard();
   if (s.portalType === 'ap-prep') { buildProgressPage(); buildAssignments(); }
@@ -4781,7 +4781,7 @@ function generateAPUSHRecommendations(graded, pvByPeriod, pvTotal, subject) {
   const okPeriods   = APUSH_BANK.filter(b => pvByPeriod[b.key] && pvByPeriod[b.key].best >= 70);
 
   if (weakPeriods.length) {
-    const names = weakPeriods.map(b=>`Period ${b.period} (${b.label.split('(')[1]?.replace(')','') || b.label})`).join(', ');
+    const names = weakPeriods.map(b=>`Period ${b.period} (${(b.label||'').split('(')[1]?.replace(')','') || b.label||''})`).join(', ');
     recs.push({
       icon:'🔴', bg:'#fef2f2', border:'#fecaca',
       title:`Priority Review: ${weakPeriods.map(b=>'Period '+b.period).join(', ')}`,
@@ -4834,7 +4834,7 @@ function generateAPUSHRecommendations(graded, pvByPeriod, pvTotal, subject) {
       recs.push({
         icon:'⚡', bg:'#fffbeb', border:'#fde68a',
         title:`High-Yield Untouched Periods: ${urgentPeriods.map(b=>'P'+b.period).join(', ')}`,
-        body:`Periods ${urgentPeriods.map(b=>b.period).join(', ')} (${urgentPeriods.map(b=>b.label.split('(')[1]?.replace(')','')?.trim()).join('; ')}) are heavily tested on the AP exam and haven\'t been practiced yet. These typically account for 40–45% of the MCQ section. Prioritize these in the Practice Vault and in session.`
+        body:`Periods ${urgentPeriods.map(b=>b.period).join(', ')} (${urgentPeriods.map(b=>(b.label||'').split('(')[1]?.replace(')','')?.trim()||b.label||'').join('; ')}) are heavily tested on the AP exam and haven\'t been practiced yet. These typically account for 40–45% of the MCQ section. Prioritize these in the Practice Vault and in session.`
       });
     }
   }
@@ -5469,7 +5469,7 @@ async function buildAdminTutors() {
         const approved  = sessions.filter(s=>s.approved);
         const pending   = sessions.filter(s=>!s.approved);
         const totalHrs  = approved.reduce((sum,s)=>sum+(s.duration_hours||0),0);
-        const initials  = t.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const initials  = (t.name||'Tutor').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
         const subjects  = (t.subjects_can_teach||[]).slice(0,3).join(', ') || 'No subjects listed';
         return `<div class="adm-card">
           <div class="adm-card-top">
@@ -5481,7 +5481,7 @@ async function buildAdminTutors() {
                 ${t.hourly_rate?`<span style="color:#64748b;font-size:.78rem">$${t.hourly_rate}/hr</span>`:''}
               </div>
             </div>
-            <button onclick="if(confirm('Remove ${t.name.replace(/'/g,"\\'")} from the platform?')) deleteTutor('${t.id}')"
+            <button onclick="if(confirm('Remove ${(t.name||'Tutor').replace(/'/g,"\\'")} from the platform?')) deleteTutor('${t.id}')"
               style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:.8rem;padding:.25rem .4rem;border-radius:5px;transition:color .15s;flex-shrink:0"
               onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'" title="Remove tutor">✕</button>
           </div>
@@ -5739,7 +5739,7 @@ async function buildAdminTutorMgmt() {
     <div class="adm-section-header">${tutors.length} tutor${tutors.length!==1?'s':''} — click to edit profile</div>
     <div class="adm-list">
       ${tutors.map(t => {
-        const initials = t.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const initials = (t.name||'Tutor').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
         const avail = (t.availability_days||[]).join(', ')||'Not set';
         const subjects = (t.subjects_can_teach||[]).join(', ')||'Not set';
         return `<div class="adm-card" id="tmgmt-${t.id}">
