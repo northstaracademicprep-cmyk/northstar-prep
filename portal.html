@@ -4043,6 +4043,8 @@ let pvState = { bankKey: null, questions: [], current: 0, answers: {}, locked: f
 function buildPracticeVault() {
   const container = document.getElementById('pvContent');
   if (!container) return;
+  // Check if admin has issued a reset since last login — clears seen-question cache if so
+  _checkPracticeReset();
   const result = getPracticeBank(currentStudent?.subjects);
   if (!result) {
     const subj = (currentStudent?.subjects||[])[0] || 'your subject';
@@ -4482,6 +4484,30 @@ function _shuffleChoices(questions) {
 function _pvSeenKey(bankKey) {
   const sid = currentStudent?.studentId || 'guest';
   return `pv_seen_${sid}_${bankKey}`;
+}
+
+/* Called once when student opens the Practice Vault tab — checks if admin
+   issued a reset since the student last acknowledged one, and if so wipes
+   all local seen-question tracking so they get a truly fresh start */
+async function _checkPracticeReset() {
+  const sid = currentStudent?.studentId;
+  if (!sid) return;
+  const ackKey = `pv_reset_ack_${sid}`;
+  try {
+    const { data } = await db.from('students').select('practice_reset_at').eq('id', sid).single();
+    const resetAt = data?.practice_reset_at;
+    if (!resetAt) return;
+    const lastAck = localStorage.getItem(ackKey) || '1970-01-01';
+    if (new Date(resetAt) > new Date(lastAck)) {
+      // Admin issued a reset — wipe all seen-question keys for this student
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('pv_seen_' + sid))
+        .forEach(k => localStorage.removeItem(k));
+      // Acknowledge so we don't wipe again next time
+      localStorage.setItem(ackKey, new Date().toISOString());
+      console.log('Practice vault reset acknowledged — seen-question cache cleared.');
+    }
+  } catch(e) { /* silent — don't block the vault */ }
 }
 function _pvAIBankKey(bankKey) {
   return `pv_aibank_${bankKey}`; // shared across students — all AI Qs benefit everyone
@@ -7217,10 +7243,22 @@ async function saveAdminEditStudent() {
   buildAdminStudents();
 }
 async function adminResetPractice(studentId, name) {
-  if (!confirm(`Reset all practice vault scores for ${name}? This cannot be undone.`)) return;
+  if (!confirm(`Reset ALL practice vault data for ${name}?\n\nThis will:\n• Clear all practice scores\n• Reset seen-question tracking (fresh questions again)\n\nThis cannot be undone.`)) return;
+
+  // 1. Delete practice_attempts from Supabase
   const { error } = await db.from('practice_attempts').delete().eq('student_id', studentId);
-  if (error) { showToast('Error: '+error.message,'error'); return; }
-  showToast(`Practice scores reset for ${name}. ✅`,'success');
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+
+  // 2. Write a reset timestamp into the student record so ANY device
+  //    the student logs in on will clear their local seen-question cache
+  await db.from('students').update({ practice_reset_at: new Date().toISOString() }).eq('id', studentId);
+
+  // 3. Also wipe localStorage on THIS device immediately (if admin is testing on same browser)
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('pv_seen_' + studentId))
+    .forEach(k => localStorage.removeItem(k));
+
+  showToast(`✅ Full practice reset for ${name} — scores cleared, questions fresh!`, 'success');
 }
 async function adminResetHours(studentId, name) {
   if (!confirm(`Reset hours used to 0 for ${name}?`)) return;
