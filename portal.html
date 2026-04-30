@@ -2335,6 +2335,15 @@ const APCALC_BANK = [
       { id:'cl1', q:'What is lim(x→2) of (x² - 4)/(x - 2)?', choices:{A:'0',B:'2',C:'4',D:'undefined'}, answer:'C', explanation:'Factor: (x²-4)/(x-2) = (x+2)(x-2)/(x-2) = x+2. As x→2, this equals 4.' },
       { id:'cl2', q:'A function f is continuous at x = a if:', choices:{A:'f(a) is defined only',B:'lim(x→a) f(x) exists only',C:'f(a) is defined, the limit exists, and they are equal',D:'f(a) = 0'}, answer:'C', explanation:'Continuity requires three conditions: f(a) exists, the limit as x→a exists, and both values are equal.' },
       { id:'cl3', q:'lim(x→∞) of (3x² + 2)/(x² - 5) equals:', choices:{A:'0',B:'1',C:'3',D:'∞'}, answer:'C', explanation:'Divide numerator and denominator by x²: (3 + 2/x²)/(1 - 5/x²). As x→∞, the small terms vanish, giving 3/1 = 3.' },
+      { id:'cl4', q:'lim(x→0) of sin(x)/x equals:', choices:{A:'0',B:'∞',C:'1',D:'undefined'}, answer:'C', explanation:'This is a fundamental trigonometric limit. lim(x→0) sin(x)/x = 1, proven using the squeeze theorem.' },
+      { id:'cl5', q:'Which condition causes a function to have a jump discontinuity at x = c?', choices:{A:'f(c) is undefined',B:'The left-hand and right-hand limits exist but are not equal',C:'The limit equals infinity',D:'f(c) exists but lim f(x) does not'}, answer:'B', explanation:'A jump discontinuity occurs when the one-sided limits exist but differ, so the two-sided limit does not exist.' },
+      { id:'cl6', q:'lim(x→3) of (x² - 9)/(x - 3) equals:', choices:{A:'0',B:'3',C:'6',D:'9'}, answer:'C', explanation:'Factor: (x²-9) = (x-3)(x+3). Cancel (x-3): limit becomes lim(x→3)(x+3) = 6.' },
+      { id:'cl7', q:'The Intermediate Value Theorem guarantees that a continuous function on [a,b] must:', choices:{A:'Have a maximum value',B:'Have a derivative at every point',C:'Take every value between f(a) and f(b)',D:'Be differentiable at x = a'}, answer:'C', explanation:'IVT states that if f is continuous on [a,b], it takes every value between f(a) and f(b) at some point in (a,b).' },
+      { id:'cl8', q:'lim(x→∞) of (5x³ - 2x)/(2x³ + x²) equals:', choices:{A:'0',B:'5/2',C:'5',D:'∞'}, answer:'B', explanation:'Divide by x³: (5 - 2/x²)/(2 + 1/x). As x→∞, fractional terms vanish: 5/2.' },
+      { id:'cl9', q:'A function has a removable discontinuity at x = c when:', choices:{A:'f(c) is undefined and the limit does not exist',B:'The limit exists but f(c) is either undefined or does not equal the limit',C:'f(c) is defined but equals zero',D:'The function is not differentiable at c'}, answer:'B', explanation:'A removable discontinuity (hole) occurs when the limit exists but f(c) is undefined or mismatched — the hole can be "filled."' },
+      { id:'cl10', q:'Using L\'Hôpital\'s Rule, lim(x→0) of (e^x - 1)/x equals:', choices:{A:'0',B:'e',C:'1',D:'∞'}, answer:'C', explanation:'Both numerator and denominator → 0 (0/0 form). Differentiate top and bottom: e^x / 1. At x=0: e⁰ = 1.' },
+      { id:'cl11', q:'lim(x→2⁺) of 1/(x-2) equals:', choices:{A:'0',B:'-∞',C:'+∞',D:'1/2'}, answer:'C', explanation:'As x approaches 2 from the right, (x-2) is a small positive number, so 1/(x-2) → +∞.' },
+      { id:'cl12', q:'The Squeeze Theorem says if g(x) ≤ f(x) ≤ h(x) near a, and lim g(x) = lim h(x) = L, then:', choices:{A:'f(x) = L for all x',B:'lim f(x) = L',C:'f is continuous at a',D:'f(a) = L'}, answer:'B', explanation:'The Squeeze Theorem forces lim f(x) = L because f is sandwiched between two functions with the same limit.' },
     ]
   },
   { key:'calc-derivatives', label:'Derivatives', icon:'📈', color:'#065f46', bg:'#ecfdf5',
@@ -2343,6 +2352,17 @@ const APCALC_BANK = [
       { id:'cd2', q:'What does the derivative of a function represent geometrically?', choices:{A:'The area under the curve',B:'The slope of the tangent line at a point',C:'The maximum value of the function',D:'The y-intercept'}, answer:'B', explanation:'The derivative f\'(x) gives the instantaneous rate of change, which geometrically represents the slope of the tangent line.' },
       { id:'cd3', q:'Using the chain rule, the derivative of f(x) = (2x + 1)⁴ is:', choices:{A:'4(2x+1)³',B:'8(2x+1)³',C:'4(2x+1)⁴',D:'(2x+1)⁴'}, answer:'B', explanation:'Chain rule: d/dx[(2x+1)⁴] = 4(2x+1)³ · d/dx(2x+1) = 4(2x+1)³ · 2 = 8(2x+1)³.' },
       { id:'cd4', q:'If f\'(x) > 0 on an interval, then f is:', choices:{A:'Concave up',B:'Decreasing',C:'Increasing',D:'At a maximum'}, answer:'C', explanation:'A positive first derivative means the function is increasing on that interval.' },
+      { id:'cd5', q:'The product rule states that (fg)\' equals:', choices:{A:'f\'g\'',B:'f\'g + fg\'',C:'f\'g - fg\'',D:'(f/g)\''}, answer:'B', explanation:'Product rule: d/dx[f(x)g(x)] = f\'(x)g(x) + f(x)g\'(x). Differentiate each factor and sum with the other factor.' },
+      { id:'cd6', q:'The derivative of sin(x) is:', choices:{A:'-sin(x)',B:'cos(x)',C:'-cos(x)',D:'tan(x)'}, answer:'B', explanation:'d/dx[sin(x)] = cos(x). This is a fundamental derivative to memorize for AP Calculus.' },
+      { id:'cd7', q:'A particle\'s position is s(t) = t³ - 6t² + 9t. At what time is the particle at rest?', choices:{A:'t = 1 only',B:'t = 3 only',C:'t = 1 and t = 3',D:'t = 2'}, answer:'C', explanation:'The particle is at rest when v(t) = s\'(t) = 3t² - 12t + 9 = 0 → 3(t-1)(t-3) = 0 → t = 1 or t = 3.' },
+      { id:'cd8', q:'d/dx[ln(x)] equals:', choices:{A:'e^x',B:'1/x',C:'ln(x+1)',D:'x·ln(x)'}, answer:'B', explanation:'The derivative of the natural log: d/dx[ln(x)] = 1/x for x > 0.' },
+      { id:'cd9', q:'If f(x) = x²·sin(x), what is f\'(x)?', choices:{A:'2x·cos(x)',B:'x²·cos(x) + 2x·sin(x)',C:'2x·sin(x)',D:'x²·cos(x)'}, answer:'B', explanation:'Product rule: f\'(x) = (x²)\'·sin(x) + x²·(sin(x))\' = 2x·sin(x) + x²·cos(x).' },
+      { id:'cd10', q:'The Mean Value Theorem guarantees that if f is continuous on [a,b] and differentiable on (a,b), then there exists c in (a,b) where:', choices:{A:'f\'(c) = 0',B:'f\'(c) = f(b) - f(a)',C:'f\'(c) = [f(b) - f(a)]/(b - a)',D:'f(c) = 0'}, answer:'C', explanation:'The MVT states there is at least one c where the instantaneous rate equals the average rate of change over [a,b].' },
+      { id:'cd11', q:'If f\'\'(x) > 0 on an interval, the function is:', choices:{A:'Decreasing',B:'Increasing',C:'Concave down',D:'Concave up'}, answer:'D', explanation:'A positive second derivative means the slope is increasing — the function is concave up (cup-shaped).' },
+      { id:'cd12', q:'To find the derivative of y = e^(3x) using the chain rule:', choices:{A:'e^(3x)',B:'3e^(3x)',C:'e^(3x-1)',D:'3xe^(3x)'}, answer:'B', explanation:'Chain rule: d/dx[e^u] = e^u · u\'. Here u = 3x, u\' = 3, so derivative = 3e^(3x).' },
+      { id:'cd13', q:'A critical point of f occurs where:', choices:{A:'f(x) = 0',B:'f\'(x) = 0 or f\'(x) is undefined',C:'f\'\'(x) = 0',D:'f is not continuous'}, answer:'B', explanation:'Critical points are where the derivative equals zero or is undefined — these are candidates for local maxima, minima, or saddle points.' },
+      { id:'cd14', q:'The quotient rule: d/dx[f(x)/g(x)] equals:', choices:{A:'f\'(x)/g\'(x)',B:'[f\'g - fg\']/g²',C:'[f\'g + fg\']/g²',D:'f\'/g - fg\'/g'}, answer:'B', explanation:'Quotient rule: (f/g)\' = [f\'g - fg\']/g². Remember "low d-high minus high d-low, over low squared."' },
+      { id:'cd15', q:'Using implicit differentiation, if x² + y² = 25, then dy/dx equals:', choices:{A:'x/y',B:'-y/x',C:'-x/y',D:'y/x'}, answer:'C', explanation:'Differentiate both sides: 2x + 2y(dy/dx) = 0. Solve: dy/dx = -2x/(2y) = -x/y.' },
     ]
   },
   { key:'calc-integrals', label:'Integrals', icon:'∫', color:'#7c3aed', bg:'#f5f3ff',
@@ -2350,6 +2370,15 @@ const APCALC_BANK = [
       { id:'ci1', q:'∫x² dx equals:', choices:{A:'2x',B:'x³',C:'x³/3 + C',D:'3x³ + C'}, answer:'C', explanation:'Power rule for integration: ∫xⁿ dx = xⁿ⁺¹/(n+1) + C. So ∫x² dx = x³/3 + C.' },
       { id:'ci2', q:'The Fundamental Theorem of Calculus connects:', choices:{A:'Limits and derivatives',B:'Derivatives and integrals',C:'Integrals and sequences',D:'Limits and series'}, answer:'B', explanation:'The FTC shows that differentiation and integration are inverse operations, and allows evaluation of definite integrals using antiderivatives.' },
       { id:'ci3', q:'∫₀² 3x dx equals:', choices:{A:'3',B:'6',C:'9',D:'12'}, answer:'B', explanation:'∫3x dx = 3x²/2. Evaluate from 0 to 2: 3(4)/2 - 0 = 6.' },
+      { id:'ci4', q:'∫cos(x) dx equals:', choices:{A:'-sin(x) + C',B:'sin(x) + C',C:'-cos(x) + C',D:'tan(x) + C'}, answer:'B', explanation:'The antiderivative of cos(x) is sin(x) + C, since d/dx[sin(x)] = cos(x).' },
+      { id:'ci5', q:'To evaluate ∫2x(x²+1)⁵ dx, the best method is:', choices:{A:'Integration by parts',B:'Partial fractions',C:'u-substitution with u = x²+1',D:'Trig substitution'}, answer:'C', explanation:'Let u = x²+1, then du = 2x dx. The integral becomes ∫u⁵ du = u⁶/6 + C = (x²+1)⁶/6 + C.' },
+      { id:'ci6', q:'A definite integral ∫ₐᵇ f(x) dx represents:', choices:{A:'The slope of f at x = a',B:'The net signed area between f(x) and the x-axis from a to b',C:'The maximum value of f on [a,b]',D:'f(b) - f(a)'}, answer:'B', explanation:'A definite integral measures net signed area — regions above the x-axis contribute positively, below negatively.' },
+      { id:'ci7', q:'∫eˣ dx equals:', choices:{A:'xeˣ + C',B:'eˣ + C',C:'eˣ/x + C',D:'e^(x+1) + C'}, answer:'B', explanation:'The exponential function is its own antiderivative: ∫eˣ dx = eˣ + C.' },
+      { id:'ci8', q:'Using FTC Part 2, ∫₁⁴ (1/x) dx equals:', choices:{A:'ln(3)',B:'ln(4)',C:'1/4 - 1',D:'4'}, answer:'B', explanation:'∫(1/x) dx = ln|x|. Evaluate from 1 to 4: ln(4) - ln(1) = ln(4) - 0 = ln(4).' },
+      { id:'ci9', q:'The average value of f(x) on [a,b] is:', choices:{A:'f(a) + f(b)',B:'[f(a) + f(b)]/2',C:'(1/(b-a))∫ₐᵇ f(x) dx',D:'∫ₐᵇ f(x) dx'}, answer:'C', explanation:'The average value formula is (1/(b-a))∫ₐᵇ f(x) dx — divide the area by the width of the interval.' },
+      { id:'ci10', q:'∫₀^π sin(x) dx equals:', choices:{A:'0',B:'1',C:'2',D:'π'}, answer:'C', explanation:'∫sin(x) dx = -cos(x). Evaluate: -cos(π) - (-cos(0)) = -(-1) - (-1) = 1 + 1 = 2.' },
+      { id:'ci11', q:'What is the antiderivative of 1/x²?', choices:{A:'ln|x| + C',B:'-1/x + C',C:'2/x³ + C',D:'-2x⁻³ + C'}, answer:'B', explanation:'Write as x⁻². Power rule: ∫x⁻² dx = x⁻¹/(-1) + C = -1/x + C.' },
+      { id:'ci12', q:'The area between f(x) = x² and g(x) = x on [0,1] is:', choices:{A:'1/6',B:'1/3',C:'1/2',D:'1'}, answer:'A', explanation:'Area = ∫₀¹ (x - x²) dx = [x²/2 - x³/3]₀¹ = 1/2 - 1/3 = 3/6 - 2/6 = 1/6.' },
     ]
   },
 ];
@@ -4072,10 +4101,14 @@ async function generateAIQuestions(bankKey, sectionLabel, subjectLabel, weakArea
   // Pull the detailed curriculum topics for this exact section
   const curriculumTopics = CURRICULUM_MAP[bankKey] || sectionLabel;
 
+  // Random seed forces Gemini to generate a genuinely different set every session
+  const sessionSeed = Math.random().toString(36).substr(2, 8);
+
   const prompt = `You are an expert ${subjectLabel} tutor generating rigorous practice questions for a high school student.
 
 Subject: ${subjectLabel}
 Section: ${sectionLabel}
+Session ID: ${sessionSeed} (use this to ensure your questions are unique and different from any previous session)
 
 Curriculum topics to draw from (you MUST cover these specific concepts — do NOT generate generic or off-topic questions):
 ${curriculumTopics}
@@ -4084,17 +4117,18 @@ ${focusHint ? `This student has recently struggled with: ${focusHint}. Weight ex
 
 Generate exactly ${QUESTIONS_PER_SESSION} multiple-choice questions.
 STRICT REQUIREMENTS:
-- Every question must test one of the specific curriculum topics listed above
+- Every question must test one of the specific curriculum topics listed above — VARY which topics you pick each session
 - Questions must be at the correct course level (${subjectLabel}) — not too easy, not from a different subject
 - Each question has exactly 4 answer choices labeled A, B, C, D
 - Exactly one correct answer per question
-- Distractors (wrong answers) must be plausible, not obviously wrong
+- Distractors (wrong answers) must be plausible and reflect common misconceptions — not obviously wrong
 - Include a clear, specific explanation for why the correct answer is right
-- Vary difficulty: roughly 3 easier, 4 medium, 3 challenging
-- For math/science: include numeric or symbolic problems, not just definitions
-- For history/English: include analysis and application, not just recall
+- Vary difficulty: roughly 3 easier conceptual, 4 medium procedural, 3 challenging application
+- For math/science: include numeric computation, symbolic manipulation, AND word problems — rotate types
+- For history/English: mix document analysis, causation, comparison, and continuity/change questions
+- Do NOT repeat question stems or scenarios from a typical textbook — be creative with contexts
 
-Return ONLY a valid JSON array — no markdown fences, no extra text, no commentary:
+Return ONLY a valid JSON array — no markdown fences, no extra text, no commentary before or after the array:
 [{"q":"question text","choices":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A","explanation":"..."}]`;
 
   const res = await fetch(GEMINI_URL, {
@@ -4198,7 +4232,10 @@ function renderPvQuestion() {
           <button class="pv-quiz-back" onclick="buildPracticeVault()">← Back to Topics</button>
         </div>
         <div class="pv-quiz-progress-bar"><div class="pv-quiz-progress-fill" style="width:${pct}%"></div></div>
-        ${pvState.aiGenerated ? `<div class="pv-ai-badge">✨ AI-Personalized</div>` : ''}
+        ${pvState.aiGenerated
+          ? `<div class="pv-ai-badge">✨ AI-Personalized · Fresh every session</div>`
+          : `<div class="pv-ai-badge" style="color:#92400e;background:#fef3c7">📚 Practice Mode · ${pvState.questions.length} questions shuffled</div>`
+        }
         <div class="pv-q-num">Question ${current+1} of ${total}</div>
         ${q.stimulus ? `<div class="pv-stimulus">${q.stimulus}</div>` : ''}
         ${q.attribution ? `<div class="pv-attribution">${q.attribution}</div>` : ''}
