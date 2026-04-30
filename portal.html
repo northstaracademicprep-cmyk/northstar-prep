@@ -1289,7 +1289,7 @@ async function loadFromSupabase(code) {
 
     return {
       portalType: student.program_type || 'ap-prep',
-      name: student.name,
+      name: student.name || 'Student',
       grade: student.grade || '',
       subjects: student.subjects || [],
       target: (student.subjects || []).join(', ') + (examDateStr ? ' · Exam: ' + examDateStr : ''),
@@ -1461,9 +1461,9 @@ function bootPortal() {
   const s = currentStudent;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display = 'block';
-  const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const initials = (s.name||'Student').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('sidebarInitials').textContent = initials;
-  document.getElementById('sidebarName').textContent = s.name;
+  document.getElementById('sidebarName').textContent = s.name||'Student';
   document.getElementById('sidebarTag').textContent = s.grade + (s.subjects.length ? ' · ' + s.subjects.join(', ') : '');
   buildNav();
   buildDashboard();
@@ -1604,7 +1604,7 @@ function closeSidebar(){document.getElementById('sidebar').classList.remove('ope
 /* ── DASHBOARD ── */
 function buildDashboard() {
   const s = currentStudent;
-  document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + s.name.split(' ')[0] + '! 👋';
+  document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + (s.name||'Student').split(' ')[0] + '! 👋';
   document.getElementById('welcomeSub').textContent = s.portalType === 'college-counseling'
     ? "Here's your college application overview. Every session gets you closer."
     : "Here's your overview for today. Keep pushing — you're making real progress.";
@@ -3948,7 +3948,7 @@ function renderTutorStudentList() {
     <button class="t-student-btn${selectedStudent && selectedStudent.id===s.id?' active':''}" onclick="selectTutorStudent('${s.id}')">
       <div class="t-avatar">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
       <div class="t-student-info">
-        <div class="t-s-name">${s.name}</div>
+        <div class="t-s-name">${s.name||'Student'}</div>
         <div class="t-s-course">${(s.subjects||[''])[0]||s.program_type||'AP Prep'}</div>
       </div>
       <span class="notif-badge" id="tstu-badge-${s.id}"></span>
@@ -3963,13 +3963,15 @@ function renderTutorStudentList() {
         <button class="t-student-btn${selectedStudent && selectedStudent.id===s.id?' active':''}" onclick="selectTutorStudent('${s.id}')" style="opacity:.6">
           <div class="t-avatar" style="background:linear-gradient(135deg,#4b5563,#6b7280)">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
           <div class="t-student-info">
-            <div class="t-s-name">${s.name}</div>
+            <div class="t-s-name">${s.name||'Student'}</div>
             <div class="t-s-course" style="color:rgba(255,255,255,.35)">🎓 Completed</div>
           </div>
         </button>`).join('')}
     </div>` : '';
 
   listEl.innerHTML = activeHTML + completedHTML;
+  // Idempotent — picks up any students added mid-session without re-subscribing existing ones
+  if (tutorStudents.length) _initBgNotifs(tutorStudents.map(s=>s.id), 'tutor');
 }
 
 /* ── ENROLLMENT MODAL ── */
@@ -4086,7 +4088,7 @@ function renderTutorDashboard() {
     <div class="t-students-grid">
       ${tutorStudents.filter(s=>s.status!=='completed').length ? tutorStudents.filter(s=>s.status!=='completed').map((s,i)=>`
         <div class="t-student-card anim-up" style="animation-delay:${i*.08}s" onclick="selectTutorStudent('${s.id}')">
-          <div class="tsc-name">${s.name}</div>
+          <div class="tsc-name">${s.name||'Student'}</div>
           <div class="tsc-course">${(s.subjects||[''])[0]||s.program_type||'AP Prep'} · Exam: ${s.exam_date||'TBD'}</div>
           <div class="tsc-hours">
             <div class="tsc-hour"><div class="tsc-h-label">Purchased</div><div class="tsc-h-val">${s.hours_total||0}h</div></div>
@@ -4105,7 +4107,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
   // If switching to a different student, tear down the old chat channel
   if (switchingStudent) _unsubscribeMessages();
   renderTutorStudentList();
-  document.getElementById('tTopbarTitle').textContent = selectedStudent.name;
+  document.getElementById('tTopbarTitle').textContent = selectedStudent.name||'Student';
   document.getElementById('tContent').innerHTML = `<div style="text-align:center;padding:2rem;color:#64748b">Loading…</div>`;
 
   // Load student data
@@ -4148,7 +4150,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
     <div class="t-student-header anim-up">
       <div class="t-avatar">${initials}</div>
       <div style="flex:1">
-        <div class="tsh-name">${selectedStudent.name}</div>
+        <div class="tsh-name">${selectedStudent.name||'Student'}</div>
         <div class="tsh-meta">${subj} · Grade ${selectedStudent.grade||''}</div>
         ${selectedStudent.code ? `<div style="margin-top:.35rem;display:flex;align-items:center;gap:.4rem">
           <span style="font-family:'Josefin Sans',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.1em;color:#0f2044;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:.15rem .55rem">${selectedStudent.code}</span>
@@ -4439,7 +4441,7 @@ async function assignHomework(studentId, subject) {
       max_score: 100
     });
     if (error) throw error;
-    showToast(`Assignment sent to ${selectedStudent.name}! ✅`,'success');
+    showToast(`Assignment sent to ${selectedStudent.name||'student'}! ✅`,'success');
     document.getElementById('hwTitle').value='';
     document.getElementById('hwDesc').value='';
     document.getElementById('hwDue').value='';
@@ -5100,9 +5102,9 @@ async function buildAdminEnrollments() {
     const safeCode = (r.generated_code||'').replace(/'/g,"\\'");
     return `<div class="adm-card" id="enrcard-${r.id}">
       <div class="adm-card-top">
-        <div class="adm-card-avatar">${r.student_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+        <div class="adm-card-avatar">${(r.student_name||'Student').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
         <div class="adm-card-info">
-          <div class="adm-card-name" id="enr-display-name-${r.id}">${r.student_name}</div>
+          <div class="adm-card-name" id="enr-display-name-${r.id}">${r.student_name||'Student'}</div>
           <div class="adm-card-meta">${subj}${r.grade?' · Grade '+r.grade:''} · ${r.hours_package||10}h package</div>
         </div>
         <div class="adm-card-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">
@@ -5123,7 +5125,7 @@ async function buildAdminEnrollments() {
       <div id="enr-edit-${r.id}" style="display:none;flex-direction:column;gap:.65rem;padding:.85rem;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;margin:.5rem 0">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
           <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Student Name</label>
-            <input id="ee-name-${r.id}" type="text" value="${r.student_name.replace(/"/g,'&quot;')}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
+            <input id="ee-name-${r.id}" type="text" value="${(r.student_name||'').replace(/"/g,'&quot;')}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'"></div>
           <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em">Grade</label>
             <select id="ee-grade-${r.id}" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.85rem;outline:none;background:#fff;cursor:pointer">
               <option value="">—</option>
@@ -5175,7 +5177,7 @@ async function buildAdminEnrollments() {
       ${isPending?`<div class="adm-card-actions">
         <button class="adm-btn adm-btn-approve" onclick="adminApproveEnrollment('${r.id}')">✓ Approve & Activate</button>
         <button class="adm-btn" onclick="adminToggleEditEnrollment('${r.id}')" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0">✏️ Edit</button>
-        <button class="adm-btn adm-btn-reject"  onclick="adminRejectEnrollment('${r.id}','${r.student_name.replace(/'/g,"\\'")}')">✗ Reject</button>
+        <button class="adm-btn adm-btn-reject"  onclick="adminRejectEnrollment('${r.id}','${(r.student_name||'Student').replace(/'/g,"\\'")}')">✗ Reject</button>
       </div>`:''}
     </div>`;
   }
@@ -5199,14 +5201,16 @@ async function adminApproveEnrollment(requestId) {
 
   // 1. Create the student record
   const studentPayload = {
-    name: req.student_name,
+    name: req.student_name || 'Student',
     code: req.generated_code,
     grade: req.grade||null,
     subjects: req.subjects||[],
     exam_date: req.exam_date||null,
     hours_total: req.hours_package||10,
     hours_used: 0,
-    tutor_id: req.tutor_id||null
+    tutor_id: req.tutor_id||null,
+    status: 'active',
+    program_type: req.program_type || 'ap-prep'
   };
   const { data: newStudent, error: se } = await db.from('students').insert(studentPayload).select().maybeSingle();
   if (se) { showToast('Error creating student: '+se.message,'error'); if(card)card.style.opacity='1'; return; }
@@ -5214,7 +5218,10 @@ async function adminApproveEnrollment(requestId) {
   // 2. Mark request as approved
   await db.from('enrollment_requests').update({status:'approved'}).eq('id', requestId);
 
-  showToast(`✅ ${req.student_name} enrolled! Code: ${req.generated_code}`,'success');
+  // 3. Immediately subscribe admin to real-time messages for this new student
+  if (newStudent?.id) _initBgNotifs([newStudent.id], 'admin');
+
+  showToast(`✅ ${req.student_name||'Student'} enrolled! Code: ${req.generated_code}`,'success');
   buildAdminEnrollments();
 }
 
@@ -5287,8 +5294,8 @@ async function buildAdminStudents() {
     const hoursTotal = s.hours_total || 0;
     const pct      = hoursTotal ? Math.min(Math.round((hoursUsed/hoursTotal)*100),100) : 0;
     const hoursLeft= (hoursTotal - hoursUsed).toFixed(1);
-    const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const safeName = s.name.replace(/'/g,"\\'");
+    const initials = (s.name||'Student').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const safeName = (s.name||'Student').replace(/'/g,"\\'");
     return `<div class="adm-student-card" id="admstu-${s.id}" style="${isCompleted?'opacity:.85;border-style:dashed':''}">
       <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1rem">
         <div class="adm-card-avatar" style="width:46px;height:46px;font-size:1rem;${isCompleted?'background:linear-gradient(135deg,#6b7280,#9ca3af)':''}">${initials}</div>
@@ -5556,12 +5563,12 @@ async function buildAdminBilling() {
         const pct   = total ? Math.min(Math.round((used/total)*100),100) : 0;
         const lowBg = parseFloat(left) <= 2 ? '#fef2f2' : parseFloat(left) <= 5 ? '#fffbeb' : '#f0fdf4';
         const lowTxt= parseFloat(left) <= 2 ? '#dc2626' : parseFloat(left) <= 5 ? '#92400e' : '#065f46';
-        const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const initials = (s.name||'Student').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
         return `<div class="adm-card">
           <div class="adm-card-top">
             <div class="adm-card-avatar">${initials}</div>
             <div class="adm-card-info">
-              <div class="adm-card-name">${s.name}</div>
+              <div class="adm-card-name">${s.name||'Student'}</div>
               <div class="adm-card-meta">${(s.subjects||[]).join(', ')||'—'}</div>
             </div>
             <div class="adm-card-right">
@@ -5922,10 +5929,10 @@ async function buildAdminMessages() {
       <div style="width:230px;flex-shrink:0;display:flex;flex-direction:column;gap:.3rem;overflow-y:auto;border-right:1px solid #e5e7eb;background:#fafbfc;padding:1rem .85rem">
         <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem;padding:0 .1rem">Conversations</div>
         ${students.map(s=>`
-          <button id="admMsgBtn-${s.id}" onclick="loadAdminConvo('${s.id}','${s.name.replace(/'/g,"\\'")}')"
+          <button id="admMsgBtn-${s.id}" onclick="loadAdminConvo('${s.id}','${(s.name||'Student').replace(/'/g,"\\'")}')"
             style="text-align:left;padding:.6rem .8rem;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;font-size:.82rem;font-weight:600;color:#0f2044;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:.55rem;width:100%">
             <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0f2044,#2a4a8a);color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(s.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
-            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name||'Student'}</span>
             <span class="notif-badge" id="admstu-badge-${s.id}"></span>
           </button>`).join('')}
       </div>
