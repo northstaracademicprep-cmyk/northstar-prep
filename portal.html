@@ -3856,14 +3856,13 @@ const _MATH_TEMPLATES = [
     return _mkQ(`Split ${total} in ratio ${a}:${b}. Larger share = ?`,Math.max(share,total-share),[Math.max(share,total-share)+a,Math.max(share,total-share)-b,total-Math.min(share,total-share)+1].filter(n=>n!==Math.max(share,total-share)&&n>0),`Total parts=${a+b}. One part=${total}/(${a+b})≈${+(total/(a+b)).toFixed(1)}. Larger=${Math.max(share,total-share)}.`);},
 ];
 
+// Only keys whose procedural templates actually match the subject.
+// Calc, stat, geo, precalc, bio, chem, etc. use their own curated 15-question
+// static pools — adding generic algebra generators would pollute those banks.
 const MATH_BANK_KEYS = new Set([
   'sat-math-nc','sat-math-c','act-math','hiset-math',
-  'calc-limits','calc-derivatives','calc-integrals',
-  'stat-data','stat-probability','stat-inference',
   'alg2-linear','alg2-systems','alg2-quad','alg2-poly','alg2-radical','alg2-explog','alg2-seq','alg2-stats',
   'mf-numbers','mf-fractions','mf-ratios','mf-algebra','mf-stats',
-  'geo-angles','geo-polygons','geo-circles','geo-volume','geo-coordinate',
-  'pc-functions','pc-trig','pc-explog','pc-sequences','pc-conics',
 ]);
 
 function generateMathPool(key, count=18) {
