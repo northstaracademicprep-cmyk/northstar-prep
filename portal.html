@@ -327,6 +327,9 @@
     .pv-period-num{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.2rem}
     .pv-period-name{font-size:.88rem;font-weight:700;color:var(--navy);margin-bottom:.4rem}
     .pv-period-meta{font-size:.75rem;color:var(--muted);margin-bottom:.85rem}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .pv-ai-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.7rem;font-weight:700;color:#7c3aed;background:#ede9fe;border-radius:20px;padding:.2rem .6rem;margin-bottom:.75rem}
+    .pv-adaptive-hint{font-size:.75rem;color:#6d28d9;background:#f5f3ff;border-left:3px solid #7c3aed;padding:.4rem .75rem;border-radius:0 6px 6px 0;margin-bottom:1rem;line-height:1.5}
     .pv-period-footer{display:flex;align-items:center;justify-content:space-between}
     .pv-q-count{font-size:.72rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:var(--off-white);color:var(--muted)}
     .pv-best{font-size:.72rem;font-weight:700;color:var(--green)}
@@ -3878,17 +3881,126 @@ function generateMathPool(key, count=18) {
 }
 
 const QUESTIONS_PER_SESSION = 10;
-function startPractice(key) {
+const GEMINI_KEY = 'AIzaSyCML-LQ1zw4E0Y-3AGWsRvn82vps6P9Vd8';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+/* ── Pull student's weak areas from practice history + homework ── */
+async function _getStudentWeakAreas(studentId) {
+  try {
+    // Recent practice attempt scores per section
+    const { data: attempts } = await db.from('practice_attempts')
+      .select('period_key, score, total')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    const sectionScores = {};
+    (attempts || []).forEach(a => {
+      if (!sectionScores[a.period_key]) sectionScores[a.period_key] = [];
+      sectionScores[a.period_key].push(Math.round((a.score / (a.total || 1)) * 100));
+    });
+    const weakSections = Object.entries(sectionScores)
+      .filter(([, scores]) => (scores.reduce((a,b)=>a+b,0)/scores.length) < 70)
+      .map(([key]) => { const s = findBankSection(key); return s ? s.label : key; });
+
+    // Recent homework grades
+    const { data: hw } = await db.from('homework')
+      .select('title, grade, max_grade')
+      .eq('student_id', studentId)
+      .not('grade', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    const weakHW = (hw || [])
+      .filter(h => h.max_grade && (h.grade / h.max_grade) < 0.70)
+      .map(h => h.title);
+
+    return { weakSections, weakHW };
+  } catch(e) { return { weakSections: [], weakHW: [] }; }
+}
+
+/* ── Call Gemini to generate adaptive questions ── */
+async function generateAIQuestions(bankKey, sectionLabel, subjectLabel, weakAreas) {
+  const { weakSections, weakHW } = weakAreas;
+  const focusHint = [
+    ...weakSections.filter(s => s !== sectionLabel).slice(0, 3),
+    ...weakHW.slice(0, 3)
+  ].join(', ');
+
+  const prompt = `You are an expert tutor generating practice questions for a student.
+
+Subject: ${subjectLabel}
+Topic: ${sectionLabel}
+${focusHint ? `Student has recently struggled with: ${focusHint}. Weight questions toward these concepts where relevant to this topic.` : ''}
+
+Generate exactly ${QUESTIONS_PER_SESSION} multiple choice questions.
+Requirements:
+- Appropriate difficulty for the course level (not too easy, not trick questions)
+- Each question has exactly 4 answer choices labeled A, B, C, D
+- One correct answer per question
+- Clear, concise explanation for the correct answer
+- Vary the difficulty: mix conceptual understanding and application questions
+
+Return ONLY a JSON array with this exact structure, no markdown, no extra text:
+[{"q":"question text","choices":{"A":"option","B":"option","C":"option","D":"option"},"answer":"A","explanation":"why this is correct"}]`;
+
+  const res = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: 'application/json', temperature: 0.8, maxOutputTokens: 4096 }
+    })
+  });
+  if (!res.ok) throw new Error('Gemini API error: ' + res.status);
+  const data = await res.json();
+  const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Empty response');
+  // Add unique IDs
+  return parsed.map((q, i) => ({ ...q, id: `ai-${bankKey}-${Date.now()}-${i}` }));
+}
+
+/* ── Show loading state while Gemini thinks ── */
+function _showPvLoading(bank) {
+  const container = document.getElementById('pvContent');
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:3rem 1rem">
+        <div class="pv-quiz-header" style="margin-bottom:2rem">
+          <div class="pv-quiz-title">${bank.icon} ${bank.label}</div>
+          <button class="pv-quiz-back" onclick="buildPracticeVault()">← Back to Topics</button>
+        </div>
+        <div style="font-size:2.5rem;margin-bottom:1rem;animation:spin 1s linear infinite;display:inline-block">⚙️</div>
+        <div style="font-size:1rem;font-weight:700;color:#0f2044;margin-bottom:.5rem">Generating your personalized questions…</div>
+        <div style="font-size:.85rem;color:#64748b">Analyzing your progress and building a session tailored to your weak spots.</div>
+      </div>
+    </div>`;
+}
+
+/* ── Main practice launcher — AI first, static fallback ── */
+async function startPractice(key) {
   const bank = findBankSection(key);
   if (!bank) return;
-  // For math subjects: generate fresh procedural questions each round
-  // For content subjects: shuffle the fixed bank
-  const generated = generateMathPool(key);
-  const pool = [...bank.questions, ...generated];
-  const shuffled = pool.sort(() => Math.random() - 0.5);
-  const session = shuffled.slice(0, QUESTIONS_PER_SESSION);
-  pvState = { bankKey: key, questions: session, current: 0, answers: {}, locked: false };
-  renderPvQuestion();
+  _showPvLoading(bank);
+
+  const bankResult = getPracticeBank(currentStudent?.subjects);
+  const subjectLabel = bankResult?.label || (currentStudent?.subjects?.[0] || 'this subject');
+
+  try {
+    const studentId = currentStudent?.studentId;
+    const weakAreas = studentId ? await _getStudentWeakAreas(studentId) : { weakSections: [], weakHW: [] };
+    const aiQuestions = await generateAIQuestions(key, bank.label, subjectLabel, weakAreas);
+    pvState = { bankKey: key, questions: aiQuestions, current: 0, answers: {}, locked: false, aiGenerated: true };
+    renderPvQuestion();
+  } catch(err) {
+    console.warn('Gemini generation failed, using static bank:', err.message);
+    // Fallback: static bank + procedural math if applicable
+    const generated = generateMathPool(key);
+    const pool = [...bank.questions, ...generated].sort(() => Math.random() - 0.5);
+    pvState = { bankKey: key, questions: pool.slice(0, QUESTIONS_PER_SESSION), current: 0, answers: {}, locked: false };
+    renderPvQuestion();
+  }
 }
 
 function renderPvQuestion() {
@@ -3908,6 +4020,7 @@ function renderPvQuestion() {
           <button class="pv-quiz-back" onclick="buildPracticeVault()">← Back to Topics</button>
         </div>
         <div class="pv-quiz-progress-bar"><div class="pv-quiz-progress-fill" style="width:${pct}%"></div></div>
+        ${pvState.aiGenerated ? `<div class="pv-ai-badge">✨ AI-Personalized</div>` : ''}
         <div class="pv-q-num">Question ${current+1} of ${total}</div>
         ${q.stimulus ? `<div class="pv-stimulus">${q.stimulus}</div>` : ''}
         ${q.attribution ? `<div class="pv-attribution">${q.attribution}</div>` : ''}
