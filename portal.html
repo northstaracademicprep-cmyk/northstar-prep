@@ -1911,21 +1911,45 @@ function animateAllBars(){document.querySelectorAll('.score-bar').forEach(bar=>{
 ══════════════════════════════════════ */
 /* ── SUBJECT ROUTING ── */
 function getPracticeBank(subjects) {
-  const raw = ((subjects||[])[0]||'').toLowerCase();
-  if (raw.includes('ap us hist')||raw.includes('apush'))         return { bank: APUSH_BANK,   label:'AP US History',        type:'apush' };
-  if (raw.includes('sat'))                                        return { bank: SAT_BANK,     label:'SAT Prep',             type:'sat'   };
-  if (raw.includes('act'))                                        return { bank: ACT_BANK,     label:'ACT Prep',             type:'act'   };
-  if (raw.includes('hiset'))                                      return { bank: HISET_BANK,   label:'HiSET Prep',           type:'hiset' };
-  if (raw.includes('ged'))                                        return { bank: GED_BANK,     label:'GED Prep',             type:'ged'   };
-  if (raw.includes('ap world'))                                   return { bank: APWH_BANK,    label:'AP World History',     type:'apwh'  };
-  if (raw.includes('ap bio'))                                     return { bank: APBIO_BANK,   label:'AP Biology',           type:'apbio' };
-  if (raw.includes('ap chem'))                                    return { bank: APCHEM_BANK,  label:'AP Chemistry',         type:'apchem'};
-  if (raw.includes('ap calc'))                                    return { bank: APCALC_BANK,  label:'AP Calculus',          type:'apcalc'};
-  if (raw.includes('ap stat'))                                    return { bank: APSTAT_BANK,  label:'AP Statistics',        type:'apstat'};
-  if (raw.includes('ap gov'))                                     return { bank: APGOV_BANK,   label:'AP Gov & Politics',    type:'apgov' };
-  if (raw.includes('algebra 2')||raw.includes('algebra ii')||raw.includes('alg 2')||raw.includes('alg2')||raw.includes('algebra2'))
-                                                                  return { bank: ALGEBRA2_BANK,label:'Algebra 2',            type:'alg2'  };
-  return null;
+  // Try each enrolled subject in order; return the first one that maps to a bank
+  for (const subj of (subjects||[])) {
+    const raw = (subj||'').toLowerCase();
+
+    // ── Tier 1: exact keyword priority matches ─────────────────────
+    // Test-prep programs (not in _SUBJ_HIER category system)
+    if (raw.includes('sat'))    return { bank: SAT_BANK,     label:'SAT Prep',          type:'sat'   };
+    if (raw.includes('act'))    return { bank: ACT_BANK,     label:'ACT Prep',           type:'act'   };
+    if (raw.includes('hiset'))  return { bank: HISET_BANK,   label:'HiSET Prep',         type:'hiset' };
+    if (raw.includes('ged'))    return { bank: GED_BANK,     label:'GED Prep',           type:'ged'   };
+
+    // ── Tier 2: hierarchy-based routing via _SUBJ_HIER ────────────
+    const cat = _subjectCat(raw);
+    const lv  = cat ? _subjectLv(raw, cat) : 0;
+
+    if (cat === 'history') {
+      if (lv >= 6)  return { bank: APGOV_BANK,   label:'AP Gov & Politics',  type:'apgov' };
+      if (lv === 5) return { bank: APUSH_BANK,   label:'AP US History',      type:'apush' };
+      if (lv === 4) return { bank: APWH_BANK,    label:'AP World History',   type:'apwh'  };
+      // lv 1-3 (standard history) — no bank yet, continue to next subject
+    }
+
+    if (cat === 'science') {
+      if (lv === 4) return { bank: APBIO_BANK,   label:'AP Biology',         type:'apbio' };
+      if (lv === 5) return { bank: APCHEM_BANK,  label:'AP Chemistry',       type:'apchem'};
+      // lv 1-3, 6-9 (gen bio/chem, physics, APES) — no bank yet, continue
+    }
+
+    if (cat === 'math') {
+      if (lv >= 9)  return { bank: APCALC_BANK,  label:'AP Calculus',        type:'apcalc'};
+      if (lv === 8) return { bank: APSTAT_BANK,  label:'AP Statistics',      type:'apstat'};
+      if (lv >= 1)  return { bank: ALGEBRA2_BANK,label:'Algebra 2',          type:'alg2'  };
+      // lv 0 (unrecognised) — continue
+    }
+
+    // cat === 'english' or 'cs' — vaults coming soon; continue to next subject
+  }
+
+  return null;  // no matching bank found for any enrolled subject
 }
 
 /* ══════════════════════════════════════
