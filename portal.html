@@ -1851,10 +1851,10 @@ async function buildProgressPage() {
       ${attempts.length ? `<div class="prog-practice-list">${attempts.slice(0,10).map(a => {
         const pct = Math.round((a.score/a.total)*100);
         const col = scoreColor(pct);
-        const bank = APUSH_BANK.find(b => b.key === a.period_key);
+        const sec = findBankSection(a.period_key);
         return `<div class="prog-practice-item">
-          <div class="prog-practice-period">${bank ? 'P'+bank.period : a.period_key}</div>
-          <div class="prog-practice-name">${bank ? bank.label : a.period_key}</div>
+          <div class="prog-practice-period">${sec?.icon||'📚'}</div>
+          <div class="prog-practice-name">${sec?.label||a.period_key}</div>
           <div class="prog-practice-date">${fmtDateShort(a.attempted_at)}</div>
           <div class="prog-practice-score" style="color:${col}">${a.score}/${a.total} · ${pct}%</div>
         </div>`;
@@ -4681,8 +4681,12 @@ async function buildTutorProgressPanel(homework, studentId, subject) {
   const ltr  = p => p >= 90 ? 'A' : p >= 80 ? 'B' : p >= 70 ? 'C' : p >= 60 ? 'D' : 'F';
   const star = p => p >= 85 ? '🟢' : p >= 70 ? '🟡' : '🔴';
 
+  // ── Determine which practice bank this student uses ──
+  const _bankResult  = getPracticeBank(selectedStudent?.subjects);
+  const _practiceBank = _bankResult?.bank || APUSH_BANK;
+
   // ── Recommendations engine ───────────────────────────
-  const recs = generateAPUSHRecommendations(graded, pvByPeriod, pvAttempts.length, subject);
+  const recs = generateRecommendations(graded, pvByPeriod, pvAttempts.length, subject, _practiceBank);
 
   // ── Render ──────────────────────────────────────────
   panel.innerHTML = `
@@ -4747,13 +4751,15 @@ async function buildTutorProgressPanel(homework, studentId, subject) {
 
   <!-- Practice by period -->
   <div class="t-card">
-    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0"><h3 style="margin:0;font-size:.92rem">🎯 Practice Performance by Period</h3></div>
+    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0"><h3 style="margin:0;font-size:.92rem">🎯 Practice Performance by Section</h3></div>
     <div style="padding:1rem 1.25rem">
       ${Object.keys(pvByPeriod).length ? `<div style="display:flex;flex-direction:column;gap:.5rem">
-        ${APUSH_BANK.filter(b => pvByPeriod[b.key]).map(b => {
-          const d = pvByPeriod[b.key];
+        ${Object.keys(pvByPeriod).map(key => {
+          const b = findBankSection(key);
+          if (!b) return '';
+          const d = pvByPeriod[key];
           return `<div style="display:flex;align-items:center;gap:.85rem;padding:.6rem .85rem;border-radius:8px;border:1px solid #e5e7eb;background:#fff">
-            <div style="font-size:1.1rem">${b.icon}</div>
+            <div style="font-size:1.1rem">${b.icon||'📚'}</div>
             <div style="flex:1">
               <div style="font-size:.8rem;font-weight:600;color:#0f2044">${b.label}</div>
               <div style="font-size:.7rem;color:#64748b">${d.attempts} attempt${d.attempts!==1?'s':''}</div>
@@ -4766,26 +4772,42 @@ async function buildTutorProgressPanel(homework, studentId, subject) {
               <div style="font-size:.9rem">${star(d.best)}</div>
             </div>
           </div>`;
-        }).join('')}
-      </div>` : `<div style="text-align:center;padding:1.5rem;color:#94a3b8;font-size:.85rem">No practice attempts yet. Encourage ${selectedStudent?.name?.split(' ')[0]||'the student'} to try the Practice Vault!</div>`}
+        }).filter(Boolean).join('')}
+      </div>` : `<div style="text-align:center;padding:1.5rem;color:#94a3b8;font-size:.85rem">No practice attempts yet. Encourage ${(selectedStudent?.name||'the student').split(' ')[0]} to try the Practice Vault!</div>`}
     </div>
   </div>`;
 }
 
-function generateAPUSHRecommendations(graded, pvByPeriod, pvTotal, subject) {
+function generateRecommendations(graded, pvByPeriod, pvTotal, subject, bank) {
   const recs = [];
-  const isAPUSH = subject.toLowerCase().includes('history') || subject.toLowerCase().includes('apush') || subject.toLowerCase().includes('us');
+  const sl   = (subject||'').toLowerCase();
+  const sName = (selectedStudent?.name||'The student').split(' ')[0];
+  const practiceBank = bank || APUSH_BANK;
 
-  // 1. Identify weak practice periods (below 70%)
-  const weakPeriods = APUSH_BANK.filter(b => pvByPeriod[b.key] && pvByPeriod[b.key].best < 70);
-  const okPeriods   = APUSH_BANK.filter(b => pvByPeriod[b.key] && pvByPeriod[b.key].best >= 70);
+  // Subject type flags
+  const isAPUSH = sl.includes('ap us hist') || sl.includes('apush');
+  const isAPWH  = sl.includes('ap world');
+  const isAPBio = sl.includes('ap bio');
+  const isAPChem= sl.includes('ap chem');
+  const isAPCalc= sl.includes('ap calc');
+  const isAPStat= sl.includes('ap stat');
+  const isAPGov = sl.includes('ap gov');
+  const isSAT   = sl.includes('sat');
+  const isACT   = sl.includes('act');
+  const isAlg2  = sl.includes('algebra 2')||sl.includes('algebra ii')||sl.includes('alg 2')||sl.includes('alg2');
+  const isHiSET = sl.includes('hiset')||sl.includes('ged');
+  const isAP    = isAPUSH||isAPWH||isAPBio||isAPChem||isAPCalc||isAPStat||isAPGov;
 
-  if (weakPeriods.length) {
-    const names = weakPeriods.map(b=>`Period ${b.period} (${(b.label||'').split('(')[1]?.replace(')','') || b.label||''})`).join(', ');
+  // 1. Weak sections (below 70%)
+  const weakSections = practiceBank.filter(b => pvByPeriod[b.key] && pvByPeriod[b.key].best < 70);
+  const okSections   = practiceBank.filter(b => pvByPeriod[b.key] && pvByPeriod[b.key].best >= 70);
+
+  if (weakSections.length) {
+    const names = weakSections.map(b => b.label).join(', ');
     recs.push({
       icon:'🔴', bg:'#fef2f2', border:'#fecaca',
-      title:`Priority Review: ${weakPeriods.map(b=>'Period '+b.period).join(', ')}`,
-      body:`${selectedStudent?.name?.split(' ')[0]||'The student'} scored below 70% on ${names}. Dedicate at least one session to drilling key events, themes, and causation for these periods before moving on. Focus on both content knowledge and how to connect events to the AP exam\'s key concepts.`
+      title:`Priority Review: ${names}`,
+      body:`${sName} scored below 70% on ${names}. Dedicate focused session time to these sections — drill core concepts, work through similar problems together, and have them re-attempt in the Practice Vault to confirm improvement.`
     });
   }
 
@@ -4795,56 +4817,83 @@ function generateAPUSHRecommendations(graded, pvByPeriod, pvTotal, subject) {
     recs.push({
       icon:'📝', bg:'#fff7ed', border:'#fed7aa',
       title:'Written Work Needs Attention',
-      body:`Homework average is ${hwAvg}%. Consider focusing sessions on structuring written responses — especially thesis formation and evidence integration, which are critical for both the SAQ and DBQ sections of the AP exam.`
+      body:`Homework average is ${hwAvg}%. Consider slowing down to reinforce fundamentals — identify specific concept gaps from the graded work and address them directly in session before moving to new material.`
     });
   }
 
-  // 3. No practice yet — encourage it
+  // 3. No practice yet
   if (pvTotal === 0) {
     recs.push({
       icon:'🎯', bg:'#eff6ff', border:'#bfdbfe',
       title:'Start Practice Vault Drills',
-      body:`No practice attempts yet. Assign 1–2 periods per week in the Practice Vault as homework — consistent MCQ practice is one of the highest-leverage activities for AP score improvement. Aim for at least one period set before each tutoring session.`
+      body:`No practice attempts yet. Assign 1–2 sections per week in the Practice Vault as homework — consistent practice is one of the highest-leverage activities for score improvement. Have ${sName} complete at least one section before each session so you can review errors together.`
     });
   }
 
-  // 4. Good on practice, push harder
-  if (pvTotal > 0 && weakPeriods.length === 0 && okPeriods.length >= 4) {
+  // 4. Strong across the board
+  if (pvTotal > 0 && weakSections.length === 0 && okSections.length >= 4) {
     recs.push({
       icon:'🔥', bg:'#ecfdf5', border:'#a7f3d0',
-      title:'Strong Practice Foundation — Level Up',
-      body:`Great MCQ consistency across practiced periods. Now push into timed full-section practice: 55 MCQs in 55 minutes. Also shift focus toward written sections — SAQ and DBQ responses are often where points are won or lost at this stage.`
+      title:'Strong Foundation — Level Up',
+      body:`Great consistency across all practiced sections. Push into timed, full-length practice now and focus sessions on the hardest question types. Challenge ${sName} with more complex problems to build exam-day confidence.`
     });
   }
 
-  // 5. APUSH-specific: exam strategy (always show)
-  if (isAPUSH) {
-    recs.push({
-      icon:'📖', bg:'#f5f3ff', border:'#ddd6fe',
-      title:'AP Exam Structure to Keep in Mind',
-      body:`APUSH exam = 55 MCQ (55 min) + 3 SAQ (40 min) + 1 DBQ (60 min) + 1 LEQ (40 min). MCQ and SAQ are Section I (55%), DBQ and LEQ are Section II (45%). The biggest leverage point: a 5-paragraph DBQ with a strong thesis, 6+ sourced documents, and one outside piece of evidence. Make sure at least one session covers document analysis.`
-    });
-  }
-
-  // 6. Period-specific deep dives for untouched periods
-  const untouched = APUSH_BANK.filter(b => !pvByPeriod[b.key]);
-  if (untouched.length >= 4 && pvTotal > 0) {
-    const urgentPeriods = [5,7,8].map(n=>APUSH_BANK.find(b=>b.period===n)).filter(Boolean).filter(b=>!pvByPeriod[b.key]);
-    if (urgentPeriods.length) {
+  // 5. Untouched sections (any subject)
+  if (pvTotal > 0) {
+    const untouched = practiceBank.filter(b => !pvByPeriod[b.key]);
+    if (untouched.length >= 3) {
+      const urgentNames = untouched.slice(0,3).map(b=>b.label).join(', ');
       recs.push({
         icon:'⚡', bg:'#fffbeb', border:'#fde68a',
-        title:`High-Yield Untouched Periods: ${urgentPeriods.map(b=>'P'+b.period).join(', ')}`,
-        body:`Periods ${urgentPeriods.map(b=>b.period).join(', ')} (${urgentPeriods.map(b=>(b.label||'').split('(')[1]?.replace(')','')?.trim()||b.label||'').join('; ')}) are heavily tested on the AP exam and haven\'t been practiced yet. These typically account for 40–45% of the MCQ section. Prioritize these in the Practice Vault and in session.`
+        title:`Unexplored Sections: ${urgentNames}${untouched.length>3?' + more':''}`,
+        body:`These sections haven't been practiced yet. Prioritize them in the Practice Vault to build comprehensive coverage — aim for at least one attempt per section before the exam.`
       });
     }
   }
 
-  // 7. If no recs yet (fresh student), give a starting plan
+  // 6. Subject-specific exam structure tips
+  if (isAPUSH) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'APUSH Exam Structure',
+      body:`55 MCQ (55 min) + 3 SAQ (40 min) + 1 DBQ (60 min) + 1 LEQ (40 min). MCQ/SAQ = 55%, DBQ/LEQ = 45%. Biggest leverage: DBQ with strong thesis, 6+ sourced documents, and outside evidence. Ensure at least one session covers document analysis.` });
+  } else if (isAPWH) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP World History Exam Structure',
+      body:`55 MCQ (55 min) + 3 SAQ (40 min) + 1 DBQ (60 min) + 1 LEQ (40 min). Focus on cross-cultural comparisons and change-over-time analysis. Practice sourcing documents by HAPP (Historical context, Audience, Purpose, Point of view).` });
+  } else if (isAPCalc) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Calculus Exam Structure',
+      body:`45 MCQ (1 hr 45 min) + 6 FRQ (1 hr 30 min). Calculator allowed for ~half. Make sure ${sName} can show all work clearly on FRQs — partial credit matters significantly. FRQ practice is often the biggest score lever.` });
+  } else if (isAPStat) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Statistics Exam Structure',
+      body:`40 MCQ (90 min) + 6 FRQ (90 min). Interpretation is as important as calculation — ${sName} must write clear conclusions in context. Practice writing full sentences for every statistical result.` });
+  } else if (isAPBio) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Biology Exam Structure',
+      body:`60 MCQ + 6 FRQ (2 long + 4 short). Emphasis on experimental design and data analysis. Make sure ${sName} can design a controlled experiment and interpret graphs/tables under timed conditions.` });
+  } else if (isAPChem) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Chemistry Exam Structure',
+      body:`60 MCQ (90 min) + 7 FRQ (105 min). Calculator allowed throughout. Focus on stoichiometry, equilibrium, and electrochemistry — these are the highest-weight topics. FRQ requires clear notation and unit analysis.` });
+  } else if (isAPGov) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Gov Exam Structure',
+      body:`55 MCQ (80 min) + 4 FRQ (100 min). The SCOTUS comparison FRQ is unique — practice connecting required cases to non-required cases with evidence. ${sName} should know all 15 required SCOTUS cases cold.` });
+  } else if (isSAT) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'SAT Strategy',
+      body:`Digital SAT: 2 Reading/Writing modules (64 min) + 2 Math modules (70 min). Module 2 difficulty adapts to Module 1 performance — doing well in Module 1 is critical. Math no-calculator section requires clean algebra fundamentals.` });
+  } else if (isACT) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'ACT Strategy',
+      body:`English (45 min) + Math (60 min) + Reading (35 min) + Science (35 min). Time pressure is real — pacing is as important as content. Have ${sName} practice skipping and returning to hard questions to maximize score.` });
+  } else if (isAlg2) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'Algebra 2 Focus Areas',
+      body:`Prioritize functions (linear, quadratic, exponential/log) as they appear throughout the course and on standardized tests. Polynomial and rational expressions are frequently tested. Make sure ${sName} can graph and interpret all function families fluently.` });
+  } else if (isHiSET) {
+    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'HiSET/GED Strategy',
+      body:`Focus on math reasoning and language arts — these carry the most weight. ${sName} needs to show mastery in all 5 subject areas to pass. Consistent practice in the lowest-scoring areas first will maximize overall results.` });
+  }
+
+  // 7. Default if no recs
   if (recs.length === 0) {
     recs.push({
       icon:'🚀', bg:'#f0fdf4', border:'#bbf7d0',
       title:'Ready to Build the Plan',
-      body:`No assignment grades or practice data yet. Suggested start: begin with Period 3–5 content (most tested), assign 2 SAQ prompts as written homework, and have the student run through Periods 3 and 5 in the Practice Vault before the next session. Establish a baseline score now to track growth.`
+      body:`No grades or practice data yet. Have ${sName} start in the Practice Vault to establish a baseline, then assign targeted homework based on the results. Use the first session to identify their biggest knowledge gaps.`
     });
   }
 
