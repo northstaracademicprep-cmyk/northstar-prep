@@ -3882,6 +3882,148 @@ function generateMathPool(key, count=18) {
 
 const QUESTIONS_PER_SESSION = 10;
 const GEMINI_KEY = 'AIzaSyCML-LQ1zw4E0Y-3AGWsRvn82vps6P9Vd8';
+
+/* ── CURRICULUM MAP: tells Gemini exactly which topics to pull from ── */
+const CURRICULUM_MAP = {
+  // ── MATH FOUNDATIONS ──────────────────────────────────────────────
+  'mf-numbers':   'integers and their operations, absolute value, order of operations (PEMDAS), prime and composite numbers, prime factorization, GCF and LCM, exponent rules (product, quotient, power), scientific notation, comparing and ordering integers',
+  'mf-fractions': 'adding/subtracting/multiplying/dividing fractions and mixed numbers, converting between fractions, decimals, and percents, simplifying fractions, finding common denominators, percent of a number, percent increase and decrease, finding what percent one number is of another',
+  'mf-ratios':    'unit rates, ratio notation, setting up and solving proportions, scale factors, map scales, similar figures, speed/distance/time problems, conversion between units using proportions',
+  'mf-algebra':   'evaluating algebraic expressions, combining like terms, distributive property, solving one-step and two-step equations, solving multi-step equations, solving inequalities and graphing on a number line, writing equations from word problems, solving literal equations, substitution',
+  'mf-stats':     'mean, median, mode, range of data sets, choosing the best measure of center, interpreting dot plots and histograms and stem-and-leaf plots, basic probability (favorable outcomes / total outcomes), complement rule, independent events (multiply probabilities)',
+
+  // ── GEOMETRY ──────────────────────────────────────────────────────
+  'geo-angles':    'complementary and supplementary angles, vertical angles, angles on a straight line, parallel lines cut by a transversal (alternate interior, alternate exterior, corresponding, co-interior angles), triangle angle sum theorem, exterior angle theorem, isosceles triangle properties, special right triangles (30-60-90 and 45-45-90), triangle inequality theorem',
+  'geo-polygons':  'properties of parallelograms, rectangles, rhombuses, squares, trapezoids, kites; sum of interior angles of polygons formula (n-2)×180; regular polygon interior and exterior angles; similar polygons and scale factors; proving quadrilateral properties',
+  'geo-circles':   'radius, diameter, chord, arc, sector, tangent, secant; arc length formula; sector area formula; central angle theorem; inscribed angle theorem; tangent-radius relationship; equations of circles in standard form; finding center and radius from equation',
+  'geo-volume':    'area of triangles, parallelograms, trapezoids, rhombuses; surface area and volume of prisms (rectangular, triangular), cylinders, pyramids, cones, spheres; composite figures; effect of scaling on area and volume; area of regular polygons',
+  'geo-coordinate':'distance formula, midpoint formula, slope between two points, equation of a line through two points, reflections across axes and y=x, translations using vectors, rotations 90/180/270 degrees about origin, dilations from origin, identifying transformations, rigid vs non-rigid motions',
+
+  // ── PRE-CALCULUS ──────────────────────────────────────────────────
+  'pc-functions':  'function notation and evaluating, domain and range (interval and set notation), piecewise functions, composition of functions f(g(x)), inverse functions (finding and graphing), even and odd functions, vertical and horizontal shifts, reflections, stretches and compressions, one-to-one functions and horizontal line test',
+  'pc-trig':       'unit circle values for all common angles (30, 45, 60, 90, 120, etc.), SOHCAHTOA in right triangles, law of sines, law of cosines, reference angles, coterminal angles, converting degrees to radians and back, trig identities (Pythagorean, reciprocal, quotient), graphing sine and cosine (period, amplitude, phase shift), solving basic trig equations',
+  'pc-explog':     'exponential growth and decay models, compound interest formula, properties of logarithms (product, quotient, power rules), change of base formula, solving exponential equations by taking logs, solving logarithmic equations, natural log and e, graphing exponential and logarithmic functions and their transformations',
+  'pc-sequences':  'explicit and recursive formulas for arithmetic sequences, finding common difference, nth term of arithmetic sequence, sum of finite arithmetic series, explicit and recursive formulas for geometric sequences, finding common ratio, nth term of geometric sequence, sum of finite and infinite geometric series (|r|<1 condition), sigma notation',
+  'pc-conics':     'standard form equation of a circle and finding center/radius, vertex form of a parabola and finding vertex/focus/directrix, standard form of ellipse (horizontal and vertical), finding semi-major and semi-minor axes, standard form of hyperbola and finding asymptotes, identifying conic from general equation, converting to polar coordinates (r=√(x²+y²), θ=arctan(y/x))',
+
+  // ── ALGEBRA 2 ─────────────────────────────────────────────────────
+  'alg2-linear':   'slope-intercept form, point-slope form, standard form, writing equations given slope and point or two points, parallel lines (equal slopes), perpendicular lines (negative reciprocal slopes), graphing linear inequalities and systems of inequalities, absolute value equations (two cases), absolute value inequalities, piecewise linear functions',
+  'alg2-systems':  'solving systems by graphing, substitution, and elimination; inconsistent systems (no solution) and dependent systems (infinitely many solutions); systems of three equations; solving systems of inequalities and graphing solution regions; applications: mixture problems, motion problems, break-even analysis',
+  'alg2-quad':     'factoring GCF, factoring trinomials (a=1 and a≠1), factoring by grouping, difference of squares, perfect square trinomials, zero product property, quadratic formula and discriminant (two real, one real, two complex solutions), completing the square, vertex form of a parabola, graphing parabolas (vertex, axis of symmetry, intercepts), complex numbers (i, i², operations)',
+  'alg2-poly':     'polynomial long division, synthetic division, remainder theorem, factor theorem, rational root theorem, Descartes rule of signs, finding all zeros (real and complex), fundamental theorem of algebra, end behavior based on degree and leading coefficient, graphing polynomials using zeros and multiplicity, sum and product of roots',
+  'alg2-radical':  'simplifying radical expressions (nth roots), operations with radicals (add, subtract, multiply, rationalize), solving radical equations (isolate radical, square both sides, check for extraneous solutions), rational exponents (aᵐ/ⁿ = ⁿ√aᵐ), operations with complex numbers (add, subtract, multiply, divide using conjugate)',
+  'alg2-explog':   'evaluating exponential expressions, graphing exponential functions and identifying transformations, exponential growth/decay applications, converting between exponential and logarithmic form, evaluating logarithms, common log and natural log, product/quotient/power rules of logarithms, solving exponential equations (same base and different base using logs), solving logarithmic equations, compound interest and continuously compounded interest',
+  'alg2-seq':      'arithmetic sequences (explicit: aₙ=a₁+(n-1)d, recursive: aₙ=aₙ₋₁+d), arithmetic series sum formula, geometric sequences (explicit: aₙ=a₁·rⁿ⁻¹, recursive), geometric series sum (finite and infinite), convergence condition |r|<1, sigma notation (evaluating and writing), arithmetic vs. geometric growth comparison, real-world models',
+  'alg2-stats':    'normal distribution and empirical rule (68-95-99.7), z-scores and standardizing data, interpreting normal curves, permutations nPr and combinations nCr, fundamental counting principle, conditional probability P(A|B)=P(A∩B)/P(B), Bayes theorem basics, expected value, binomial probability formula, statistical significance basics',
+
+  // ── AP CALCULUS ───────────────────────────────────────────────────
+  'calc-limits':       'limit notation and evaluation, direct substitution, factoring to resolve 0/0 indeterminate form, rationalization technique, limits involving absolute values, one-sided limits, limits at infinity and horizontal asymptotes, infinite limits and vertical asymptotes, squeeze theorem, continuity (three conditions), types of discontinuity (removable, jump, infinite), intermediate value theorem',
+  'calc-derivatives':  'limit definition of derivative, differentiability vs continuity, power rule, constant multiple rule, sum/difference rule, product rule, quotient rule, chain rule, derivatives of sin/cos/tan/sec/csc/cot, derivatives of eˣ and ln(x), derivatives of inverse trig functions, implicit differentiation, related rates, linear approximation and differentials, mean value theorem, critical points, first derivative test, second derivative test, concavity and inflection points, L\'Hôpital\'s rule, optimization problems',
+  'calc-integrals':    'antiderivatives and indefinite integrals, power rule for integration, integrals of trig functions, integrals of eˣ and 1/x, u-substitution, Riemann sums (left, right, midpoint, trapezoidal), definite integral definition and properties, fundamental theorem of calculus part 1 and part 2, area between two curves, disk method for volume of revolution, washer method, average value of a function, accumulated change interpretation',
+
+  // ── AP STATISTICS ─────────────────────────────────────────────────
+  'stat-data':        'categorical vs quantitative variables, frequency tables, dotplots, stemplots, histograms, describing distributions (SOCS: shape, outliers, center, spread), mean vs median (resistant measures), standard deviation vs IQR, boxplots and five-number summary, identifying outliers using 1.5×IQR rule, transformations of data (adding/multiplying constants), comparing distributions',
+  'stat-probability':  'probability rules (addition, multiplication, complement), independence vs mutually exclusive, conditional probability, Bayes\' theorem, probability distributions (mean/variance of discrete), binomial distribution (conditions, formula, mean, standard deviation), geometric distribution, normal distribution and z-scores, using standard normal table, sampling distributions of sample mean and sample proportion',
+  'stat-inference':    'confidence interval for mean (t-interval) and proportion (z-interval), margin of error, interpreting confidence intervals correctly, hypothesis testing steps (Ho/Ha, test statistic, p-value, decision), type I and type II errors, power of a test, one-sample t-test, two-sample t-test, chi-square goodness of fit, chi-square test of independence, linear regression (least squares line, r and r², residuals, inference for slope)',
+
+  // ── AP BIOLOGY ────────────────────────────────────────────────────
+  'apbio-biochem':  'water properties and hydrogen bonding, pH and buffers, macromolecules (carbohydrates, lipids, proteins, nucleic acids), enzyme structure/function/inhibition, cellular respiration (glycolysis, Krebs cycle, ETC), photosynthesis (light reactions, Calvin cycle), ATP structure and function, free energy and thermodynamics',
+  'apbio-cell':     'prokaryotic vs eukaryotic cell structure, membrane structure (fluid mosaic model), membrane transport (diffusion, osmosis, active transport, endocytosis), cell communication (signal transduction), cell cycle, mitosis phases, regulation of cell cycle, meiosis and comparison to mitosis, crossing over and genetic recombination',
+  'apbio-genetics': 'Mendelian genetics (monohybrid, dihybrid, test cross), non-Mendelian patterns (codominance, incomplete dominance, sex-linkage, epistasis), DNA structure and replication, transcription and RNA processing, translation and genetic code, mutations and their effects, gene regulation (lac operon, eukaryotic regulation), biotechnology (PCR, gel electrophoresis, CRISPR)',
+  'apbio-evolution':'natural selection mechanisms, Hardy-Weinberg equilibrium and violations, evidence for evolution (fossils, biogeography, homologous structures, DNA), speciation (allopatric and sympatric), reproductive isolation mechanisms, types of selection (directional, stabilizing, disruptive), genetic drift, gene flow, phylogenetic trees and cladistics',
+  'apbio-ecology':  'population ecology (growth models, carrying capacity, density-dependent/independent factors), community interactions (competition, predation, mutualism, parasitism, commensalism), keystone species, primary and secondary succession, energy flow and trophic levels (10% rule), nutrient cycles (carbon, nitrogen, phosphorus, water), biodiversity and ecosystem stability',
+
+  // ── AP CHEMISTRY ──────────────────────────────────────────────────
+  'apchem-atomic':  'atomic theory history, subatomic particles, atomic number/mass number/isotopes, quantum mechanical model, quantum numbers (n, l, ml, ms), electron configuration using Aufbau/Pauli/Hund, periodic trends (atomic radius, ionization energy, electron affinity, electronegativity), photoelectric effect, emission spectra',
+  'apchem-bonding': 'ionic bond formation and crystal lattice energy, covalent bond formation and bond energies, Lewis dot structures, formal charge, resonance structures, VSEPR theory and molecular geometry, polarity (bond polarity vs molecular polarity), hybridization (sp, sp², sp³), sigma and pi bonds, intermolecular forces (London dispersion, dipole-dipole, hydrogen bonding), properties based on IMFs',
+  'apchem-equil':   'dynamic equilibrium and Le Chatelier\'s principle, equilibrium constant expressions (Kc, Kp, Ka, Kb, Ksp), reaction quotient Q, acid-base equilibria (strong vs weak), buffer solutions (Henderson-Hasselbalch), titration curves and equivalence points, solubility equilibria, common ion effect, electrochemistry (galvanic cells, standard reduction potentials, Nernst equation)',
+  'apchem-kinetics':'reaction rates and rate laws, determining rate law from experimental data, integrated rate laws (zero, first, second order), half-life, Arrhenius equation and activation energy, catalysis (homogeneous, heterogeneous, enzyme), collision theory, reaction mechanisms and rate-determining step, molecularity',
+  'apchem-thermo':  'enthalpy (ΔH), Hess\'s law, bond enthalpies, calorimetry (q=mcΔT), standard enthalpies of formation, entropy (ΔS) and spontaneity, Gibbs free energy (ΔG=ΔH-TΔS), standard free energy of formation, relationship between ΔG and K, electrochemical cell potential and ΔG',
+
+  // ── AP PHYSICS ────────────────────────────────────────────────────
+  'phys-kinematics':    '1D kinematics equations (v=v₀+at, x=v₀t+½at², v²=v₀²+2ax), free fall (g=9.8 m/s²), average vs instantaneous velocity, displacement vs distance, velocity vs speed, interpreting position-time and velocity-time graphs, 2D projectile motion (horizontal and vertical components independent), relative velocity, uniform circular motion (centripetal acceleration a=v²/r)',
+  'phys-forces':        'Newton\'s three laws with applications, free body diagrams, net force and equilibrium, static and kinetic friction (f=μN), normal force, tension in ropes and pulleys, Atwood machine, inclined planes, Newton\'s law of gravitation (F=Gm₁m₂/r²), gravitational field strength, centripetal force (F=mv²/r), apparent weight in elevators',
+  'phys-energy':        'work (W=Fd cosθ), work-energy theorem (W_net=ΔKE), kinetic energy (KE=½mv²), gravitational PE (PE=mgh), elastic PE (PE=½kx²), conservation of mechanical energy, power (P=W/t=Fv), efficiency, simple machines, momentum (p=mv), impulse-momentum theorem (J=Δp=FΔt), conservation of momentum, elastic and inelastic collisions',
+  'phys-waves':         'wave properties (amplitude, wavelength, frequency, period, speed: v=fλ), transverse vs longitudinal waves, electromagnetic spectrum, reflection (law of reflection), refraction (Snell\'s law: n₁sinθ₁=n₂sinθ₂), diffraction, constructive and destructive interference, standing waves and resonance, Doppler effect, sound intensity and decibels',
+  'phys-electricity':   'electric charge and Coulomb\'s law (F=kq₁q₂/r²), electric field (E=F/q, E=kq/r²), electric potential and voltage, capacitance, current (I=ΔQ/Δt), resistance (R=ρL/A), Ohm\'s law (V=IR), series circuits (same current, voltages add), parallel circuits (same voltage, currents add), Kirchhoff\'s laws, power (P=IV=I²R=V²/R), magnetic force on moving charge (F=qvB sinθ), electromagnetic induction, Faraday\'s law',
+
+  // ── AP ENVIRONMENTAL SCIENCE ──────────────────────────────────────
+  'apes-ecosystems':   'energy flow through trophic levels, 10% rule, gross vs net primary productivity, biogeochemical cycles (carbon, nitrogen, phosphorus, water, sulfur), ecological succession (primary and secondary), biome characteristics, aquatic biomes, ecosystem services, food web dynamics and trophic cascades',
+  'apes-biodiversity': 'biodiversity levels (genetic, species, ecosystem), threats (habitat destruction, invasive species, overexploitation, pollution, climate change), IUCN categories, conservation strategies (in-situ vs ex-situ), protected areas, island biogeography theory (species-area relationship), minimum viable population, CITES and ESA',
+  'apes-pollution':    'point vs nonpoint source pollution, air pollutants (primary and secondary, criteria pollutants, particulate matter), acid deposition, photochemical smog, indoor air quality, water pollution types (biological, chemical, thermal), eutrophication and dead zones, heavy metal contamination, biomagnification and bioaccumulation, solid and hazardous waste management, CERCLA/Superfund, Clean Air Act, Clean Water Act, RCRA',
+  'apes-energy':       'fossil fuel formation and extraction (coal, oil, natural gas), environmental impacts of fossil fuels, nuclear fission and fusion, nuclear waste, solar energy (photovoltaic and solar thermal), wind energy, hydropower, geothermal, biofuels, EROI, energy conservation and efficiency, smart grid, energy policy',
+  'apes-climate':      'greenhouse effect mechanism, greenhouse gases (CO₂, CH₄, N₂O, H₂O, ozone, fluorinated gases), evidence for climate change (temperature records, sea level rise, ice cores, ocean acidification, species range shifts), feedback mechanisms (ice-albedo, water vapor, permafrost methane), climate models, mitigation strategies (carbon taxes, cap-and-trade, renewables), adaptation strategies, Paris Agreement, IPCC',
+
+  // ── AP US HISTORY ─────────────────────────────────────────────────
+  'apush-period1': 'Native American societies before contact, European motivations for exploration, Spanish colonization and encomienda system, Columbian Exchange impacts, early French and Dutch colonization, cultural interactions between Europeans and Native Americans, disease and demographic collapse',
+  'apush-period2': 'New England vs Chesapeake colonies, headright system, indentured servitude, development of chattel slavery, Navigation Acts and mercantilism, Triangular Trade, Bacon\'s Rebellion, Salutary Neglect, Great Awakening, Enlightenment influence on colonies, French and Indian War and its consequences',
+  'apush-period3': 'causes of the American Revolution (taxation, Proclamation of 1763, Intolerable Acts), republican ideology and Common Sense, Revolutionary War battles and turning points, Articles of Confederation weaknesses, Constitutional Convention and compromises, Federalists vs Anti-Federalists, Washington and Hamilton\'s financial program, XYZ Affair and Alien and Sedition Acts',
+  'apush-period4': 'Jeffersonian democracy vs Federalism, Louisiana Purchase, War of 1812, Era of Good Feelings, Missouri Compromise, Market Revolution and industrial growth, Second Great Awakening reform movements, Indian Removal Act and Trail of Tears, Jacksonian democracy, nullification crisis, early women\'s and abolitionist movements',
+  'apush-period5': 'manifest destiny and westward expansion, Mexican-American War, slavery debates (Compromise of 1850, Kansas-Nebraska Act, Bleeding Kansas), Dred Scott decision, Lincoln-Douglas debates, causes of Civil War, major battles and turning points, Emancipation Proclamation, 13th/14th/15th Amendments, Reconstruction plans, failure of Reconstruction',
+  'apush-period6': 'Gilded Age industrialization, robber barons and trusts, Sherman Antitrust Act, labor movement and strikes, immigration waves, nativism, Populist Party, Plessy v. Ferguson, Jim Crow, Spanish-American War and imperialism, Progressive Era reforms, muckrakers, Roosevelt\'s Square Deal, 16th/17th/18th/19th Amendments',
+  'apush-period7': 'WWI causes and US neutrality, Wilson\'s 14 Points and League of Nations, Harlem Renaissance, 1920s consumerism and cultural tensions (Prohibition, Scopes Trial, KKK revival), Great Depression causes, New Deal programs and critics, WWII home front, internment, Manhattan Project, Holocaust and US response, dropping atomic bombs',
+  'apush-period8': 'Cold War containment policy, Truman Doctrine, Marshall Plan, Korean War, McCarthyism, baby boom and suburban growth, Brown v. Board of Education, Montgomery Bus Boycott, Civil Rights Act of 1964, Voting Rights Act 1965, Vietnam War escalation and opposition, Great Society, counterculture, feminist movement, Nixon\'s détente and Watergate',
+  'apush-period9': 'Reagan revolution and supply-side economics, end of Cold War, Persian Gulf War, Clinton\'s third way and NAFTA, 9/11 and War on Terror, PATRIOT Act, Iraq War debate, 2008 financial crisis, Obama\'s election significance, ACA, social media\'s political impact, growing polarization, Black Lives Matter movement',
+
+  // ── AP WORLD HISTORY ──────────────────────────────────────────────
+  'apwh-period1':  'river valley civilizations (Mesopotamia, Egypt, Indus, Shang China), characteristics of early civilizations (writing, government, social hierarchy, religion, trade), Silk Road origins, Greek and Roman political innovations, Han Dynasty, Mauryan/Gupta empires, classical period religions (Hinduism, Buddhism, Confucianism, Judaism)',
+  'apwh-period2':  'fall of classical empires (Rome, Han), spread of Buddhism and Christianity and Islam, Byzantine Empire, Islamic Golden Age and caliphates, Tang and Song Dynasty innovations, Mongol Empire impacts, Indian Ocean trade network, Trans-Saharan trade (gold-salt), Mali and Songhai empires, Medieval Europe and feudalism, Black Death impacts',
+  'apwh-period3':  'Ming and Qing dynasties, Ottoman and Safavid and Mughal empires (Gunpowder Empires), European Renaissance and Reformation, Portuguese and Spanish exploration, Columbian Exchange, transatlantic slave trade, Silver trade and global connections, joint-stock companies, mercantilism, Russian expansion under Peter and Catherine',
+  'apwh-period4':  'Enlightenment ideas, American and French Revolutions, Haitian Revolution, Latin American independence movements, Industrial Revolution in Britain and global spread, imperialism in Africa and Asia (Scramble for Africa, Sepoy Mutiny), Social Darwinism, nationalism and unification (Germany, Italy), Meiji Restoration, WWI causes and consequences, Russian Revolution',
+  'apwh-period5':  'interwar period, rise of fascism and Nazism, WWII causes and turning points, Holocaust, decolonization in Asia and Africa, Cold War (containment, proxy wars, détente), Chinese Communist Revolution, independence movements, Green Revolution, globalization and its critics, digital revolution, climate change as global challenge',
+
+  // ── AP GOVERNMENT ─────────────────────────────────────────────────
+  'gov-foundations': 'constitutional framers\' concerns and compromises, principles of democracy (popular sovereignty, limited government, separation of powers, checks and balances, federalism, republicanism), Federalist Papers arguments (10, 51, 70, 78), Anti-Federalist concerns, Bill of Rights history, types of democracy, social contract theory (Locke, Rousseau)',
+  'gov-institutions': 'bicameral Congress structure and powers, lawmaking process and veto points, presidential powers (formal and informal), executive orders and signing statements, federal bureaucracy and iron triangles, judicial selection and tenure, Supreme Court decision-making, judicial review history, landmark Supreme Court cases (McCulloch, Marbury, Engel, Tinker, Gideon, Miranda, Roe, Citizens United)',
+  'gov-civil-rights': 'civil liberties vs civil rights, First Amendment protections and limits (clear and present danger, Schenck, Brandenburg), 4th Amendment search and seizure, incorporation doctrine, equal protection clause (14th Amendment), affirmative action debate, voting rights history and legislation, women\'s rights legal developments, LGBTQ+ rights milestones',
+  'gov-political':    'party systems and realignment, third parties and obstacles, political ideology (liberal-conservative spectrum), political socialization factors, types of elections (primary, general, Electoral College), campaign finance (FECA, BCRA, Citizens United), PACs and Super PACs, interest group tactics, media\'s role in politics, public opinion polling and sampling',
+  'gov-policy':       'policymaking process (agenda setting, formulation, adoption, implementation, evaluation), fiscal policy (taxes, spending, deficit, debt), monetary policy (Federal Reserve tools), social welfare policy history, health care policy (Medicare, Medicaid, ACA), foreign policy tools (diplomacy, sanctions, military), trade policy, environmental policy',
+
+  // ── AP MACROECONOMICS / AP MICROECONOMICS ──────────────────────
+  'gov-macro': 'GDP measurement and components (C+I+G+NX), business cycle phases, unemployment types (frictional, structural, cyclical), natural rate of unemployment, inflation causes and CPI measurement, fiscal policy (expansionary and contractionary), multiplier effect, crowding out, monetary policy tools (open market operations, discount rate, reserve requirements), money supply (M1, M2), quantity theory of money, AD-AS model, long-run economic growth, comparative advantage and trade, balance of payments, exchange rates',
+  'gov-micro':  'supply and demand analysis, price elasticity of demand and supply, consumer surplus and producer surplus, market equilibrium and disequilibrium, price controls (floors and ceilings), production theory (marginal product, diminishing returns), cost curves (MC, ATC, AVC, AFC), perfect competition, monopoly (deadweight loss, price discrimination), oligopoly and game theory, monopolistic competition, factor markets, public goods and externalities, market failures and government intervention',
+
+  // ── SAT / ACT / TEST PREP ─────────────────────────────────────────
+  'sat-reading':   'main idea and primary purpose questions, author\'s claim and argument, evidence-based questions (find support or undermine), vocabulary in context, inference from text, paired passage comparison, analyzing graphs/charts with text, rhetoric and word choice analysis, point of view, passage structure questions',
+  'sat-writing':   'subject-verb agreement, pronoun agreement and case, verb tense consistency, modifier placement (misplaced and dangling), parallel structure, comma usage (restrictive vs nonrestrictive clauses), semicolons and colons, transitions and logical sequence, redundancy elimination, combining sentences, passage organization and relevance',
+  'sat-math-nc':   'heart of algebra (linear equations, systems, inequalities), passport to advanced math (quadratics, polynomials, radical equations, exponential functions), problem solving with ratios and percentages, unit conversion, geometry (area, volume, triangle properties, circle theorems), trigonometry basics, interpreting graphs, no-calculator mental math strategies',
+  'sat-math-c':    'data analysis (mean, median, mode, standard deviation, interpreting tables and graphs, scatter plots, linear regression), complex algebra (systems, absolute value, quadratics), exponential growth and decay, geometry and trigonometry, multi-step word problems, calculator-efficient strategies, imaginary numbers',
+  'act-math':      'pre-algebra (integers, fractions, decimals, ratios, percentages), algebra (linear equations, systems, inequalities, absolute value, functions), geometry (triangles, quadrilaterals, circles, 3D figures, coordinate geometry), trigonometry (SOHCAHTOA, unit circle, trig identities), statistics and probability, complex numbers, matrices, sequences',
+  'act-reading':   'literary narrative passage comprehension, social science passage main idea and evidence, humanities passage inference and vocabulary, natural science passage detail and inference, dual passage comparison, sequence of events, cause and effect, author\'s purpose and tone',
+  'hiset-math':    'number sense (integers, fractions, decimals, percents), algebraic thinking (equations, inequalities, functions), measurement (area, perimeter, volume, unit conversion), geometry (angles, triangles, circles), data analysis (mean, median, mode, range, basic probability), algebraic expressions and polynomials',
+  'hiset-reading': 'identifying main idea and supporting details, vocabulary in context, making inferences, comparing informational texts, understanding cause and effect, author\'s purpose, text structure (chronological, compare/contrast, problem-solution)',
+
+  // ── BIOLOGY ───────────────────────────────────────────────────────
+  'bio-cell':      'prokaryotic vs eukaryotic cells, cell organelles and their functions (nucleus, mitochondria, ribosomes, ER, Golgi, lysosomes, chloroplasts), cell membrane (phospholipid bilayer, proteins), diffusion and osmosis, active transport and endocytosis, ATP production (glycolysis, Krebs cycle, electron transport chain), photosynthesis (light reactions and Calvin cycle), cell cycle and mitosis stages, cancer as cell cycle disorder',
+  'bio-genetics':  'Mendel\'s laws (segregation and independent assortment), monohybrid and dihybrid crosses, test crosses, incomplete dominance, codominance, sex-linked traits, pedigree analysis, DNA structure (double helix, base pairing A-T G-C), DNA replication, transcription (DNA→mRNA), RNA processing, translation (mRNA→protein), mutations (point, frameshift, chromosomal), genetic disorders (Down syndrome, sickle cell, PKU)',
+  'bio-evolution': 'natural selection (variation, heritability, differential survival/reproduction), evidence for evolution (fossil record, homologous/analogous/vestigial structures, biogeography, DNA comparisons), Hardy-Weinberg equilibrium and violations, types of selection (directional, stabilizing, disruptive), genetic drift (bottleneck, founder effect), gene flow, speciation mechanisms, phylogenetic trees',
+  'bio-ecology':   'trophic levels and energy flow (producers, consumers, decomposers), 10% rule and energy pyramids, population growth (exponential and logistic), carrying capacity, density-dependent and density-independent factors, species interactions (predation, competition, mutualism, commensalism, parasitism), keystone species, ecological succession, biogeochemical cycles, biomes',
+  'bio-body':      'nervous system (neurons, action potential, synapses, CNS vs PNS), endocrine system (hormones, feedback loops, major glands), circulatory system (heart structure, cardiac cycle, blood components, blood pressure), respiratory system (gas exchange at alveoli, ventilation mechanics), digestive system (mechanical and chemical digestion, nutrient absorption), immune system (innate vs adaptive, B and T cells, antibodies, vaccines), musculoskeletal system',
+
+  // ── CHEMISTRY ─────────────────────────────────────────────────────
+  'chem-atomic':   'subatomic particles (protons, neutrons, electrons), atomic number and mass number, isotopes and average atomic mass, Bohr model vs quantum model, electron configuration (Aufbau principle, Hund\'s rule, Pauli exclusion), orbital shapes (s, p, d), periodic table organization, periodic trends (atomic radius, ionization energy, electronegativity, metallic character), nuclear reactions (fission, fusion, radioactive decay)',
+  'chem-bonding':  'formation of ionic bonds, lattice energy, covalent bond types (single, double, triple), Lewis structures, formal charge calculation, resonance structures, VSEPR theory (linear, trigonal planar, tetrahedral, trigonal bipyramidal, octahedral), polar vs nonpolar bonds (electronegativity difference), molecular polarity, hybridization (sp, sp², sp³), sigma vs pi bonds, intermolecular forces (London dispersion, dipole-dipole, hydrogen bonding), properties explained by bonding',
+  'chem-reactions': 'types of chemical reactions (synthesis, decomposition, single displacement, double displacement, combustion), balancing equations by inspection, activity series, predicting products of reactions, net ionic equations and spectator ions, oxidation numbers, identifying oxidation/reduction, balancing redox reactions (half-reaction method), reaction rates and factors affecting them, Le Chatelier\'s principle and equilibrium',
+  'chem-stoich':   'mole concept and Avogadro\'s number (6.022×10²³), molar mass calculation, mole-to-mass and mass-to-mole conversions, mole ratios from balanced equations, mole-to-mole calculations, mass-to-mass calculations, limiting reagent identification, theoretical yield calculation, percent yield, percent composition by mass, empirical and molecular formulas from percent composition, gas stoichiometry at STP (22.4 L/mol), molarity and solution stoichiometry',
+  'chem-acids':    'Arrhenius and Brønsted-Lowry acid-base definitions, strong vs weak acids and bases (Ka/Kb values), conjugate acid-base pairs, water autoionization (Kw=10⁻¹⁴), pH and pOH scale (pH=-log[H⁺], pOH=-log[OH⁻], pH+pOH=14), calculating pH of strong acid/base solutions, buffer solutions and Henderson-Hasselbalch equation, titration calculations (equivalence point), neutralization reactions, solubility rules and Ksp',
+
+  // ── PHYSICS ───────────────────────────────────────────────────────
+  'phys-waves':        'wave speed (v=fλ), period and frequency (T=1/f), amplitude and energy relationship, transverse vs longitudinal waves, electromagnetic spectrum (radio through gamma), reflection (angle of incidence = angle of reflection), refraction (Snell\'s law), total internal reflection, diffraction (through slits), constructive interference (path difference = nλ), destructive interference (path difference = (n+½)λ), standing waves and harmonics (fn=nv/2L), Doppler effect (approaching = higher frequency)',
+
+  // ── ENGLISH ───────────────────────────────────────────────────────
+  'eng-grammar':   'identifying and correcting run-on sentences and comma splices, fixing sentence fragments, subject-verb agreement (with intervening phrases, compound subjects, indefinite pronouns), pronoun-antecedent agreement, pronoun case (who vs whom, I vs me), verb tense consistency, active vs passive voice, misplaced and dangling modifiers, parallel structure in lists and comparisons, correct apostrophe use, semicolons and colons usage, commonly confused words (affect/effect, lay/lie, fewer/less, its/it\'s)',
+  'eng-reading':   'identifying stated main idea vs implied main idea, distinguishing main idea from supporting detail, making logical inferences, using context clues to determine word meaning, identifying author\'s purpose (inform, persuade, entertain), recognizing bias and loaded language, identifying text structure (chronological, cause-effect, compare-contrast, problem-solution), point of view effects on content, comparing two texts on same topic, evaluating quality of evidence',
+  'eng-rhetoric':  'Aristotle\'s three appeals (ethos, pathos, logos) with examples, rhetorical devices (anaphora, antithesis, alliteration, rhetorical question, hyperbole, understatement, irony, juxtaposition), logical fallacies (ad hominem, straw man, false dichotomy, slippery slope, appeal to authority, hasty generalization, circular reasoning, post hoc), argument structure (claim, evidence, warrant, counterargument, rebuttal), analyzing effectiveness of rhetorical choices',
+  'eng-vocab':     'Greek and Latin roots (auto, bio, geo, graph, log, phil, phon, port, scrib, struct, terr, vis), prefixes (anti, contra, de, dis, in/im, inter, mis, over, pre, re, sub, super, trans, un), suffixes (-tion/-sion, -ous/-ious, -ful, -ness, -ment, -able/-ible, -ize, -ology), connotation vs denotation, figurative language (metaphor, simile, personification, hyperbole, allusion), academic vocabulary in context, synonyms/antonyms/analogies',
+  'eng-writing':   'thesis statement construction (arguable claim + reasons), topic sentence linked to thesis, PEEL paragraph structure, integrating quotes (introduce, quote, analyze), transition words and phrases, avoiding summary in favor of analysis, revising for clarity and concision, formal vs informal register, avoiding first person in academic essays, MLA citation format (in-text and works cited), introduction and conclusion strategies, peer revision techniques',
+
+  // ── COMPUTER SCIENCE ──────────────────────────────────────────────
+  'cs-programming': 'variables and assignment, data types (int, float, string, boolean, list), input and output, arithmetic operators (including integer division and modulo), conditional statements (if/elif/else), comparison and logical operators, while loops, for loops and iterating over lists, nested loops, functions (parameters, return values, scope), recursion base case and recursive case, debugging common errors (syntax, runtime, logic)',
+  'cs-data':        'arrays/lists (indexing, slicing, common operations), linked lists (nodes, pointers, insertion/deletion advantages), stacks (LIFO, push/pop, applications), queues (FIFO, enqueue/dequeue, applications), dictionaries/hash maps (key-value pairs, hashing, O(1) lookup), trees (binary trees, BST property, traversals: in-order/pre-order/post-order), graphs (directed vs undirected, adjacency list vs matrix), Big O notation (O(1), O(log n), O(n), O(n log n), O(n²))',
+  'cs-algorithms':  'linear search (O(n)), binary search (O(log n), requires sorted data), bubble sort, selection sort, insertion sort (all O(n²) worst case), merge sort (O(n log n)), quicksort (O(n log n) average), recursion with factorial and Fibonacci examples, dynamic programming (memoization vs tabulation), BFS (queue, level-order) vs DFS (stack/recursion), greedy algorithm examples (coin change), algorithm efficiency tradeoffs',
+  'cs-binary':      'converting between binary, decimal, and hexadecimal, binary addition and subtraction, two\'s complement representation, logical gates (AND, OR, NOT, XOR, NAND, NOR) truth tables, Boolean expressions and simplification, De Morgan\'s laws, ASCII character encoding, bits vs bytes vs kilobytes vs megabytes, lossless vs lossy compression, fetch-decode-execute CPU cycle, RAM vs ROM vs storage, CPU cache',
+  'cs-internet':    'IP addresses and DNS, HTTP vs HTTPS, TCP/IP protocol stack, packet switching, client-server model, URL structure, HTML/CSS/JavaScript roles in web, encryption (symmetric vs asymmetric, public/private key), cybersecurity threats (phishing, SQL injection, malware, social engineering, DoS/DDoS), firewalls and antivirus, net neutrality debate, digital divide, privacy and data collection, cloud computing models (IaaS, PaaS, SaaS), machine learning basics',
+};
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
 
 /* ── Pull student's weak areas from practice history + homework ── */
@@ -3927,37 +4069,61 @@ async function generateAIQuestions(bankKey, sectionLabel, subjectLabel, weakArea
     ...weakHW.slice(0, 3)
   ].join(', ');
 
-  const prompt = `You are an expert tutor generating practice questions for a student.
+  // Pull the detailed curriculum topics for this exact section
+  const curriculumTopics = CURRICULUM_MAP[bankKey] || sectionLabel;
+
+  const prompt = `You are an expert ${subjectLabel} tutor generating rigorous practice questions for a high school student.
 
 Subject: ${subjectLabel}
-Topic: ${sectionLabel}
-${focusHint ? `Student has recently struggled with: ${focusHint}. Weight questions toward these concepts where relevant to this topic.` : ''}
+Section: ${sectionLabel}
 
-Generate exactly ${QUESTIONS_PER_SESSION} multiple choice questions.
-Requirements:
-- Appropriate difficulty for the course level (not too easy, not trick questions)
+Curriculum topics to draw from (you MUST cover these specific concepts — do NOT generate generic or off-topic questions):
+${curriculumTopics}
+
+${focusHint ? `This student has recently struggled with: ${focusHint}. Weight extra questions toward these concepts where they overlap with the curriculum above.` : ''}
+
+Generate exactly ${QUESTIONS_PER_SESSION} multiple-choice questions.
+STRICT REQUIREMENTS:
+- Every question must test one of the specific curriculum topics listed above
+- Questions must be at the correct course level (${subjectLabel}) — not too easy, not from a different subject
 - Each question has exactly 4 answer choices labeled A, B, C, D
-- One correct answer per question
-- Clear, concise explanation for the correct answer
-- Vary the difficulty: mix conceptual understanding and application questions
+- Exactly one correct answer per question
+- Distractors (wrong answers) must be plausible, not obviously wrong
+- Include a clear, specific explanation for why the correct answer is right
+- Vary difficulty: roughly 3 easier, 4 medium, 3 challenging
+- For math/science: include numeric or symbolic problems, not just definitions
+- For history/English: include analysis and application, not just recall
 
-Return ONLY a JSON array with this exact structure, no markdown, no extra text:
-[{"q":"question text","choices":{"A":"option","B":"option","C":"option","D":"option"},"answer":"A","explanation":"why this is correct"}]`;
+Return ONLY a valid JSON array — no markdown fences, no extra text, no commentary:
+[{"q":"question text","choices":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A","explanation":"..."}]`;
 
   const res = await fetch(GEMINI_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json', temperature: 0.8, maxOutputTokens: 4096 }
+      generationConfig: { responseMimeType: 'application/json', temperature: 0.85, maxOutputTokens: 4096 }
     })
   });
   if (!res.ok) throw new Error('Gemini API error: ' + res.status);
   const data = await res.json();
-  const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-  const parsed = JSON.parse(raw);
-  if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Empty response');
-  // Add unique IDs
+  let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+
+  // Strip markdown code fences if Gemini wraps the JSON anyway
+  raw = raw.trim();
+  if (raw.startsWith('```')) {
+    raw = raw.replace(/^```[a-z]*\n?/, '').replace(/```$/, '').trim();
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch(e) {
+    throw new Error('Gemini returned invalid JSON: ' + e.message);
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Empty response from Gemini');
+
+  // Add unique IDs so every session is distinct
   return parsed.map((q, i) => ({ ...q, id: `ai-${bankKey}-${Date.now()}-${i}` }));
 }
 
@@ -3998,6 +4164,18 @@ async function startPractice(key) {
     // Fallback: static bank + procedural math if applicable
     const generated = generateMathPool(key);
     const pool = [...bank.questions, ...generated].sort(() => Math.random() - 0.5);
+    if (pool.length === 0) {
+      // Nothing at all — show a clear error rather than a broken quiz
+      document.getElementById('pvContent').innerHTML = `
+        <div class="card"><div class="card-body" style="text-align:center;padding:3rem 1rem">
+          <div style="font-size:2rem;margin-bottom:1rem">⚠️</div>
+          <div style="font-weight:700;color:#0f2044;margin-bottom:.5rem">Couldn't load questions</div>
+          <div style="font-size:.85rem;color:#64748b;margin-bottom:1.5rem">AI generation failed and no static questions are available for this section.</div>
+          <button class="btn btn-primary" onclick="startPractice('${key}')">Try Again</button>
+          <button class="btn btn-outline-secondary ms-2" onclick="buildPracticeVault()">← Back</button>
+        </div></div>`;
+      return;
+    }
     pvState = { bankKey: key, questions: pool.slice(0, QUESTIONS_PER_SESSION), current: 0, answers: {}, locked: false };
     renderPvQuestion();
   }
