@@ -4373,7 +4373,37 @@ function _showPvLoading(bank) {
     </div>`;
 }
 
-/* ── Main practice launcher — AI first, static fallback ── */
+/* ── Question tracking — never show the same question twice ── */
+function _pvSeenKey(bankKey) {
+  const sid = currentStudent?.studentId || 'guest';
+  return `pv_seen_${sid}_${bankKey}`;
+}
+function _getSeenIds(bankKey) {
+  try { return new Set(JSON.parse(localStorage.getItem(_pvSeenKey(bankKey)) || '[]')); }
+  catch { return new Set(); }
+}
+function _markSeen(bankKey, questions) {
+  try {
+    const seen = _getSeenIds(bankKey);
+    questions.forEach(q => q.id && seen.add(q.id));
+    localStorage.setItem(_pvSeenKey(bankKey), JSON.stringify([...seen]));
+  } catch {}
+}
+function _getUnseenPool(bank, extraPool) {
+  // Build full pool = static bank questions + any extra (procedural) questions
+  const all = [...(bank.questions || []), ...(extraPool || [])];
+  if (!all.length) return [];
+  const seen = _getSeenIds(bank.key);
+  const unseen = all.filter(q => !seen.has(q.id));
+  // If fewer unseen than needed, reset tracking and start fresh
+  if (unseen.length < QUESTIONS_PER_SESSION) {
+    try { localStorage.removeItem(_pvSeenKey(bank.key)); } catch {}
+    return [...all]; // start fresh — full pool, nothing filtered
+  }
+  return unseen;
+}
+
+/* ── Main practice launcher — AI first, static fallback with no-repeat tracking ── */
 async function startPractice(key) {
   const bank = findBankSection(key);
   if (!bank) return;
@@ -4386,26 +4416,31 @@ async function startPractice(key) {
     const studentId = currentStudent?.studentId;
     const weakAreas = studentId ? await _getStudentWeakAreas(studentId) : { weakSections: [], weakHW: [] };
     const aiQuestions = await generateAIQuestions(key, bank.label, subjectLabel, weakAreas);
+    // AI questions are always fresh — mark them seen so if AI fails next time
+    // we don't accidentally serve the same static questions as "new"
+    _markSeen(key, aiQuestions);
     pvState = { bankKey: key, questions: aiQuestions, current: 0, answers: {}, locked: false, aiGenerated: true };
     renderPvQuestion();
   } catch(err) {
-    console.warn('Gemini generation failed, using static bank:', err.message);
-    // Fallback: static bank + procedural math if applicable
+    console.warn('AI generation failed, using tracked static bank:', err.message);
     const generated = generateMathPool(key);
-    const pool = [...bank.questions, ...generated].sort(() => Math.random() - 0.5);
-    if (pool.length === 0) {
-      // Nothing at all — show a clear error rather than a broken quiz
+    const pool = _getUnseenPool(bank, generated);
+    if (!pool.length) {
       document.getElementById('pvContent').innerHTML = `
         <div class="card"><div class="card-body" style="text-align:center;padding:3rem 1rem">
           <div style="font-size:2rem;margin-bottom:1rem">⚠️</div>
           <div style="font-weight:700;color:#0f2044;margin-bottom:.5rem">Couldn't load questions</div>
-          <div style="font-size:.85rem;color:#64748b;margin-bottom:1.5rem">AI generation failed and no static questions are available for this section.</div>
+          <div style="font-size:.85rem;color:#64748b;margin-bottom:1.5rem">No questions available for this section right now.</div>
           <button class="btn btn-primary" onclick="startPractice('${key}')">Try Again</button>
           <button class="btn btn-outline-secondary ms-2" onclick="buildPracticeVault()">← Back</button>
         </div></div>`;
       return;
     }
-    pvState = { bankKey: key, questions: pool.slice(0, QUESTIONS_PER_SESSION), current: 0, answers: {}, locked: false };
+    // Shuffle, pick session, mark them seen
+    const shuffled = pool.sort(() => Math.random() - 0.5);
+    const session = shuffled.slice(0, QUESTIONS_PER_SESSION);
+    _markSeen(key, session);
+    pvState = { bankKey: key, questions: session, current: 0, answers: {}, locked: false, aiGenerated: false };
     renderPvQuestion();
   }
 }
