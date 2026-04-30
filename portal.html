@@ -1573,6 +1573,8 @@ function buildNav() {
 }
 
 function showSection(id, navEl) {
+  // Restore bg notification channel when navigating away from Messages
+  if (id !== 'messages' && _activeMsgCtx) _unsubscribeMessages();
   // Clear active + reset any inline display overrides (messages section uses display:flex)
   document.querySelectorAll('.page-section').forEach(s=>{ s.classList.remove('active'); s.style.display=''; });
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -4079,6 +4081,17 @@ function renderTutorDashboard() {
   selectedStudent = null;
   document.getElementById('tTopbarTitle').textContent = 'My Students';
   renderTutorStudentList();
+  // Background re-sync: pick up any students assigned to this tutor since the page loaded
+  db.from('students').select('*').eq('tutor_id', currentTutor.id).order('name').then(({data}) => {
+    if (!data) return;
+    const freshIds = new Set(data.map(s=>s.id));
+    const knownIds = new Set(tutorStudents.map(s=>s.id));
+    if ([...freshIds].some(id => !knownIds.has(id))) {
+      tutorStudents = data;
+      _initBgNotifs(tutorStudents.map(s=>s.id), 'tutor'); // subscribe any new students
+      renderTutorStudentList(); // refresh sidebar with new students
+    }
+  });
   const firstName = (currentTutor.name||'Tutor').split(' ')[0];
   document.getElementById('tContent').innerHTML = `
     <div class="t-welcome anim-up">
@@ -4203,6 +4216,10 @@ function switchTutorTab(id) {
   if (tc) {
     if (id === 'messages') { tc.style.maxWidth = 'none'; tc.style.paddingBottom = '0'; }
     else { tc.style.maxWidth = ''; tc.style.paddingBottom = ''; }
+  }
+  // Restore bg channel when leaving Messages tab (so background notifications resume)
+  if (id !== 'messages' && _activeMsgCtx && selectedStudent && _activeMsgCtx.studentId === selectedStudent.id) {
+    _unsubscribeMessages();
   }
   // Load messages panel lazily when switching to messages tab
   // Mark read here (not during preload) so badge persists until the tutor actually opens Messages
@@ -4931,6 +4948,8 @@ async function bootAdminPortal() {
 }
 
 function showAdminSection(id) {
+  // Tear down foreground chat channel when leaving Messages so the bg listener is restored
+  if (id !== 'adm-messages' && _activeMsgCtx) _unsubscribeMessages();
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
     {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', 'adm-messages':'Messages'}[id] || id;
@@ -5303,7 +5322,7 @@ async function buildAdminStudents() {
           <div style="font-weight:700;color:#0f2044;font-size:.95rem">${s.name} ${isCompleted?'<span style="font-size:.7rem;font-weight:700;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:.1rem .5rem;border-radius:99px;margin-left:.25rem">🎓 Completed</span>':''}</div>
           <div style="font-size:.75rem;color:#64748b">${subj} · Grade ${s.grade||'—'}</div>
         </div>
-        <button onclick="openAdminEditStudent('${s.id}','${safeName}',${hoursUsed},${hoursTotal},'${s.grade||''}','${s.code||''}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:7px;font-size:.75rem;font-weight:600;padding:.3rem .7rem;cursor:pointer;flex-shrink:0">✏️ Edit</button>
+        <button onclick="openAdminEditStudent('${s.id}','${safeName}',${hoursUsed},${hoursTotal},'${s.grade||''}','${s.code||''}','${s.tutor_id||''}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:7px;font-size:.75rem;font-weight:600;padding:.3rem .7rem;cursor:pointer;flex-shrink:0">✏️ Edit</button>
       </div>
       <div style="margin-bottom:.5rem">
         <div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;margin-bottom:.3rem">
@@ -5343,13 +5362,20 @@ async function buildAdminStudents() {
     </div>` : ''}`;
 }
 
-function openAdminEditStudent(id, name, hoursUsed, hoursTotal, grade, code) {
-  document.getElementById('admEditStuId').value    = id;
-  document.getElementById('admEditStuName').value  = name;
-  document.getElementById('admEditHoursUsed').value= hoursUsed;
+function openAdminEditStudent(id, name, hoursUsed, hoursTotal, grade, code, tutorId='') {
+  document.getElementById('admEditStuId').value     = id;
+  document.getElementById('admEditStuName').value   = name;
+  document.getElementById('admEditHoursUsed').value = hoursUsed;
   document.getElementById('admEditHoursTotal').value= hoursTotal;
-  document.getElementById('admEditGrade').value    = grade;
-  document.getElementById('admEditCode').value     = code;
+  document.getElementById('admEditGrade').value     = grade;
+  document.getElementById('admEditCode').value      = code;
+  // Populate tutor dropdown
+  const sel = document.getElementById('admEditTutor');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  db.from('tutors').select('id, name').order('name').then(({data}) => {
+    sel.innerHTML = '<option value="">— No tutor assigned —</option>' +
+      (data||[]).map(t=>`<option value="${t.id}"${t.id===tutorId?' selected':''}>${t.name}</option>`).join('');
+  });
   document.getElementById('admEditModal').style.display = 'flex';
 }
 function closeAdminEditModal() {
@@ -5361,11 +5387,16 @@ async function saveAdminEditStudent() {
   const hoursTotal = parseFloat(document.getElementById('admEditHoursTotal').value)||0;
   const grade      = document.getElementById('admEditGrade').value.trim();
   const code       = document.getElementById('admEditCode').value.trim();
+  const tutorId    = document.getElementById('admEditTutor').value || null;
   const btn        = document.getElementById('admEditSaveBtn');
   btn.textContent  = 'Saving…'; btn.disabled = true;
-  const { error }  = await db.from('students').update({hours_used:hoursUsed, hours_total:hoursTotal, grade, code}).eq('id', id);
+  const { error }  = await db.from('students').update({
+    hours_used: hoursUsed, hours_total: hoursTotal, grade, code, tutor_id: tutorId
+  }).eq('id', id);
   btn.textContent  = 'Save Changes'; btn.disabled = false;
   if (error) { showToast('Error: '+error.message,'error'); return; }
+  // Ensure admin is subscribed to this student's chat channel (idempotent)
+  _initBgNotifs([id], 'admin');
   showToast('Student updated! ✅','success');
   closeAdminEditModal();
   buildAdminStudents();
@@ -5945,6 +5976,8 @@ async function buildAdminMessages() {
         </div>
       </div>
     </div>`;
+  // Re-sync channel subscriptions for ALL students (catches any added since boot)
+  _initBgNotifs(students.map(s=>s.id), 'admin');
   // Populate any existing unread badges now that the elements exist in DOM
   _refreshAllBadges();
 }
@@ -6116,6 +6149,12 @@ async function loadAdminConvo(studentId, studentName) {
           <label style="display:block;font-size:.72rem;font-weight:700;color:#374151;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.06em">Access Code</label>
           <input id="admEditCode" type="text" style="width:100%;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;font-family:'Josefin Sans',sans-serif;font-weight:700;letter-spacing:.08em;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
         </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:.72rem;font-weight:700;color:#374151;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.06em">Assigned Tutor</label>
+        <select id="admEditTutor" style="width:100%;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;background:#fff;outline:none;color:#111827" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+          <option value="">— No tutor assigned —</option>
+        </select>
       </div>
       <div style="display:flex;gap:.65rem;margin-top:.25rem">
         <button onclick="closeAdminEditModal()" style="flex:1;padding:.7rem;background:#f1f5f9;border:none;border-radius:8px;font-size:.85rem;font-weight:600;color:#374151;cursor:pointer">Cancel</button>
