@@ -1312,7 +1312,7 @@ async function loadFromSupabase(code) {
         subject: subj,
         topic: s.topic || '',
         time: s.duration_hours ? s.duration_hours + ' hrs' : '',
-        type: 'With Sid',
+        type: 'With ' + (student.tutors?.name?.split(' ')[0] || 'Tutor'),
         meetUrl: s.meeting_url || ''
       })),
       pastSessions: pastSessions.slice().reverse().map(s => ({
@@ -1321,7 +1321,7 @@ async function loadFromSupabase(code) {
         subject: subj,
         topic: s.topic || '',
         time: s.duration_hours ? s.duration_hours + ' hrs' : '',
-        type: 'With Sid',
+        type: 'With ' + (student.tutors?.name?.split(' ')[0] || 'Tutor'),
         notes: s.notes || ''
       })),
       studentId: student.id,
@@ -4954,7 +4954,7 @@ function buildResources() {
   const res = s.resources||[];
   const grid = document.getElementById('resourcesGrid');
   if (!res.length) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📚</div><p>No materials yet. Sid will upload resources here after each session.</p></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📚</div><p>No materials yet. ${currentStudent.tutors?.name?.split(' ')[0]||'Your tutor'} will upload resources here after each session.</p></div>`;
     return;
   }
   const newCount = res.filter(r=>r.isNew).length;
@@ -5038,14 +5038,14 @@ function homeworkCardHTML(a, studentId) {
         </div>` : ''}
       ${isSubmitted ? `
         <div class="hw-submitted-view">
-          <div class="hs-label">✅ Submitted — waiting for Sid to grade</div>
+          <div class="hs-label">✅ Submitted — waiting for ${currentStudent.tutors?.name?.split(' ')[0]||'your tutor'} to grade</div>
           ${a.submissionText?`<div style="font-size:.83rem;color:#374151;margin-top:.4rem">${a.submissionText}</div>`:''}
           ${a.submissionUrl?`<a href="${a.submissionUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-top:.5rem">📷 View your uploaded work</a>`:''}
         </div>` : ''}
       ${isGraded ? `
         <div class="hw-submitted-view">
           ${a.score!=null?`<div class="hw-score-badge">Score: ${a.score} / ${a.maxScore}</div>`:''}
-          <div class="hs-label" style="margin-top:.35rem">Sid's Feedback:</div>
+          <div class="hs-label" style="margin-top:.35rem">${currentStudent.tutors?.name?.split(' ')[0]||'Tutor'}'s Feedback:</div>
           <div class="hw-feedback-box">${a.feedback||'No feedback yet.'}</div>
           ${a.submissionUrl?`<a href="${a.submissionUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-top:.5rem">📷 Your submitted work</a>`:''}
         </div>` : ''}
@@ -5145,7 +5145,7 @@ async function submitHomework(hwId, studentId) {
     if (error) throw error;
     const hasPhoto = submissionUrl && submissionUrl.startsWith('data:');
     const hasLink  = submissionUrl && !submissionUrl.startsWith('data:');
-    showToast(hasPhoto ? 'Submitted with photo! Sid will see it. ✅' : hasLink ? 'Submitted with link! ✅' : 'Submitted! ✅','success');
+    showToast(hasPhoto ? `Submitted with photo! ${currentStudent.tutors?.name?.split(' ')[0]||'Your tutor'} will see it. ✅` : hasLink ? 'Submitted with link! ✅' : 'Submitted! ✅','success');
     const fresh = await loadFromSupabase(sessionStorage.getItem('portalCode'));
     if (fresh) { currentStudent = fresh; buildAssignments(); }
   } catch(err) {
@@ -6504,7 +6504,7 @@ async function buildTutorProgressPanel(homework, studentId, subject) {
   <!-- Recommendations -->
   <div class="t-card" style="margin-bottom:1.25rem">
     <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
-      <h3 style="margin:0;font-size:.92rem">📋 Sid's Recommendations for ${selectedStudent?.name?.split(' ')[0]||'Student'}</h3>
+      <h3 style="margin:0;font-size:.92rem">📋 ${currentTutor?.name?.split(' ')[0]||'Tutor'}'s Recommendations for ${selectedStudent?.name?.split(' ')[0]||'Student'}</h3>
       <span style="font-size:.7rem;background:#eff6ff;color:#1e40af;padding:.2rem .6rem;border-radius:99px;font-weight:700">${subject}</span>
     </div>
     <div style="padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:.75rem">
