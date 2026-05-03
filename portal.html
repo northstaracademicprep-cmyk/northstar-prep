@@ -7192,6 +7192,10 @@ async function buildAdminStudents() {
              <button onclick="adminRemoveStudent('${s.id}','${safeName}')" style="flex:1;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">🗑️ Remove</button>`
         }
       </div>
+      ${!isCompleted ? `
+      <div style="margin-top:.4rem">
+        <button onclick="adminClearMessages('${s.id}','${safeName}')" style="width:100%;background:#faf5ff;border:1px solid #e9d5ff;color:#7c3aed;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">💬 Clear Message History</button>
+      </div>` : ''}
     </div>`;
   }
 
@@ -7370,6 +7374,14 @@ async function adminResetPractice(studentId, name) {
 
   showToast(`✅ Full practice reset for ${name} — scores cleared, questions fresh!`, 'success');
 }
+
+async function adminClearMessages(studentId, name) {
+  if (!confirm(`Clear ALL message history for ${name}?\n\nThis permanently deletes every message in their thread (student, tutor, and admin).\n\nThis cannot be undone.`)) return;
+  const { error } = await db.from('messages').delete().eq('student_id', studentId);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast(`✅ Message history cleared for ${name} — fresh start!`, 'success');
+}
+
 async function adminResetHours(studentId, name) {
   if (!confirm(`Reset hours used to 0 for ${name}?`)) return;
   const { error } = await db.from('students').update({hours_used:0}).eq('id', studentId);
