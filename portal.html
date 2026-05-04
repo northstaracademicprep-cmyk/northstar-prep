@@ -6701,6 +6701,17 @@ function tutorEditToggle(id) {
 
 async function tutorDeleteItem(table, id, studentId, label) {
   if (!confirm(`Delete this ${label}? This cannot be undone.`)) return;
+
+  // If deleting a session that was already approved, subtract its hours from the student first
+  if (table === 'sessions') {
+    const { data: sess } = await db.from('sessions').select('duration_hours, approved').eq('id', id).single();
+    if (sess?.approved && sess?.duration_hours) {
+      const { data: stu } = await db.from('students').select('hours_used').eq('id', studentId).maybeSingle();
+      const corrected = Math.max(0, ((stu?.hours_used || 0) - sess.duration_hours));
+      await db.from('students').update({ hours_used: corrected }).eq('id', studentId);
+    }
+  }
+
   const { error } = await db.from(table).delete().eq('id', id);
   if (error) { showToast('Delete failed: ' + error.message, 'error'); return; }
   showToast(`${label.charAt(0).toUpperCase()+label.slice(1)} deleted. ✅`, 'success');
@@ -6893,6 +6904,13 @@ async function adminApproveSession(sessionId, studentId, hours) {
 
 async function adminRejectSession(sessionId) {
   if (!confirm('Reject and delete this session? This cannot be undone.')) return;
+  // If session was already approved, reverse the hours before deleting
+  const { data: sess } = await db.from('sessions').select('duration_hours, approved, student_id').eq('id', sessionId).single();
+  if (sess?.approved && sess?.duration_hours && sess?.student_id) {
+    const { data: stu } = await db.from('students').select('hours_used').eq('id', sess.student_id).maybeSingle();
+    const corrected = Math.max(0, ((stu?.hours_used || 0) - sess.duration_hours));
+    await db.from('students').update({ hours_used: corrected }).eq('id', sess.student_id);
+  }
   const { error } = await db.from('sessions').delete().eq('id', sessionId);
   if (error) { showToast('Error: '+error.message,'error'); return; }
   showToast('Session rejected and removed.','success');
