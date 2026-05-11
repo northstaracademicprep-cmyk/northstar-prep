@@ -1461,17 +1461,14 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 /* ── BOOT ── */
 function bootPortal() {
-  // Always reset section state before boot — clears any leftover display/active
-  // from a previous session (e.g. user logged out while on Messages)
-  document.querySelectorAll('#appShell .page-section').forEach(s => {
-    s.classList.remove('active');
-    s.style.display = '';
-  });
+  // Always reset ALL section and nav state before boot so the dashboard is
+  // always the first thing shown regardless of where the user was last session
+  document.querySelectorAll('.page-section').forEach(s => { s.classList.remove('active'); s.style.display = ''; });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const dashSec = document.getElementById('sec-dashboard');
-  if (dashSec) dashSec.classList.add('active');
-  document.querySelectorAll('#appShell .nav-item').forEach(n => n.classList.remove('active'));
-  const dashNav = document.getElementById('nav-dashboard');
-  if (dashNav) dashNav.classList.add('active');
+  if (dashSec) { dashSec.classList.add('active'); dashSec.style.display = ''; }
+  const topbarTitle = document.getElementById('topbarTitle');
+  if (topbarTitle) topbarTitle.textContent = 'Dashboard';
 
   const s = currentStudent;
   document.getElementById('loginScreen').style.display = 'none';
