@@ -657,7 +657,16 @@
       .t-btn{padding:.55rem .9rem;font-size:.8rem}
       .tsh-name{font-size:1rem}
     }
+  /* ── PROGRESS CONFIG ADMIN MODAL ── */
+  .pc-section-label{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#374151;margin:.9rem 0 .4rem;padding-bottom:.3rem;border-bottom:1px solid #f1f5f9}
+  .pc-field-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.5rem}
+  .pc-field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.5rem}
+  .pc-input{width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.83rem;outline:none;box-sizing:border-box;font-family:inherit}
+  .pc-input:focus{border-color:#c9a03a}
+  .pc-phase-block{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:.75rem;margin-bottom:.6rem}
+  .pc-phase-block select{width:100%;padding:.45rem .6rem;border:1px solid #e5e7eb;border-radius:6px;font-size:.82rem;background:#fff;outline:none}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -1787,113 +1796,217 @@ async function buildProgressPage() {
   const progEl = document.getElementById('sec-progress');
   if (!progEl) return;
 
-  // Load practice attempts from DB
+  // Destroy any existing Chart.js instances to avoid canvas-reuse errors
+  ['_pvBarChart','_pvLineChart'].forEach(k => { if(window[k]){try{window[k].destroy();}catch(e){}window[k]=null;} });
+
+  // Load practice attempts
   let attempts = [];
   if (s.studentId) {
     const { data } = await db.from('practice_attempts').select('*').eq('student_id', s.studentId).order('attempted_at', {ascending: false});
     attempts = data || [];
   }
 
-  // Homework stats
-  const graded = (s.assignments || []).filter(a => a.status === 'graded' && a.score != null);
-  const submitted = (s.assignments || []).filter(a => a.status === 'submitted');
-  const pending = (s.assignments || []).filter(a => a.status === 'pending');
-  const hwAvg = graded.length ? Math.round(graded.reduce((sum,a) => sum + Number(a.score), 0) / graded.length) : null;
+  const graded    = (s.assignments||[]).filter(a => a.status==='graded' && a.score!=null);
+  const submitted = (s.assignments||[]).filter(a => a.status==='submitted');
+  const pending   = (s.assignments||[]).filter(a => a.status==='pending');
+  const hwAvg  = graded.length   ? Math.round(graded.reduce((sum,a)=>sum+Number(a.score),0)/graded.length) : null;
+  const pvAvg  = attempts.length ? Math.round(attempts.reduce((sum,a)=>sum+Math.round((a.score/a.total)*100),0)/attempts.length) : null;
+  const scoreColor  = pct => pct>=85?'#10b981':pct>=70?'#f59e0b':'#ef4444';
+  const scoreLetter = pct => pct>=90?'A':pct>=80?'B':pct>=70?'C':pct>=60?'D':'F';
+  const tutorFirst  = s.tutors?.name?.split(' ')[0] || 'your tutor';
+  const cfg = s.progress_config;
 
-  // Practice stats
-  const pvAvg = attempts.length ? Math.round(attempts.reduce((sum,a) => sum + Math.round((a.score/a.total)*100), 0) / attempts.length) : null;
+  let html = '';
 
-  // Score color helper
-  const scoreColor = pct => pct >= 85 ? '#10b981' : pct >= 70 ? '#f59e0b' : '#ef4444';
-  const scoreLetter = pct => pct >= 90 ? 'A' : pct >= 80 ? 'B' : pct >= 70 ? 'C' : pct >= 60 ? 'D' : 'F';
-
-  progEl.innerHTML = `
-  <!-- Overview stats -->
-  <div class="prog-overview-grid">
+  // ── Overview Stats ──────────────────────────────────────────────────────────
+  html += `<div class="prog-overview-grid" style="margin-bottom:1.5rem">
     <div class="prog-overview-card">
-      <div class="prog-overview-val${hwAvg != null ? (hwAvg>=80?' green':hwAvg>=65?' gold':' red') : ''}">${hwAvg != null ? hwAvg+'%' : '—'}</div>
+      <div class="prog-overview-val${hwAvg!=null?(hwAvg>=80?' green':hwAvg>=65?' gold':' red'):''}">${hwAvg!=null?hwAvg+'%':'—'}</div>
       <div class="prog-overview-label">Homework Avg</div>
     </div>
     <div class="prog-overview-card">
-      <div class="prog-overview-val${pvAvg != null ? (pvAvg>=80?' green':pvAvg>=65?' gold':' red') : ''}">${pvAvg != null ? pvAvg+'%' : '—'}</div>
+      <div class="prog-overview-val${pvAvg!=null?(pvAvg>=80?' green':pvAvg>=65?' gold':' red'):''}">${pvAvg!=null?pvAvg+'%':'—'}</div>
       <div class="prog-overview-label">Practice Avg</div>
     </div>
     <div class="prog-overview-card">
-      <div class="prog-overview-val">${graded.length + attempts.length}</div>
+      <div class="prog-overview-val">${graded.length+attempts.length}</div>
       <div class="prog-overview-label">Total Completed</div>
     </div>
-  </div>
+  </div>`;
 
-  <!-- Score timeline (existing) -->
-  ${s.progress ? `<div class="card" style="margin-bottom:1.5rem">
-    <div class="card-header"><div class="card-title">📈 Score Progress</div></div>
-    <div class="subject-tabs" id="subjectTabs"></div>
-    <div id="subjectPanels"></div>
-  </div>` : ''}
+  if (cfg) {
+    const threshold    = cfg.masteryThreshold || 90;
+    const units        = cfg.units || [];
+    const masteredCount= units.filter(u=>u.score>=threshold).length;
+    const phases       = cfg.phases || [];
+    const weekly       = cfg.weeklyProgress || [];
+    const out          = cfg.outcomes || {};
+    const lastGrade    = weekly.length ? weekly[weekly.length-1].grade : cfg.startingGrade;
 
-  <!-- Homework grades -->
-  <div class="card" style="margin-bottom:1.5rem">
+    // ── Section 1: Unit Performance Bar Chart ──────────────────────────────
+    html += `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
+        <div class="card-title">📊 Performance by Unit — ${cfg.subject||''}</div>
+        <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
+          <span style="color:#ef4444">■ Weak &lt;70%</span>
+          <span style="color:#f59e0b">■ Moderate 70–84%</span>
+          <span style="color:#10b981">■ Strong 85%+</span>
+        </div>
+      </div>
+      <div class="card-body" style="padding-bottom:1rem">
+        <div style="position:relative;height:${Math.max(220,units.length*46)}px">
+          <canvas id="pvBarChart"></canvas>
+        </div>
+      </div>
+    </div>`;
+
+    // ── Section 2: Progress Trajectory Line Chart ───────────────────────────
+    html += `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
+        <div class="card-title">📈 Progress Trajectory</div>
+        <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
+          <span style="color:#0f2044">— Actual</span>
+          <span style="color:#c9a03a">- - Target: ${cfg.targetGrade||''}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="position:relative;height:230px"><canvas id="pvLineChart"></canvas></div>
+      </div>
+    </div>`;
+
+    // ── Section 3: Roadmap ──────────────────────────────────────────────────
+    html += `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header"><div class="card-title">🗺️ Program Roadmap</div></div>
+      <div class="card-body" style="padding-top:.5rem">
+        <div class="phases-grid">
+          ${phases.map(ph=>`
+          <div class="phase-card ${ph.status}">
+            <div class="phase-badge">${ph.status==='complete'?'✅':ph.status==='active'?'🔄':'⏳'}</div>
+            <div class="phase-num">Phase ${ph.num} · ${ph.weeks||''}</div>
+            <div class="phase-name">${ph.name}</div>
+            <div class="phase-meta" style="margin-bottom:.5rem;line-height:1.4">${ph.description||''}</div>
+            <div style="font-size:.67rem;font-weight:700;padding:.18rem .45rem;border-radius:99px;display:inline-block;background:${ph.status==='complete'?'#dcfce7':ph.status==='active'?'#fef3c7':'#f3f4f6'};color:${ph.status==='complete'?'#065f46':ph.status==='active'?'#92400e':'#6b7280'}">
+              ${ph.milestone||''}
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+    // ── Section 4: Key Outcomes ─────────────────────────────────────────────
+    html += `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header"><div class="card-title">🎯 Program Goals & Outcomes</div></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1rem">
+          <div style="background:linear-gradient(135deg,#0f2044,#1a3260);border-radius:12px;padding:1rem 1.1rem;text-align:center;color:#fff">
+            <div style="font-size:1.5rem;margin-bottom:.2rem">🎯</div>
+            <div style="font-size:.95rem;font-weight:800;color:#c9a03a;margin-bottom:.15rem">${cfg.targetGrade||'—'}</div>
+            <div style="font-size:.68rem;color:rgba(255,255,255,.6)">${out.targetDate?'Target by '+out.targetDate:'Program Goal'}</div>
+          </div>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem 1.1rem;text-align:center">
+            <div style="font-size:1.5rem;margin-bottom:.2rem">📚</div>
+            <div style="font-size:.95rem;font-weight:800;color:#065f46;margin-bottom:.15rem">${masteredCount} / ${units.length}</div>
+            <div style="font-size:.68rem;color:#374151">Units Mastered (≥${threshold}%)</div>
+          </div>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:1rem 1.1rem;text-align:center">
+            <div style="font-size:1.5rem;margin-bottom:.2rem">📅</div>
+            <div style="font-size:.95rem;font-weight:800;color:#1e40af;margin-bottom:.15rem">${out.sessionsCompleted||s.stats?.sessionsCompleted||0} / ${out.sessionsTotal||'—'}</div>
+            <div style="font-size:.68rem;color:#374151">Sessions Completed</div>
+          </div>
+          <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:12px;padding:1rem 1.1rem;text-align:center">
+            <div style="font-size:1.5rem;margin-bottom:.2rem">🎯</div>
+            <div style="font-size:.95rem;font-weight:800;color:#7c3aed;margin-bottom:.15rem">${out.practiceProblems||attempts.length*10||'—'}</div>
+            <div style="font-size:.68rem;color:#374151">Practice Problems Done</div>
+          </div>
+        </div>
+        <div style="padding:.75rem 1rem;background:#fef9ee;border:1px solid #fde68a;border-radius:10px;display:flex;align-items:center;gap:.85rem">
+          <div style="font-size:1.3rem">📈</div>
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:.1rem">Grade Improvement</div>
+            <div style="font-size:.75rem;color:#374151">
+              Started: <b>${cfg.startingGradeLabel||cfg.startingGrade+'%'}</b>
+              &nbsp;→&nbsp; Current: <b>${lastGrade}%</b>
+              &nbsp;→&nbsp; Target: <b>${cfg.targetGrade||'—'}</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Homework Grades ─────────────────────────────────────────────────────────
+  html += `<div class="card" style="margin-bottom:1.5rem">
     <div class="card-header">
       <div class="card-title">📝 Homework Grades</div>
       <div style="font-size:.75rem;color:var(--muted)">${graded.length} graded · ${submitted.length} awaiting · ${pending.length} pending</div>
     </div>
     <div class="card-body">
-      ${graded.length ? `<div class="prog-hw-list">${graded.map(a => {
-        const pct = Math.round((Number(a.score)/Number(a.maxScore||100))*100);
-        const col = scoreColor(pct);
+      ${graded.length ? `<div class="prog-hw-list">${graded.map(a=>{
+        const pct=Math.round((Number(a.score)/Number(a.maxScore||100))*100);
+        const col=scoreColor(pct);
         return `<div class="prog-hw-item">
           <div style="flex:1">
             <div class="prog-hw-title">${a.title}</div>
-            ${a.feedback ? `<div class="prog-hw-feedback">💬 ${a.feedback}</div>` : ''}
+            ${a.feedback?`<div class="prog-hw-feedback">💬 ${a.feedback}</div>`:''}
           </div>
           <div class="prog-hw-score-badge" style="background:${col}20;color:${col}">${a.score}/${a.maxScore||100} · ${scoreLetter(pct)}</div>
         </div>`;
       }).join('')}</div>` : `<div class="empty-state"><div class="empty-icon">📝</div><p>No graded homework yet. Keep it up!</p></div>`}
-      ${submitted.length ? `<div style="margin-top:1rem;padding:.65rem .85rem;border-radius:8px;background:var(--blue-bg);color:var(--blue);font-size:.8rem;font-weight:600">⏳ ${submitted.length} assignment${submitted.length>1?'s':''} submitted and awaiting Sid's grade.</div>` : ''}
+      ${submitted.length?`<div style="margin-top:1rem;padding:.65rem .85rem;border-radius:8px;background:var(--blue-bg);color:var(--blue);font-size:.8rem;font-weight:600">⏳ ${submitted.length} assignment${submitted.length>1?'s':''} submitted — awaiting ${tutorFirst}'s grade.</div>`:''}
     </div>
-  </div>
+  </div>`;
 
-  <!-- Practice history -->
-  <div class="card">
-    <div class="card-header">
+  // ── Practice History ────────────────────────────────────────────────────────
+  html += `<div class="card"${s.progress?` style="margin-bottom:1.5rem"`:''}>`+
+    `<div class="card-header">
       <div class="card-title">🎯 Practice History</div>
-      <button onclick="showSection('practice', document.getElementById('nav-practice'))" style="font-size:.78rem;font-weight:700;color:var(--navy-light);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px">Go to Practice Vault →</button>
+      <button onclick="showSection('practice',document.getElementById('nav-practice'))" style="font-size:.78rem;font-weight:700;color:var(--navy-light);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px">Go to Practice Vault →</button>
     </div>
     <div class="card-body">
-      ${attempts.length ? `<div class="prog-practice-list">${attempts.slice(0,10).map(a => {
-        const pct = Math.round((a.score/a.total)*100);
-        const col = scoreColor(pct);
-        const sec = findBankSection(a.period_key);
+      ${attempts.length?`<div class="prog-practice-list">${attempts.slice(0,10).map(a=>{
+        const pct=Math.round((a.score/a.total)*100);
+        const col=scoreColor(pct);
+        const sec=findBankSection(a.period_key);
         return `<div class="prog-practice-item">
           <div class="prog-practice-period">${sec?.icon||'📚'}</div>
           <div class="prog-practice-name">${sec?.label||a.period_key}</div>
           <div class="prog-practice-date">${fmtDateShort(a.attempted_at)}</div>
           <div class="prog-practice-score" style="color:${col}">${a.score}/${a.total} · ${pct}%</div>
-        </div>`;
-      }).join('')}</div>` : `<div class="empty-state"><div class="empty-icon">🎯</div><p>No practice attempts yet. Visit the Practice Vault to start!</p></div>`}
+        </div>`;}).join('')}</div>`:`<div class="empty-state"><div class="empty-icon">🎯</div><p>No practice attempts yet. Visit the Practice Vault to start!</p></div>`}
     </div>
   </div>`;
 
-  // Build score timeline if data exists
+  // ── Legacy score timeline ───────────────────────────────────────────────────
   if (s.progress) {
-    const subjects = Object.keys(s.progress);
-    const tabsEl = document.getElementById('subjectTabs');
-    const panelsEl = document.getElementById('subjectPanels');
-    if (tabsEl && panelsEl) {
-      tabsEl.innerHTML = ''; panelsEl.innerHTML = '';
-      subjects.forEach((subj,i) => {
-        const tab = document.createElement('button');
-        tab.className = 'subject-tab'+(i===0?' active':'');
-        tab.textContent = subj;
-        tab.onclick = ()=>switchSubjectTab(subj);
+    html += `<div class="card"><div class="card-header"><div class="card-title">📈 Score Timeline</div></div>
+      <div class="subject-tabs" id="subjectTabs"></div><div id="subjectPanels"></div></div>`;
+  }
+
+  progEl.innerHTML = html;
+
+  // Render Chart.js charts after DOM update
+  if (cfg?.units?.length) setTimeout(() => _renderProgressCharts(cfg), 80);
+
+  // Legacy score timeline builder
+  if (s.progress) {
+    const subjects=Object.keys(s.progress);
+    const tabsEl=document.getElementById('subjectTabs');
+    const panelsEl=document.getElementById('subjectPanels');
+    if (tabsEl&&panelsEl) {
+      tabsEl.innerHTML=''; panelsEl.innerHTML='';
+      subjects.forEach((subj,i)=>{
+        const tab=document.createElement('button');
+        tab.className='subject-tab'+(i===0?' active':'');
+        tab.textContent=subj;
+        tab.onclick=()=>switchSubjectTab(subj);
         tabsEl.appendChild(tab);
-        const entries = s.progress[subj];
-        const maxScore = Math.max(...entries.map(e=>e.score),100);
-        const ap = s.apScores?.[subj];
-        const panel = document.createElement('div');
-        panel.className = 'subject-panel'+(i===0?' active':'');
-        panel.id = 'panel-'+subj.replace(/\s+/g,'-');
-        panel.innerHTML = `<div class="score-timeline">
+        const entries=s.progress[subj];
+        const maxScore=Math.max(...entries.map(e=>e.score),100);
+        const ap=s.apScores?.[subj];
+        const panel=document.createElement('div');
+        panel.className='subject-panel'+(i===0?' active':'');
+        panel.id='panel-'+subj.replace(/\s+/g,'-');
+        panel.innerHTML=`<div class="score-timeline">
           ${entries.map((e,ei)=>`<div class="score-entry">
             <div class="score-date">${e.date}</div>
             <div class="score-bar-wrap"><div class="score-bar ${ei===entries.length-1?'gold':'navy'}" data-width="${Math.round((e.score/maxScore)*100)}" style="width:0%">${e.label}</div></div>
@@ -1907,8 +2020,71 @@ async function buildProgressPage() {
         </div></div>`:''}`;
         panelsEl.appendChild(panel);
       });
-      setTimeout(animateAllBars, 300);
+      setTimeout(animateAllBars,300);
     }
+  }
+}
+
+/* ── CHART.JS RENDERING ─────────────────────────────────────────────────────── */
+function _renderProgressCharts(cfg) {
+  const units  = cfg.units || [];
+  const weekly = cfg.weeklyProgress || [];
+  const target = cfg.targetGradeNum || 90;
+
+  // Bar chart — unit performance (horizontal)
+  const barCanvas = document.getElementById('pvBarChart');
+  if (barCanvas && units.length) {
+    const barColors  = units.map(u=>u.score>=85?'rgba(16,185,129,.18)':u.score>=70?'rgba(245,158,11,.18)':'rgba(239,68,68,.18)');
+    const borderCols = units.map(u=>u.score>=85?'#10b981':u.score>=70?'#f59e0b':'#ef4444');
+    window._pvBarChart = new Chart(barCanvas, {
+      type: 'bar',
+      data: {
+        labels: units.map(u=>u.name),
+        datasets: [{ data:units.map(u=>u.score), backgroundColor:barColors, borderColor:borderCols, borderWidth:2, borderRadius:6, borderSkipped:false }]
+      },
+      options: {
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.x}%  ${ctx.parsed.x>=85?'✅ Strong':ctx.parsed.x>=70?'⚠️ Moderate':'❌ Needs Work'}`}}
+        },
+        scales:{
+          x:{min:0,max:100,grid:{color:'rgba(0,0,0,.06)'},ticks:{callback:v=>v+'%',font:{size:11}}},
+          y:{grid:{display:false},ticks:{font:{size:11.5,weight:'600'}}}
+        }
+      }
+    });
+  }
+
+  // Line chart — progress trajectory
+  const lineCanvas = document.getElementById('pvLineChart');
+  if (lineCanvas && weekly.length) {
+    const labels   = weekly.map(p=>p.label);
+    const actuals  = weekly.map(p=>p.grade);
+    const targetPts= weekly.map(()=>target);
+    const yMin = Math.max(0,Math.min(...actuals)-12);
+    const yMax = Math.min(100,target+12);
+    window._pvLineChart = new Chart(lineCanvas, {
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          {label:'Actual Grade',data:actuals,borderColor:'#0f2044',backgroundColor:'rgba(15,32,68,.08)',borderWidth:2.5,pointBackgroundColor:'#0f2044',pointRadius:5,fill:true,tension:0.35},
+          {label:`Target (${cfg.targetGrade||target+'%'})`,data:targetPts,borderColor:'#c9a03a',borderWidth:2,borderDash:[7,4],pointRadius:0,fill:false,tension:0}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:true,position:'top',labels:{font:{size:11},boxWidth:18,padding:14}},
+          tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}%`}}
+        },
+        scales:{
+          y:{min:yMin,max:yMax,grid:{color:'rgba(0,0,0,.06)'},ticks:{callback:v=>v+'%',font:{size:11}}},
+          x:{grid:{display:false},ticks:{font:{size:11}}}
+        }
+      }
+    });
   }
 }
 function switchSubjectTab(subj) {
@@ -7220,8 +7396,9 @@ async function buildAdminStudents() {
         }
       </div>
       ${!isCompleted ? `
-      <div style="margin-top:.4rem">
-        <button onclick="adminClearMessages('${s.id}','${safeName}')" style="width:100%;background:#faf5ff;border:1px solid #e9d5ff;color:#7c3aed;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">💬 Clear Message History</button>
+      <div style="margin-top:.4rem;display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
+        <button onclick="adminClearMessages('${s.id}','${safeName}')" style="background:#faf5ff;border:1px solid #e9d5ff;color:#7c3aed;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">💬 Clear Messages</button>
+        <button onclick="openProgressConfig('${s.id}','${safeName}')" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#065f46;border-radius:7px;font-size:.73rem;font-weight:600;padding:.35rem .5rem;cursor:pointer">📊 Progress Plan</button>
       </div>` : ''}
     </div>`;
   }
@@ -7407,6 +7584,125 @@ async function adminClearMessages(studentId, name) {
   const { error } = await db.from('messages').delete().eq('student_id', studentId);
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast(`✅ Message history cleared for ${name} — fresh start!`, 'success');
+}
+
+/* ── PROGRESS CONFIG ADMIN ──────────────────────────────────────────────────── */
+let _pcStuId = null;
+let _pcUnits = [];
+let _pcWeekly = [];
+
+function _defaultPhases() {
+  return [
+    {num:1,name:'Gap Analysis & Foundation',weeks:'Weeks 1–2',description:'Deep dive into grade report, identifying weak areas and foundational gaps',status:'upcoming',milestone:'Study plan created, all weak areas mapped'},
+    {num:2,name:'Core Concept Repair',weeks:'Weeks 3–6',description:'Systematic review of core concepts with focus on weak areas',status:'upcoming',milestone:'Core concepts reviewed and reinforced'},
+    {num:3,name:'Applied Practice',weeks:'Weeks 7–8',description:'Application exercises and exam-format practice problems',status:'upcoming',milestone:'Exam skills improved, format mastered'},
+    {num:4,name:'Full Practice & Review',weeks:'Weeks 9–10',description:'Timed practice exams, final review of all topics',status:'upcoming',milestone:'Exam ready — all topics reviewed'}
+  ];
+}
+
+function _renderPCUnits() {
+  const c = document.getElementById('pcUnitsContainer');
+  if (!c) return;
+  c.innerHTML = _pcUnits.length ? _pcUnits.map((u,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 68px auto;gap:.4rem;margin-bottom:.35rem;align-items:center">
+      <input class="pc-input" value="${u.name||''}" oninput="_pcUnits[${i}].name=this.value" placeholder="Unit / Period name">
+      <input class="pc-input" type="number" min="0" max="100" value="${u.score||0}" oninput="_pcUnits[${i}].score=Number(this.value)" style="text-align:center" placeholder="%">
+      <button onclick="_pcUnits.splice(${i},1);_renderPCUnits()" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:.35rem .55rem;cursor:pointer;font-size:.8rem;white-space:nowrap">✕</button>
+    </div>`).join('') : '<div style="font-size:.78rem;color:#94a3b8">No units yet — click + Add Unit</div>';
+}
+
+function _renderPCWeekly() {
+  const c = document.getElementById('pcWeeklyContainer');
+  if (!c) return;
+  c.innerHTML = _pcWeekly.length ? _pcWeekly.map((w,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 68px auto;gap:.4rem;margin-bottom:.35rem;align-items:center">
+      <input class="pc-input" value="${w.label||''}" oninput="_pcWeekly[${i}].label=this.value" placeholder="Label (e.g. Week 2, Sem 1)">
+      <input class="pc-input" type="number" min="0" max="100" value="${w.grade||0}" oninput="_pcWeekly[${i}].grade=Number(this.value)" style="text-align:center" placeholder="%">
+      <button onclick="_pcWeekly.splice(${i},1);_renderPCWeekly()" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:.35rem .55rem;cursor:pointer;font-size:.8rem;white-space:nowrap">✕</button>
+    </div>`).join('') : '<div style="font-size:.78rem;color:#94a3b8">No data points yet — click + Add Point</div>';
+}
+
+async function openProgressConfig(studentId, studentName) {
+  _pcStuId = studentId;
+  document.getElementById('pcStudentName').textContent = studentName || 'Student';
+  // Load existing config
+  const { data } = await db.from('students').select('progress_config').eq('id', studentId).single();
+  const cfg = data?.progress_config || {};
+  // Scalar fields
+  document.getElementById('pcStartGrade').value   = cfg.startingGrade || '';
+  document.getElementById('pcStartLabel').value   = cfg.startingGradeLabel || '';
+  document.getElementById('pcTargetGrade').value  = cfg.targetGrade || '';
+  document.getElementById('pcTargetNum').value    = cfg.targetGradeNum || 90;
+  document.getElementById('pcWeeks').value        = cfg.programWeeks || '';
+  document.getElementById('pcCurrentPhase').value = cfg.currentPhase || 1;
+  document.getElementById('pcSubject').value      = cfg.subject || '';
+  document.getElementById('pcThreshold').value    = cfg.masteryThreshold || 90;
+  // Units & weekly
+  _pcUnits  = (cfg.units||[]).map(u=>({...u}));
+  _pcWeekly = (cfg.weeklyProgress||[]).map(w=>({...w}));
+  _renderPCUnits();
+  _renderPCWeekly();
+  // Phases (4 fixed)
+  const phases = cfg.phases || _defaultPhases();
+  [1,2,3,4].forEach(n => {
+    const ph = phases[n-1] || {};
+    document.getElementById(`pcPh${n}Name`).value      = ph.name||'';
+    document.getElementById(`pcPh${n}Weeks`).value     = ph.weeks||'';
+    document.getElementById(`pcPh${n}Desc`).value      = ph.description||'';
+    document.getElementById(`pcPh${n}Status`).value    = ph.status||'upcoming';
+    document.getElementById(`pcPh${n}Milestone`).value = ph.milestone||'';
+  });
+  // Outcomes
+  const out = cfg.outcomes || {};
+  document.getElementById('pcOutDate').value    = out.targetDate||'';
+  document.getElementById('pcOutSessC').value   = out.sessionsCompleted||'';
+  document.getElementById('pcOutSessT').value   = out.sessionsTotal||'';
+  document.getElementById('pcOutPractice').value= out.practiceProblems||'';
+  document.getElementById('admProgressModal').style.display = 'flex';
+}
+
+function closeProgressModal() {
+  document.getElementById('admProgressModal').style.display = 'none';
+  _pcStuId = null;
+}
+
+async function saveProgressConfig() {
+  if (!_pcStuId) return;
+  const btn = document.getElementById('pcSaveBtn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  const phases = [1,2,3,4].map(n=>({
+    num:n,
+    name:       document.getElementById(`pcPh${n}Name`).value.trim(),
+    weeks:      document.getElementById(`pcPh${n}Weeks`).value.trim(),
+    description:document.getElementById(`pcPh${n}Desc`).value.trim(),
+    status:     document.getElementById(`pcPh${n}Status`).value,
+    milestone:  document.getElementById(`pcPh${n}Milestone`).value.trim()
+  }));
+  const cfg = {
+    startingGrade:      parseFloat(document.getElementById('pcStartGrade').value)||0,
+    startingGradeLabel: document.getElementById('pcStartLabel').value.trim(),
+    targetGrade:        document.getElementById('pcTargetGrade').value.trim(),
+    targetGradeNum:     parseFloat(document.getElementById('pcTargetNum').value)||90,
+    programWeeks:       parseInt(document.getElementById('pcWeeks').value)||0,
+    currentPhase:       parseInt(document.getElementById('pcCurrentPhase').value)||1,
+    subject:            document.getElementById('pcSubject').value.trim(),
+    masteryThreshold:   parseFloat(document.getElementById('pcThreshold').value)||90,
+    units:              _pcUnits.filter(u=>u.name),
+    weeklyProgress:     _pcWeekly.filter(w=>w.label),
+    phases,
+    outcomes:{
+      targetDate:         document.getElementById('pcOutDate').value.trim(),
+      sessionsCompleted:  parseInt(document.getElementById('pcOutSessC').value)||0,
+      sessionsTotal:      parseInt(document.getElementById('pcOutSessT').value)||0,
+      practiceProblems:   parseInt(document.getElementById('pcOutPractice').value)||0
+    }
+  };
+  const { error } = await db.from('students').update({ progress_config: cfg }).eq('id', _pcStuId);
+  btn.textContent = 'Save Progress Plan'; btn.disabled = false;
+  if (error) { showToast('Error: '+error.message,'error'); return; }
+  showToast('✅ Progress plan saved!','success');
+  closeProgressModal();
+  buildAdminStudents();
 }
 
 async function adminResetHours(studentId, name) {
@@ -8216,6 +8512,108 @@ async function loadAdminConvo(studentId, studentName) {
         <button onclick="closeAdminAddModal()" style="flex:1;padding:.7rem;background:#f1f5f9;border:none;border-radius:8px;font-size:.85rem;font-weight:600;color:#374151;cursor:pointer">Cancel</button>
         <button id="admAddSaveBtn" onclick="saveAdminAddStudent()" style="flex:2;padding:.7rem;background:linear-gradient(135deg,#0f2044,#1a3260);border:none;border-radius:8px;font-size:.85rem;font-weight:700;color:#fff;cursor:pointer">Add Student</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS CONFIG MODAL -->
+<div id="admProgressModal" style="display:none;position:fixed;inset:0;background:rgba(10,20,45,.6);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)closeProgressModal()">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:580px;box-shadow:0 24px 80px rgba(0,0,0,.35);overflow:hidden;max-height:92vh;display:flex;flex-direction:column">
+    <div style="background:linear-gradient(135deg,#0f2044,#1a3260);padding:1.1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:.95rem;font-weight:700;color:#fff">📊 Progress Plan</div>
+        <div id="pcStudentName" style="font-size:.75rem;color:rgba(255,255,255,.6)"></div>
+      </div>
+      <button onclick="closeProgressModal()" style="background:rgba(255,255,255,.12);border:none;color:#fff;font-size:1.1rem;width:30px;height:30px;border-radius:50%;cursor:pointer">×</button>
+    </div>
+    <div style="padding:1.25rem 1.5rem;overflow-y:auto;flex:1">
+
+      <!-- Overview -->
+      <div class="pc-section-label">Overview</div>
+      <div class="pc-field-row">
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Subject</label>
+          <input id="pcSubject" class="pc-input" placeholder="e.g. AP US History"></div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Program Weeks</label>
+          <input id="pcWeeks" class="pc-input" type="number" min="1" placeholder="e.g. 10"></div>
+      </div>
+      <div class="pc-field-row">
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Starting Grade %</label>
+          <input id="pcStartGrade" class="pc-input" type="number" min="0" max="100" placeholder="e.g. 68"></div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Starting Grade Label</label>
+          <input id="pcStartLabel" class="pc-input" placeholder="e.g. D+, C-, 62%"></div>
+      </div>
+      <div class="pc-field-row">
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Goal</label>
+          <input id="pcTargetGrade" class="pc-input" placeholder="e.g. 5 on AP Exam, A-"></div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target % (for graph)</label>
+          <input id="pcTargetNum" class="pc-input" type="number" min="0" max="100" placeholder="e.g. 90"></div>
+      </div>
+      <div class="pc-field-row">
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Current Phase (1–4)</label>
+          <select id="pcCurrentPhase" class="pc-input" style="background:#fff">
+            <option value="1">Phase 1</option><option value="2">Phase 2</option>
+            <option value="3">Phase 3</option><option value="4">Phase 4</option>
+          </select></div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Mastery Threshold %</label>
+          <input id="pcThreshold" class="pc-input" type="number" min="0" max="100" placeholder="90"></div>
+      </div>
+
+      <!-- Units -->
+      <div class="pc-section-label">Unit / Period Scores (for bar chart)</div>
+      <div style="font-size:.72rem;color:#64748b;margin-bottom:.5rem">Enter each unit/period name and its starting score from the grade report.</div>
+      <div id="pcUnitsContainer"></div>
+      <button onclick="_pcUnits.push({name:'',score:0});_renderPCUnits()" style="margin-top:.35rem;font-size:.75rem;font-weight:700;color:#0f2044;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:.3rem .75rem;cursor:pointer">+ Add Unit</button>
+
+      <!-- Weekly Progress -->
+      <div class="pc-section-label">Weekly Progress Points (for line graph)</div>
+      <div style="font-size:.72rem;color:#64748b;margin-bottom:.5rem">Add grade checkpoints in chronological order (start → current).</div>
+      <div id="pcWeeklyContainer"></div>
+      <button onclick="_pcWeekly.push({label:'',grade:0});_renderPCWeekly()" style="margin-top:.35rem;font-size:.75rem;font-weight:700;color:#0f2044;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:.3rem .75rem;cursor:pointer">+ Add Point</button>
+
+      <!-- Phases -->
+      <div class="pc-section-label">Program Phases (Roadmap)</div>
+      ${[1,2,3,4].map(n=>`
+      <div class="pc-phase-block">
+        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase ${n}</div>
+        <div class="pc-field-row">
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label>
+            <input id="pcPh${n}Name" class="pc-input" placeholder="Phase name"></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label>
+            <input id="pcPh${n}Weeks" class="pc-input" placeholder="e.g. Weeks 1–2"></div>
+        </div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Description</label>
+          <input id="pcPh${n}Desc" class="pc-input" placeholder="What's covered in this phase"></div>
+        <div class="pc-field-row">
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
+            <select id="pcPh${n}Status" class="pc-input" style="background:#fff">
+              <option value="upcoming">⏳ Upcoming</option>
+              <option value="active">🔄 Active</option>
+              <option value="complete">✅ Complete</option>
+            </select></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label>
+            <input id="pcPh${n}Milestone" class="pc-input" placeholder="Goal / achievement"></div>
+        </div>
+      </div>`).join('')}
+
+      <!-- Outcomes -->
+      <div class="pc-section-label">Key Outcomes</div>
+      <div class="pc-field-row">
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Date</label>
+          <input id="pcOutDate" class="pc-input" placeholder="e.g. May 8, 2026"></div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Practice Problems</label>
+          <input id="pcOutPractice" class="pc-input" type="number" min="0" placeholder="e.g. 50"></div>
+      </div>
+      <div class="pc-field-row">
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Sessions Completed</label>
+          <input id="pcOutSessC" class="pc-input" type="number" min="0" placeholder="e.g. 10"></div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Sessions Total</label>
+          <input id="pcOutSessT" class="pc-input" type="number" min="0" placeholder="e.g. 10"></div>
+      </div>
+
+    </div>
+    <div style="padding:1rem 1.5rem;border-top:1px solid #f1f5f9;display:flex;gap:.65rem;flex-shrink:0">
+      <button onclick="closeProgressModal()" style="flex:1;padding:.7rem;background:#f1f5f9;border:none;border-radius:8px;font-size:.85rem;font-weight:600;color:#374151;cursor:pointer">Cancel</button>
+      <button id="pcSaveBtn" onclick="saveProgressConfig()" style="flex:2;padding:.7rem;background:linear-gradient(135deg,#0f2044,#1a3260);border:none;border-radius:8px;font-size:.85rem;font-weight:700;color:#fff;cursor:pointer">Save Progress Plan</button>
     </div>
   </div>
 </div>
