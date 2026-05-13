@@ -8827,7 +8827,7 @@ Generate ONLY a raw JSON object with this exact structure. No explanation, no ma
 
 STRICT RULES — follow every one:
 
-UNITS: Extract every single unit, period, or topic from the grade report with its exact score. Do not skip any.
+UNITS: Group all grades into 5–8 major unit or topic categories only. Do NOT list individual tests, quizzes, homework assignments, or assessments separately. Instead, average the scores within each major unit/topic and list that grouped score. For example, if the grade report shows Quiz 1, Quiz 2, Test 1, and Homework under "Algebra," combine them into one entry: {"name": "Algebra", "score": 72}. The goal is a clean, high-level overview of performance by subject area — not a full gradebook dump.
 
 STARTING GRADE: Use the overall/cumulative % from the grade report. startingGradeLabel should be the letter grade.
 
