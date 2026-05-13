@@ -7760,7 +7760,7 @@ function _importProgressJSON() {
   } catch(e) { showToast('Invalid JSON — make sure you copied the full output from Claude.', 'error'); return; }
 
   // Scalar fields
-  if (cfg.subject)            document.getElementById('pcSubject').value        = cfg.subject;
+  if (cfg.subject)          { document.getElementById('pcSubject').value = cfg.subject; document.getElementById('pcSubjectVisible').value = cfg.subject; }
   if (cfg.programWeeks)       document.getElementById('pcWeeks').value          = cfg.programWeeks;
   if (cfg.startingGrade!=null)document.getElementById('pcStartGrade').value     = cfg.startingGrade;
   if (cfg.startingGradeLabel) document.getElementById('pcStartLabel').value     = cfg.startingGradeLabel;
@@ -7862,12 +7862,13 @@ async function openProgressConfig(studentId, studentName) {
   _renderPCWeaknesses();
   // Outcomes
   const out = cfg.outcomes || {};
-  document.getElementById('pcOutDate').value     = out.targetDate||'';
-  document.getElementById('pcOutSessC').value    = out.sessionsCompleted||'';
-  document.getElementById('pcOutSessT').value    = out.sessionsTotal||'';
-  document.getElementById('pcOutPractice').value = out.practiceProblems||'';
-  document.getElementById('pcTotalHours').value  = cfg.totalHours||'';
-  document.getElementById('pcTargetGrade').value = cfg.targetGrade||'';
+  document.getElementById('pcOutDate').value        = out.targetDate||'';
+  document.getElementById('pcOutSessC').value       = out.sessionsCompleted||'';
+  document.getElementById('pcOutSessT').value       = out.sessionsTotal||'';
+  document.getElementById('pcOutPractice').value    = out.practiceProblems||'';
+  document.getElementById('pcTotalHours').value     = cfg.totalHours||'';
+  document.getElementById('pcTargetGrade').value    = cfg.targetGrade||'';
+  document.getElementById('pcSubjectVisible').value = cfg.subject||'';
   document.getElementById('admProgressModal').style.display = 'flex';
 }
 
@@ -7891,6 +7892,7 @@ async function saveProgressConfig() {
     milestone:   document.getElementById(`pcPh${n}Milestone`).value.trim()
   }));
   const cfg = {
+    subject:            document.getElementById('pcSubjectVisible').value.trim() || document.getElementById('pcSubject').value.trim(),
     startingGrade:      parseFloat(document.getElementById('pcStartGrade').value)||0,
     startingGradeLabel: document.getElementById('pcStartLabel').value.trim(),
     targetGrade:        document.getElementById('pcTargetGrade').value.trim(),
@@ -8760,6 +8762,7 @@ The plan uses a "Hell → Bridge → Heaven" narrative framework:
 - HEAVEN: The target goal is achievable, transformational, and life-changing. Paint a vivid picture of success.
 
 STUDENT INFO (fill in before sending):
+- Subject: [e.g. AP US History, HiSET Math, SAT Math]
 - Target goal: [e.g. Score a 4 or 5 on AP Exam, Pass HiSET, Raise grade to A-]
 - Target date: [e.g. May 2027]
 - Total hours purchased: [e.g. 20]
@@ -8853,13 +8856,17 @@ Return ONLY the raw JSON. No text before or after.</pre>
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem">
         <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.08em">3 Things to Fill In Before Generating</div>
         <div class="pc-field-row">
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Subject</label>
+            <input id="pcSubjectVisible" class="pc-input" placeholder="e.g. AP US History, HiSET Math"></div>
           <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Goal</label>
             <input id="pcTargetGrade" class="pc-input" placeholder="e.g. Score 5 on AP Exam, Pass HiSET"></div>
+        </div>
+        <div class="pc-field-row">
           <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Date</label>
             <input id="pcOutDate" class="pc-input" placeholder="e.g. May 2027"></div>
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Total Hours Purchased</label>
+            <input id="pcTotalHours" class="pc-input" type="number" min="1" placeholder="e.g. 20"></div>
         </div>
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Total Hours Purchased</label>
-          <input id="pcTotalHours" class="pc-input" type="number" min="1" placeholder="e.g. 20"></div>
         <div style="font-size:.68rem;color:#94a3b8;margin-top:.5rem">Copy these into the prompt before sending to Claude. Everything else is extracted automatically from the grade report.</div>
       </div>
 
