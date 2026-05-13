@@ -8862,32 +8862,70 @@ Rules:
 
       <!-- Phases -->
       <div class="pc-section-label">Program Phases (Roadmap)</div>
-      ${[1,2,3,4].map(n=>`
+
       <div class="pc-phase-block">
-        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase ${n}</div>
+        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase 1</div>
         <div class="pc-field-row">
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label>
-            <input id="pcPh${n}Name" class="pc-input" placeholder="Phase name"></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label>
-            <input id="pcPh${n}Weeks" class="pc-input" placeholder="e.g. Weeks 1–2"></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label><input id="pcPh1Name" class="pc-input" placeholder="Phase name"></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label><input id="pcPh1Weeks" class="pc-input" placeholder="e.g. Weeks 1–2"></div>
         </div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label>
-          <input id="pcPh${n}Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label>
-          <textarea id="pcPh${n}Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student — exam strategies, topics reviewed, practice types, etc."></textarea></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label>
-          <input id="pcPh${n}Topics" class="pc-input" placeholder="e.g. Period 1–2, Colonialism, DBQ Writing"></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label><input id="pcPh1Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label><textarea id="pcPh1Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student."></textarea></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label><input id="pcPh1Topics" class="pc-input" placeholder="e.g. Fractions, Algebra, Word Problems"></div>
         <div class="pc-field-row">
           <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
-            <select id="pcPh${n}Status" class="pc-input" style="background:#fff">
-              <option value="upcoming">⏳ Upcoming</option>
-              <option value="active">🔄 Active</option>
-              <option value="complete">✅ Complete</option>
-            </select></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label>
-            <input id="pcPh${n}Milestone" class="pc-input" placeholder="Goal / achievement"></div>
+            <select id="pcPh1Status" class="pc-input" style="background:#fff"><option value="upcoming">⏳ Upcoming</option><option value="active">🔄 Active</option><option value="complete">✅ Complete</option></select></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label><input id="pcPh1Milestone" class="pc-input" placeholder="Goal / achievement"></div>
         </div>
-      </div>`).join('')}
+      </div>
+
+      <div class="pc-phase-block">
+        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase 2</div>
+        <div class="pc-field-row">
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label><input id="pcPh2Name" class="pc-input" placeholder="Phase name"></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label><input id="pcPh2Weeks" class="pc-input" placeholder="e.g. Weeks 3–5"></div>
+        </div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label><input id="pcPh2Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label><textarea id="pcPh2Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student."></textarea></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label><input id="pcPh2Topics" class="pc-input" placeholder="e.g. Fractions, Algebra, Word Problems"></div>
+        <div class="pc-field-row">
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
+            <select id="pcPh2Status" class="pc-input" style="background:#fff"><option value="upcoming">⏳ Upcoming</option><option value="active">🔄 Active</option><option value="complete">✅ Complete</option></select></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label><input id="pcPh2Milestone" class="pc-input" placeholder="Goal / achievement"></div>
+        </div>
+      </div>
+
+      <div class="pc-phase-block">
+        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase 3</div>
+        <div class="pc-field-row">
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label><input id="pcPh3Name" class="pc-input" placeholder="Phase name"></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label><input id="pcPh3Weeks" class="pc-input" placeholder="e.g. Weeks 6–8"></div>
+        </div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label><input id="pcPh3Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label><textarea id="pcPh3Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student."></textarea></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label><input id="pcPh3Topics" class="pc-input" placeholder="e.g. Fractions, Algebra, Word Problems"></div>
+        <div class="pc-field-row">
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
+            <select id="pcPh3Status" class="pc-input" style="background:#fff"><option value="upcoming">⏳ Upcoming</option><option value="active">🔄 Active</option><option value="complete">✅ Complete</option></select></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label><input id="pcPh3Milestone" class="pc-input" placeholder="Goal / achievement"></div>
+        </div>
+      </div>
+
+      <div class="pc-phase-block">
+        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase 4</div>
+        <div class="pc-field-row">
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label><input id="pcPh4Name" class="pc-input" placeholder="Phase name"></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label><input id="pcPh4Weeks" class="pc-input" placeholder="e.g. Weeks 9–10"></div>
+        </div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label><input id="pcPh4Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label><textarea id="pcPh4Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student."></textarea></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label><input id="pcPh4Topics" class="pc-input" placeholder="e.g. Fractions, Algebra, Word Problems"></div>
+        <div class="pc-field-row">
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
+            <select id="pcPh4Status" class="pc-input" style="background:#fff"><option value="upcoming">⏳ Upcoming</option><option value="active">🔄 Active</option><option value="complete">✅ Complete</option></select></div>
+          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label><input id="pcPh4Milestone" class="pc-input" placeholder="Goal / achievement"></div>
+        </div>
+      </div>
 
       <!-- Weaknesses -->
       <div class="pc-section-label">Weakness Analysis</div>
