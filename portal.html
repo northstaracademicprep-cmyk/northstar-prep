@@ -386,7 +386,7 @@
     .prog-overview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
     .prog-overview-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;text-align:center;box-shadow:var(--shadow)}
     .prog-overview-val{font-size:2rem;font-weight:800;color:var(--navy);line-height:1;margin-bottom:.3rem}
-    .prog-overview-val.green{color:var(--green)}.prog-overview-val.gold{color:var(--gold)}
+    .prog-overview-val.green{color:var(--green)}.prog-overview-val.gold{color:var(--gold)}.prog-overview-val.red{color:#ef4444}
     .prog-overview-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
     .prog-hw-list{display:flex;flex-direction:column;gap:.5rem}
     .prog-hw-item{display:flex;align-items:center;gap:.85rem;padding:.7rem .85rem;border-radius:8px;border:1px solid var(--border);background:var(--white)}
@@ -399,6 +399,58 @@
     .prog-practice-name{font-size:.8rem;color:var(--navy);font-weight:600;flex:1}
     .prog-practice-score{font-size:.85rem;font-weight:800;color:var(--navy)}
     .prog-practice-date{font-size:.7rem;color:var(--muted)}
+
+    /* ── HELL / HEAVEN / BRIDGE NARRATIVE ── */
+    .hell-card{background:linear-gradient(135deg,#1a0505,#3b0a0a);border-radius:16px;padding:1.5rem 1.75rem;color:#fff;margin-bottom:1.5rem;position:relative;overflow:hidden;border:1px solid rgba(239,68,68,.3)}
+    .hell-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top left,rgba(239,68,68,.18) 0%,transparent 65%);pointer-events:none}
+    .heaven-card{background:linear-gradient(135deg,#0a1f0a,#0f3320);border-radius:16px;padding:1.5rem 1.75rem;color:#fff;margin-bottom:1.5rem;position:relative;overflow:hidden;border:1px solid rgba(52,211,153,.3)}
+    .heaven-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top right,rgba(201,160,58,.2) 0%,transparent 65%);pointer-events:none}
+    .bridge-sep{background:linear-gradient(135deg,#0f2044,#1a3260);border-radius:16px;padding:1.25rem 1.75rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;color:#fff;position:relative;overflow:hidden}
+    .bridge-sep::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(201,160,58,.15) 0%,transparent 70%);pointer-events:none}
+    /* ── VERTICAL ROADMAP ── */
+    .roadmap-v{position:relative;padding-left:2.75rem;margin:.25rem 0}
+    .roadmap-v::before{content:'';position:absolute;left:1rem;top:.5rem;bottom:.5rem;width:2px;background:linear-gradient(to bottom,#3b82f6,#10b981);border-radius:99px}
+    .roadmap-v-item{position:relative;margin-bottom:1.5rem}
+    .roadmap-v-item:last-child{margin-bottom:0}
+    .roadmap-v-dot{position:absolute;left:-1.85rem;top:.15rem;width:1.1rem;height:1.1rem;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 3px var(--dot-color,#3b82f6);background:var(--dot-color,#3b82f6);z-index:1}
+    .roadmap-v-dot.complete{--dot-color:#10b981}
+    .roadmap-v-dot.active{--dot-color:#c9a03a;animation:pulseDot 1.8s ease-in-out infinite}
+    .roadmap-v-dot.upcoming{--dot-color:#94a3b8;background:#fff}
+    @keyframes pulseDot{0%,100%{box-shadow:0 0 0 3px #c9a03a}50%{box-shadow:0 0 0 6px rgba(201,160,58,.25)}}
+    .roadmap-v-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1rem 1.15rem;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:box-shadow .2s}
+    .roadmap-v-card.complete{border-left:3px solid #10b981}
+    .roadmap-v-card.active{border-left:3px solid #c9a03a;box-shadow:0 2px 12px rgba(201,160,58,.18)}
+    .roadmap-v-card.upcoming{border-left:3px solid #e2e8f0;opacity:.75}
+    .roadmap-v-num{font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem}
+    .roadmap-v-card.complete .roadmap-v-num{color:#10b981}
+    .roadmap-v-card.active .roadmap-v-num{color:#c9a03a}
+    .roadmap-v-card.upcoming .roadmap-v-num{color:#94a3b8}
+    .roadmap-v-name{font-size:.88rem;font-weight:800;color:var(--navy);margin-bottom:.3rem;line-height:1.3}
+    .roadmap-v-desc{font-size:.75rem;color:#475569;line-height:1.55;margin-bottom:.65rem}
+    .roadmap-v-detail{font-size:.74rem;color:#374151;line-height:1.6;background:#f8fafc;border-radius:8px;padding:.65rem .85rem;margin-bottom:.65rem;border:1px solid #e2e8f0}
+    .topic-pills{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.65rem}
+    .topic-pill{font-size:.63rem;font-weight:700;padding:.18rem .55rem;border-radius:99px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+    .topic-pill.red{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+    .topic-pill.green{background:#f0fdf4;color:#065f46;border-color:#bbf7d0}
+    .topic-pill.gold{background:#fefce8;color:#92400e;border-color:#fde68a}
+    .roadmap-v-milestone{font-size:.68rem;font-weight:700;padding:.22rem .6rem;border-radius:99px;display:inline-flex;align-items:center;gap:.3rem}
+    .roadmap-v-milestone.complete{background:#dcfce7;color:#065f46}
+    .roadmap-v-milestone.active{background:#fef3c7;color:#92400e}
+    .roadmap-v-milestone.upcoming{background:#f1f5f9;color:#6b7280}
+    /* ── WEAKNESS CARDS ── */
+    .weak-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.85rem;margin-top:.75rem}
+    .weak-card{border-radius:12px;padding:1rem 1.1rem;border:1px solid #fecaca;background:#fef2f2;position:relative;overflow:hidden}
+    .weak-card.medium{border-color:#fde68a;background:#fefce8}
+    .weak-card::before{content:'';position:absolute;top:0;right:0;width:40px;height:40px;border-radius:0 12px 0 40px;background:rgba(239,68,68,.08)}
+    .weak-card.medium::before{background:rgba(245,158,11,.1)}
+    .weak-card-area{font-size:.78rem;font-weight:800;color:#991b1b;margin-bottom:.25rem;padding-right:2rem}
+    .weak-card.medium .weak-card-area{color:#92400e}
+    .weak-card-score{position:absolute;top:.75rem;right:.85rem;font-size:.85rem;font-weight:900;color:#ef4444}
+    .weak-card.medium .weak-card-score{color:#f59e0b}
+    .weak-card-issue{font-size:.72rem;color:#374151;line-height:1.5;margin-bottom:.45rem}
+    .weak-card-impact{font-size:.63rem;font-weight:700;padding:.15rem .5rem;border-radius:99px;display:inline-block}
+    .weak-card-impact.high{background:#fee2e2;color:#b91c1c}
+    .weak-card-impact.medium{background:#fef3c7;color:#92400e}
 
     /* ── EMPTY STATE ── */
     .empty-state{text-align:center;padding:2.5rem 1rem;color:var(--muted)}
@@ -1844,8 +1896,32 @@ async function buildProgressPage() {
     const weekly       = cfg.weeklyProgress || [];
     const out          = cfg.outcomes || {};
     const lastGrade    = weekly.length ? weekly[weekly.length-1].grade : cfg.startingGrade;
+    const weaknesses   = cfg.weaknesses || [];
+    const weakUnits    = units.filter(u=>u.score<70).sort((a,b)=>a.score-b.score);
 
-    // ── Section 1: Unit Performance Bar Chart ──────────────────────────────
+    // ══ HELL CARD ════════════════════════════════════════════════════════════
+    const startLabel = cfg.startingGradeLabel || (cfg.startingGrade ? cfg.startingGrade+'%' : '—');
+    html += `<div class="hell-card">
+      <div style="position:relative;z-index:1">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+          <div>
+            <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(255,100,100,.85);margin-bottom:.4rem">⚠️ Where We Started</div>
+            <div style="font-size:2.4rem;font-weight:900;line-height:1;color:#ff6b6b;margin-bottom:.3rem">${startLabel}</div>
+            <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:.85rem">${cfg.subject||'Your Subject'} — Before Northstar</div>
+            <div style="font-size:.8rem;color:rgba(255,255,255,.65);line-height:1.6;max-width:480px">
+              Without targeted intervention, a grade in this range means failing the AP exam, losing GPA points that impact college applications, and falling further behind each week.
+              Struggling students who don't get the <em>right</em> help often repeat the same mistakes without knowing why — making it nearly impossible to catch up on their own.
+            </div>
+          </div>
+          <div style="text-align:center;flex-shrink:0;opacity:.35;font-size:4rem;line-height:1">📉</div>
+        </div>
+        ${weakUnits.length ? `<div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:.35rem">
+          ${weakUnits.slice(0,5).map(u=>`<span style="font-size:.63rem;font-weight:700;padding:.18rem .55rem;border-radius:99px;background:rgba(239,68,68,.25);color:#fca5a5;border:1px solid rgba(239,68,68,.3)">${u.name}: ${u.score}%</span>`).join('')}
+        </div>` : ''}
+      </div>
+    </div>`;
+
+    // ══ UNIT PERFORMANCE BAR CHART ═══════════════════════════════════════════
     html += `<div class="card" style="margin-bottom:1.5rem">
       <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
         <div class="card-title">📊 Performance by Unit — ${cfg.subject||''}</div>
@@ -1862,76 +1938,124 @@ async function buildProgressPage() {
       </div>
     </div>`;
 
-    // ── Section 2: Progress Trajectory Line Chart ───────────────────────────
+    // ══ WEAKNESS ANALYSIS ════════════════════════════════════════════════════
+    const displayWeaknesses = weaknesses.length ? weaknesses : weakUnits.map(u=>({area:u.name,score:u.score,issue:'Score below mastery threshold — needs focused review and targeted practice.',impact:'high'}));
+    if (displayWeaknesses.length) {
+      html += `<div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header">
+          <div class="card-title">🔍 Weakness Analysis</div>
+          <div style="font-size:.7rem;color:var(--muted);font-weight:600">${displayWeaknesses.length} area${displayWeaknesses.length>1?'s':''} flagged for focused work</div>
+        </div>
+        <div class="card-body" style="padding-top:.5rem">
+          <div style="font-size:.78rem;color:#374151;margin-bottom:.85rem;line-height:1.55">
+            These are the specific gaps holding ${s.name?.split(' ')[0]||'the student'} back. Each one has been identified through grade reports,
+            practice performance, and detailed diagnostic assessment — not guesswork.
+          </div>
+          <div class="weak-grid">
+            ${displayWeaknesses.map(w=>`
+            <div class="weak-card${w.impact==='medium'?' medium':''}">
+              <div class="weak-card-score">${w.score!=null?w.score+'%':''}</div>
+              <div class="weak-card-area">${w.area}</div>
+              <div class="weak-card-issue">${w.issue}</div>
+              <span class="weak-card-impact ${w.impact||'high'}">${w.impact==='medium'?'⚠️ Moderate Impact':'🚨 High Impact'}</span>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    }
+
+    // ══ BRIDGE SEPARATOR ═════════════════════════════════════════════════════
+    html += `<div class="bridge-sep">
+      <div style="font-size:2.2rem;flex-shrink:0;position:relative;z-index:1">🌉</div>
+      <div style="position:relative;z-index:1;flex:1">
+        <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(201,160,58,.9);margin-bottom:.2rem">The Northstar Bridge</div>
+        <div style="font-size:.95rem;font-weight:800;color:#fff;margin-bottom:.3rem">A personalized roadmap built exclusively for ${s.name?.split(' ')[0]||'this student'}</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.65);line-height:1.55">
+          No generic tutoring. No one-size-fits-all curriculum. Every session, every phase, and every practice problem below was designed specifically around <b style="color:rgba(255,255,255,.85)">${s.name?.split(' ')[0]||'this student'}'s</b> exact weaknesses, exam format, and timeline.
+          This is what separates Northstar from every other option.
+        </div>
+      </div>
+    </div>`;
+
+    // ══ VERTICAL ROADMAP ═════════════════════════════════════════════════════
+    html += `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header">
+        <div class="card-title">🗺️ Personalized Program Roadmap</div>
+        <div style="font-size:.7rem;color:var(--muted);font-weight:600">${cfg.programWeeks||'—'}-Week Plan · ${cfg.subject||''}</div>
+      </div>
+      <div class="card-body" style="padding-top:.75rem;padding-bottom:.5rem">
+        <div class="roadmap-v">
+          ${phases.map(ph=>{
+            const statusIcon = ph.status==='complete'?'✅':ph.status==='active'?'🔄':'⏳';
+            const topics = ph.topics || [];
+            const detail = ph.details || ph.description || '';
+            const topicColors = ['','red','green','gold'];
+            return `
+            <div class="roadmap-v-item">
+              <div class="roadmap-v-dot ${ph.status||'upcoming'}"></div>
+              <div class="roadmap-v-card ${ph.status||'upcoming'}">
+                <div class="roadmap-v-num">Phase ${ph.num} · ${ph.weeks||''} ${statusIcon}</div>
+                <div class="roadmap-v-name">${ph.name}</div>
+                ${topics.length ? `<div class="topic-pills">${topics.map((t,i)=>`<span class="topic-pill ${topicColors[i%4]}">${t}</span>`).join('')}</div>` : ''}
+                ${detail ? `<div class="roadmap-v-detail">${detail}</div>` : ''}
+                ${ph.description && ph.details ? `<div class="roadmap-v-desc">${ph.description}</div>` : ''}
+                <span class="roadmap-v-milestone ${ph.status||'upcoming'}">${statusIcon} ${ph.milestone||''}</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+
+    // ══ HEAVEN CARD ══════════════════════════════════════════════════════════
+    const gainPts = cfg.targetGradeNum && cfg.startingGrade ? (cfg.targetGradeNum - cfg.startingGrade) : null;
+    html += `<div class="heaven-card">
+      <div style="position:relative;z-index:1">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+          <div>
+            <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(52,211,153,.85);margin-bottom:.4rem">🌟 Where We're Going</div>
+            <div style="font-size:2.4rem;font-weight:900;line-height:1;color:#34d399;margin-bottom:.3rem">${cfg.targetGrade||'—'}</div>
+            <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:.85rem">${out.targetDate?'Target by '+out.targetDate:'Program Goal'}</div>
+            <div style="font-size:.8rem;color:rgba(255,255,255,.65);line-height:1.6;max-width:480px">
+              With Northstar's structured program, ${s.name?.split(' ')[0]||'the student'} is on track to ${cfg.targetGrade||'achieve the target goal'}.
+              ${gainPts && gainPts>0 ? `That's a <b style="color:#34d399">+${gainPts} point improvement</b> built on consistent, personalized sessions — not cramming. ` : ''}
+              Every phase of this roadmap has been designed to get here efficiently and permanently.
+            </div>
+          </div>
+          <div style="text-align:center;flex-shrink:0;opacity:.35;font-size:4rem;line-height:1">🏆</div>
+        </div>
+        <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:.6rem">
+          <div style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
+            <div style="font-size:.85rem;font-weight:800;color:#34d399">${out.sessionsCompleted||0} / ${out.sessionsTotal||'—'}</div>
+            <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Sessions</div>
+          </div>
+          <div style="background:rgba(201,160,58,.15);border:1px solid rgba(201,160,58,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
+            <div style="font-size:.85rem;font-weight:800;color:#c9a03a">${masteredCount} / ${units.length}</div>
+            <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Units Mastered</div>
+          </div>
+          <div style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
+            <div style="font-size:.85rem;font-weight:800;color:#a78bfa">${out.practiceProblems||'—'}</div>
+            <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Practice Problems</div>
+          </div>
+          ${lastGrade && cfg.startingGrade ? `<div style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
+            <div style="font-size:.85rem;font-weight:800;color:#34d399">${cfg.startingGrade}% → ${lastGrade}%</div>
+            <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Grade Progress</div>
+          </div>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+    // ══ PROGRESS TRAJECTORY LINE CHART ═══════════════════════════════════════
     html += `<div class="card" style="margin-bottom:1.5rem">
       <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
-        <div class="card-title">📈 Progress Trajectory</div>
+        <div class="card-title">📈 Grade Trajectory</div>
         <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
-          <span style="color:#0f2044">— Actual</span>
+          <span style="color:#0f2044">— Actual Progress</span>
           <span style="color:#c9a03a">- - Target: ${cfg.targetGrade||''}</span>
         </div>
       </div>
       <div class="card-body">
         <div style="position:relative;height:230px"><canvas id="pvLineChart"></canvas></div>
-      </div>
-    </div>`;
-
-    // ── Section 3: Roadmap ──────────────────────────────────────────────────
-    html += `<div class="card" style="margin-bottom:1.5rem">
-      <div class="card-header"><div class="card-title">🗺️ Program Roadmap</div></div>
-      <div class="card-body" style="padding-top:.5rem">
-        <div class="phases-grid">
-          ${phases.map(ph=>`
-          <div class="phase-card ${ph.status}">
-            <div class="phase-badge">${ph.status==='complete'?'✅':ph.status==='active'?'🔄':'⏳'}</div>
-            <div class="phase-num">Phase ${ph.num} · ${ph.weeks||''}</div>
-            <div class="phase-name">${ph.name}</div>
-            <div class="phase-meta" style="margin-bottom:.5rem;line-height:1.4">${ph.description||''}</div>
-            <div style="font-size:.67rem;font-weight:700;padding:.18rem .45rem;border-radius:99px;display:inline-block;background:${ph.status==='complete'?'#dcfce7':ph.status==='active'?'#fef3c7':'#f3f4f6'};color:${ph.status==='complete'?'#065f46':ph.status==='active'?'#92400e':'#6b7280'}">
-              ${ph.milestone||''}
-            </div>
-          </div>`).join('')}
-        </div>
-      </div>
-    </div>`;
-
-    // ── Section 4: Key Outcomes ─────────────────────────────────────────────
-    html += `<div class="card" style="margin-bottom:1.5rem">
-      <div class="card-header"><div class="card-title">🎯 Program Goals & Outcomes</div></div>
-      <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1rem">
-          <div style="background:linear-gradient(135deg,#0f2044,#1a3260);border-radius:12px;padding:1rem 1.1rem;text-align:center;color:#fff">
-            <div style="font-size:1.5rem;margin-bottom:.2rem">🎯</div>
-            <div style="font-size:.95rem;font-weight:800;color:#c9a03a;margin-bottom:.15rem">${cfg.targetGrade||'—'}</div>
-            <div style="font-size:.68rem;color:rgba(255,255,255,.6)">${out.targetDate?'Target by '+out.targetDate:'Program Goal'}</div>
-          </div>
-          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem 1.1rem;text-align:center">
-            <div style="font-size:1.5rem;margin-bottom:.2rem">📚</div>
-            <div style="font-size:.95rem;font-weight:800;color:#065f46;margin-bottom:.15rem">${masteredCount} / ${units.length}</div>
-            <div style="font-size:.68rem;color:#374151">Units Mastered (≥${threshold}%)</div>
-          </div>
-          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:1rem 1.1rem;text-align:center">
-            <div style="font-size:1.5rem;margin-bottom:.2rem">📅</div>
-            <div style="font-size:.95rem;font-weight:800;color:#1e40af;margin-bottom:.15rem">${out.sessionsCompleted||s.stats?.sessionsCompleted||0} / ${out.sessionsTotal||'—'}</div>
-            <div style="font-size:.68rem;color:#374151">Sessions Completed</div>
-          </div>
-          <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:12px;padding:1rem 1.1rem;text-align:center">
-            <div style="font-size:1.5rem;margin-bottom:.2rem">🎯</div>
-            <div style="font-size:.95rem;font-weight:800;color:#7c3aed;margin-bottom:.15rem">${out.practiceProblems||attempts.length*10||'—'}</div>
-            <div style="font-size:.68rem;color:#374151">Practice Problems Done</div>
-          </div>
-        </div>
-        <div style="padding:.75rem 1rem;background:#fef9ee;border:1px solid #fde68a;border-radius:10px;display:flex;align-items:center;gap:.85rem">
-          <div style="font-size:1.3rem">📈</div>
-          <div>
-            <div style="font-size:.78rem;font-weight:700;color:#92400e;margin-bottom:.1rem">Grade Improvement</div>
-            <div style="font-size:.75rem;color:#374151">
-              Started: <b>${cfg.startingGradeLabel||cfg.startingGrade+'%'}</b>
-              &nbsp;→&nbsp; Current: <b>${lastGrade}%</b>
-              &nbsp;→&nbsp; Target: <b>${cfg.targetGrade||'—'}</b>
-            </div>
-          </div>
-        </div>
       </div>
     </div>`;
   }
@@ -7592,6 +7716,7 @@ async function adminClearMessages(studentId, name) {
 let _pcStuId = null;
 let _pcUnits = [];
 let _pcWeekly = [];
+let _pcWeaknesses = [];
 
 function _defaultPhases() {
   return [
@@ -7624,6 +7749,24 @@ function _renderPCWeekly() {
     </div>`).join('') : '<div style="font-size:.78rem;color:#94a3b8">No data points yet — click + Add Point</div>';
 }
 
+function _renderPCWeaknesses() {
+  const c = document.getElementById('pcWeaknessContainer');
+  if (!c) return;
+  c.innerHTML = _pcWeaknesses.length ? _pcWeaknesses.map((w,i)=>`
+    <div style="background:#fef9f9;border:1px solid #fecaca;border-radius:8px;padding:.65rem .75rem;margin-bottom:.5rem">
+      <div style="display:grid;grid-template-columns:1fr 60px auto;gap:.4rem;margin-bottom:.4rem;align-items:center">
+        <input class="pc-input" value="${w.area||''}" oninput="_pcWeaknesses[${i}].area=this.value" placeholder="Area (e.g. Period 1 & 2 — Early Colonialism)">
+        <input class="pc-input" type="number" min="0" max="100" value="${w.score!=null?w.score:''}" oninput="_pcWeaknesses[${i}].score=this.value?Number(this.value):null" style="text-align:center" placeholder="Score%">
+        <button onclick="_pcWeaknesses.splice(${i},1);_renderPCWeaknesses()" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;padding:.35rem .55rem;cursor:pointer;font-size:.8rem">✕</button>
+      </div>
+      <textarea class="pc-input" rows="2" style="resize:vertical;min-height:48px;margin-bottom:.35rem" oninput="_pcWeaknesses[${i}].issue=this.value" placeholder="Describe the specific issue — e.g. Confuses causes/effects of key events, struggles with primary source analysis">${w.issue||''}</textarea>
+      <select class="pc-input" style="background:#fff" onchange="_pcWeaknesses[${i}].impact=this.value">
+        <option value="high"${(w.impact||'high')==='high'?' selected':''}>🚨 High Impact</option>
+        <option value="medium"${w.impact==='medium'?' selected':''}>⚠️ Moderate Impact</option>
+      </select>
+    </div>`).join('') : '<div style="font-size:.78rem;color:#94a3b8">No weaknesses added — leave blank to auto-generate from unit scores below 70%.</div>';
+}
+
 async function openProgressConfig(studentId, studentName) {
   _pcStuId = studentId;
   document.getElementById('pcStudentName').textContent = studentName || 'Student';
@@ -7651,9 +7794,14 @@ async function openProgressConfig(studentId, studentName) {
     document.getElementById(`pcPh${n}Name`).value      = ph.name||'';
     document.getElementById(`pcPh${n}Weeks`).value     = ph.weeks||'';
     document.getElementById(`pcPh${n}Desc`).value      = ph.description||'';
+    document.getElementById(`pcPh${n}Detail`).value    = ph.details||'';
+    document.getElementById(`pcPh${n}Topics`).value    = (ph.topics||[]).join(', ');
     document.getElementById(`pcPh${n}Status`).value    = ph.status||'upcoming';
     document.getElementById(`pcPh${n}Milestone`).value = ph.milestone||'';
   });
+  // Weaknesses
+  _pcWeaknesses = (cfg.weaknesses||[]).map(w=>({...w}));
+  _renderPCWeaknesses();
   // Outcomes
   const out = cfg.outcomes || {};
   document.getElementById('pcOutDate').value    = out.targetDate||'';
@@ -7674,11 +7822,13 @@ async function saveProgressConfig() {
   btn.textContent = 'Saving…'; btn.disabled = true;
   const phases = [1,2,3,4].map(n=>({
     num:n,
-    name:       document.getElementById(`pcPh${n}Name`).value.trim(),
-    weeks:      document.getElementById(`pcPh${n}Weeks`).value.trim(),
-    description:document.getElementById(`pcPh${n}Desc`).value.trim(),
-    status:     document.getElementById(`pcPh${n}Status`).value,
-    milestone:  document.getElementById(`pcPh${n}Milestone`).value.trim()
+    name:        document.getElementById(`pcPh${n}Name`).value.trim(),
+    weeks:       document.getElementById(`pcPh${n}Weeks`).value.trim(),
+    description: document.getElementById(`pcPh${n}Desc`).value.trim(),
+    details:     document.getElementById(`pcPh${n}Detail`).value.trim(),
+    topics:      document.getElementById(`pcPh${n}Topics`).value.split(',').map(t=>t.trim()).filter(Boolean),
+    status:      document.getElementById(`pcPh${n}Status`).value,
+    milestone:   document.getElementById(`pcPh${n}Milestone`).value.trim()
   }));
   const cfg = {
     startingGrade:      parseFloat(document.getElementById('pcStartGrade').value)||0,
@@ -7692,6 +7842,7 @@ async function saveProgressConfig() {
     units:              _pcUnits.filter(u=>u.name),
     weeklyProgress:     _pcWeekly.filter(w=>w.label),
     phases,
+    weaknesses:         _pcWeaknesses.filter(w=>w.area),
     outcomes:{
       targetDate:         document.getElementById('pcOutDate').value.trim(),
       sessionsCompleted:  parseInt(document.getElementById('pcOutSessC').value)||0,
@@ -8583,8 +8734,12 @@ async function loadAdminConvo(studentId, studentName) {
           <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label>
             <input id="pcPh${n}Weeks" class="pc-input" placeholder="e.g. Weeks 1–2"></div>
         </div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Description</label>
-          <input id="pcPh${n}Desc" class="pc-input" placeholder="What's covered in this phase"></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label>
+          <input id="pcPh${n}Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label>
+          <textarea id="pcPh${n}Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student — exam strategies, topics reviewed, practice types, etc."></textarea></div>
+        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label>
+          <input id="pcPh${n}Topics" class="pc-input" placeholder="e.g. Period 1–2, Colonialism, DBQ Writing"></div>
         <div class="pc-field-row">
           <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
             <select id="pcPh${n}Status" class="pc-input" style="background:#fff">
@@ -8596,6 +8751,12 @@ async function loadAdminConvo(studentId, studentName) {
             <input id="pcPh${n}Milestone" class="pc-input" placeholder="Goal / achievement"></div>
         </div>
       </div>`).join('')}
+
+      <!-- Weaknesses -->
+      <div class="pc-section-label">Weakness Analysis</div>
+      <div style="font-size:.72rem;color:#64748b;margin-bottom:.5rem">Each weakness shows as a card in the "Hell" section. Leave blank to auto-generate from unit scores below 70%.</div>
+      <div id="pcWeaknessContainer"></div>
+      <button onclick="_pcWeaknesses.push({area:'',score:null,issue:'',impact:'high'});_renderPCWeaknesses()" style="margin-top:.35rem;font-size:.75rem;font-weight:700;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:.3rem .75rem;cursor:pointer">+ Add Weakness</button>
 
       <!-- Outcomes -->
       <div class="pc-section-label">Key Outcomes</div>
