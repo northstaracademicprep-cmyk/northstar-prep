@@ -7749,6 +7749,63 @@ function _renderPCWeekly() {
     </div>`).join('') : '<div style="font-size:.78rem;color:#94a3b8">No data points yet — click + Add Point</div>';
 }
 
+function _importProgressJSON() {
+  const raw = document.getElementById('pcJsonImport').value.trim();
+  if (!raw) { showToast('Paste the JSON from Claude first.', 'error'); return; }
+  let cfg;
+  try {
+    // Strip markdown code fences if Claude wrapped it
+    const cleaned = raw.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+    cfg = JSON.parse(cleaned);
+  } catch(e) { showToast('Invalid JSON — make sure you copied the full output from Claude.', 'error'); return; }
+
+  // Scalar fields
+  if (cfg.subject)            document.getElementById('pcSubject').value        = cfg.subject;
+  if (cfg.programWeeks)       document.getElementById('pcWeeks').value          = cfg.programWeeks;
+  if (cfg.startingGrade!=null)document.getElementById('pcStartGrade').value     = cfg.startingGrade;
+  if (cfg.startingGradeLabel) document.getElementById('pcStartLabel').value     = cfg.startingGradeLabel;
+  if (cfg.targetGrade)        document.getElementById('pcTargetGrade').value    = cfg.targetGrade;
+  if (cfg.targetGradeNum)     document.getElementById('pcTargetNum').value      = cfg.targetGradeNum;
+  if (cfg.currentPhase)       document.getElementById('pcCurrentPhase').value   = cfg.currentPhase;
+  if (cfg.masteryThreshold)   document.getElementById('pcThreshold').value      = cfg.masteryThreshold;
+
+  // Units & weekly
+  if (cfg.units?.length)         { _pcUnits = cfg.units.map(u=>({...u})); _renderPCUnits(); }
+  if (cfg.weeklyProgress?.length){ _pcWeekly = cfg.weeklyProgress.map(w=>({...w})); _renderPCWeekly(); }
+
+  // Phases
+  if (cfg.phases?.length) {
+    cfg.phases.forEach((ph, idx) => {
+      const n = idx + 1;
+      if (n > 4) return;
+      const el = id => document.getElementById(`pcPh${n}${id}`);
+      if (el('Name'))      el('Name').value      = ph.name || '';
+      if (el('Weeks'))     el('Weeks').value     = ph.weeks || '';
+      if (el('Desc'))      el('Desc').value      = ph.description || '';
+      if (el('Detail'))    el('Detail').value    = ph.details || '';
+      if (el('Topics'))    el('Topics').value    = (ph.topics||[]).join(', ');
+      if (el('Status'))    el('Status').value    = ph.status || 'upcoming';
+      if (el('Milestone')) el('Milestone').value = ph.milestone || '';
+    });
+  }
+
+  // Weaknesses
+  if (cfg.weaknesses?.length) { _pcWeaknesses = cfg.weaknesses.map(w=>({...w})); _renderPCWeaknesses(); }
+
+  // Outcomes
+  if (cfg.outcomes) {
+    const out = cfg.outcomes;
+    if (out.targetDate)        document.getElementById('pcOutDate').value    = out.targetDate;
+    if (out.sessionsCompleted) document.getElementById('pcOutSessC').value   = out.sessionsCompleted;
+    if (out.sessionsTotal)     document.getElementById('pcOutSessT').value   = out.sessionsTotal;
+    if (out.practiceProblems)  document.getElementById('pcOutPractice').value= out.practiceProblems;
+  }
+
+  // Clear the import box
+  document.getElementById('pcJsonImport').value = '';
+  showToast('✅ All fields imported! Review and hit Save.', 'success');
+}
+
 function _renderPCWeaknesses() {
   const c = document.getElementById('pcWeaknessContainer');
   if (!c) return;
@@ -8680,6 +8737,86 @@ async function loadAdminConvo(studentId, studentName) {
       <button onclick="closeProgressModal()" style="background:rgba(255,255,255,.12);border:none;color:#fff;font-size:1.1rem;width:30px;height:30px;border-radius:50%;cursor:pointer">×</button>
     </div>
     <div style="padding:1.25rem 1.5rem;overflow-y:auto;flex:1">
+
+      <!-- JSON Import -->
+      <div style="background:linear-gradient(135deg,#fef9ee,#fffbf0);border:1.5px solid #fde68a;border-radius:12px;padding:1rem 1.1rem;margin-bottom:1.25rem">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
+          <span style="font-size:1rem">🤖</span>
+          <span style="font-size:.78rem;font-weight:800;color:#92400e">Import from Claude AI</span>
+          <button onclick="document.getElementById('pcPromptBox').style.display=document.getElementById('pcPromptBox').style.display==='none'?'block':'none'" style="margin-left:auto;font-size:.68rem;font-weight:700;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:.2rem .55rem;cursor:pointer">View Prompt ▾</button>
+        </div>
+        <div style="font-size:.72rem;color:#78350f;margin-bottom:.75rem;line-height:1.5">Generate a progress plan in Claude.ai using the prompt below + the student's grade report image, then paste the JSON here.</div>
+        <div id="pcPromptBox" style="display:none;background:#1e1e1e;border-radius:8px;padding:.85rem;margin-bottom:.75rem;position:relative">
+          <button onclick="navigator.clipboard.writeText(document.getElementById('pcPromptText').innerText).then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',2000)})" style="position:absolute;top:.5rem;right:.5rem;font-size:.65rem;font-weight:700;background:#c9a03a;border:none;color:#fff;border-radius:5px;padding:.2rem .5rem;cursor:pointer">Copy</button>
+          <pre id="pcPromptText" style="font-size:.65rem;color:#e2e8f0;white-space:pre-wrap;line-height:1.6;margin:0;font-family:monospace">You are building a personalized student progress plan for a tutoring company called Northstar Academic Prep. Analyze the attached grade report image and generate a complete progress_config JSON object.
+
+The student's program details:
+- Subject: [FILL IN]
+- Program length: [X] weeks
+- Sessions total: [X]
+- Target goal: [e.g. Pass HiSET Math, Score 5 on AP Exam, Raise GPA to 3.5]
+- Target date: [e.g. August 2025]
+
+Generate the JSON with this EXACT structure — no extra text, just the raw JSON:
+
+{
+  "subject": "",
+  "programWeeks": 0,
+  "startingGrade": 0,
+  "startingGradeLabel": "",
+  "targetGrade": "",
+  "targetGradeNum": 0,
+  "currentPhase": 1,
+  "masteryThreshold": 85,
+  "units": [
+    {"name": "Unit/Topic Name", "score": 0}
+  ],
+  "weeklyProgress": [
+    {"label": "Start", "grade": 0}
+  ],
+  "weaknesses": [
+    {
+      "area": "Specific weak area name",
+      "score": 0,
+      "issue": "Detailed description of the exact problem and why it hurts their score",
+      "impact": "high"
+    }
+  ],
+  "phases": [
+    {
+      "num": 1,
+      "name": "Phase Name",
+      "weeks": "Weeks 1-2",
+      "description": "One line milestone summary",
+      "details": "3-4 sentence detailed description of exactly what will be covered in this phase, personalized to this student's specific gaps and exam format",
+      "topics": ["Topic Badge 1", "Topic Badge 2", "Topic Badge 3"],
+      "status": "upcoming",
+      "milestone": "Milestone achievement statement"
+    }
+  ],
+  "outcomes": {
+    "targetDate": "",
+    "sessionsCompleted": 0,
+    "sessionsTotal": 0,
+    "practiceProblems": 0
+  }
+}
+
+Rules:
+- Extract all unit/topic scores directly from the grade report
+- startingGrade should be the overall % score from the report
+- startingGradeLabel should be the letter grade
+- targetGradeNum should be a % equivalent of the target (e.g. passing HiSET = 85, AP score 5 = 90)
+- Create exactly 4 phases tailored to this student's subject and gaps
+- All phase details must be specific to THIS student — mention their actual weak topics by name
+- weaknesses should list the 2-4 lowest scoring areas with detailed explanations
+- impact is "high" if score below 65%, "medium" if 65-74%
+- weeklyProgress should start at the starting grade — add projected checkpoints toward the target
+- Return ONLY the raw JSON, no explanation, no markdown code blocks</pre>
+        </div>
+        <textarea id="pcJsonImport" class="pc-input" rows="4" style="resize:vertical;min-height:80px;font-family:monospace;font-size:.72rem" placeholder='Paste the JSON from Claude here, then click Import →'></textarea>
+        <button onclick="_importProgressJSON()" style="margin-top:.5rem;width:100%;padding:.6rem;background:linear-gradient(135deg,#92400e,#b45309);border:none;border-radius:8px;font-size:.8rem;font-weight:700;color:#fff;cursor:pointer">⚡ Import & Auto-Fill All Fields</button>
+      </div>
 
       <!-- Overview -->
       <div class="pc-section-label">Overview</div>
