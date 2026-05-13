@@ -1366,7 +1366,9 @@ async function loadFromSupabase(code) {
         date: fmtDateShort(a.created_at),
         title: a.title || '',
         message: a.message || ''
-      }))
+      })),
+      tutors:          student.tutors          || null,
+      progress_config: student.progress_config || null
     };
   } catch (err) {
     console.error('Supabase load error:', err);
