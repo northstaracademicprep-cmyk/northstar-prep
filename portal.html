@@ -8748,71 +8748,96 @@ async function loadAdminConvo(studentId, studentName) {
         <div style="font-size:.72rem;color:#78350f;margin-bottom:.75rem;line-height:1.5">Generate a progress plan in Claude.ai using the prompt below + the student's grade report image, then paste the JSON here.</div>
         <div id="pcPromptBox" style="display:none;background:#1e1e1e;border-radius:8px;padding:.85rem;margin-bottom:.75rem;position:relative">
           <button onclick="navigator.clipboard.writeText(document.getElementById('pcPromptText').innerText).then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',2000)})" style="position:absolute;top:.5rem;right:.5rem;font-size:.65rem;font-weight:700;background:#c9a03a;border:none;color:#fff;border-radius:5px;padding:.2rem .5rem;cursor:pointer">Copy</button>
-          <pre id="pcPromptText" style="font-size:.65rem;color:#e2e8f0;white-space:pre-wrap;line-height:1.6;margin:0;font-family:monospace">You are building a personalized student progress plan for a tutoring company called Northstar Academic Prep. Analyze the attached grade report image and generate a complete progress_config JSON object.
+          <pre id="pcPromptText" style="font-size:.65rem;color:#e2e8f0;white-space:pre-wrap;line-height:1.6;margin:0;font-family:monospace">You are a student progress analyst for Northstar Academic Prep, an elite personalized tutoring company. Your job is to analyze a student's grade report and generate a complete, dramatic, sales-ready progress plan that will be shown to the student and their parents on a private portal.
 
-The student's program details:
-- Subject: [FILL IN]
-- Program length: [X] weeks
-- Sessions total: [X]
-- Target goal: [e.g. Pass HiSET Math, Score 5 on AP Exam, Raise GPA to 3.5]
-- Target date: [e.g. August 2025]
+The plan uses a "Hell → Bridge → Heaven" narrative framework:
+- HELL: The student's current reality is dire. Their grades reflect a pattern of failure that will have real consequences — failed exams, lost college opportunities, damaged GPA. Make this feel urgent and real.
+- BRIDGE: Northstar's personalized roadmap is the ONLY structured solution. No generic tutoring can do this level of deep diagnostic work.
+- HEAVEN: The target goal is achievable, transformational, and life-changing. Paint a vivid picture of success.
 
-Generate the JSON with this EXACT structure — no extra text, just the raw JSON:
+STUDENT INFO (fill in before sending):
+- Target goal: [e.g. Score a 4 or 5 on AP Exam, Pass HiSET, Raise grade to A-]
+- Target date: [e.g. May 2027]
+- Sessions planned: [e.g. 10]
+
+Everything else — subject, scores, weaknesses, unit breakdown — extract directly from the attached grade report image. Use your knowledge of the exam format to fill in any gaps intelligently.
+
+---
+
+Generate ONLY a raw JSON object with this exact structure. No explanation, no markdown, no code fences — just the JSON:
 
 {
-  "subject": "",
-  "programWeeks": 0,
+  "subject": "Full subject name extracted from grade report",
+  "programWeeks": 10,
   "startingGrade": 0,
-  "startingGradeLabel": "",
-  "targetGrade": "",
-  "targetGradeNum": 0,
+  "startingGradeLabel": "Letter grade e.g. D+",
+  "targetGrade": "e.g. Score 5 on AP Exam",
+  "targetGradeNum": 90,
   "currentPhase": 1,
   "masteryThreshold": 85,
   "units": [
-    {"name": "Unit/Topic Name", "score": 0}
+    {"name": "Exact unit name from grade report", "score": 0}
   ],
   "weeklyProgress": [
-    {"label": "Start", "grade": 0}
+    {"label": "Start", "grade": 0},
+    {"label": "Week 2", "grade": 0},
+    {"label": "Week 4", "grade": 0},
+    {"label": "Midpoint", "grade": 0},
+    {"label": "Week 8", "grade": 0},
+    {"label": "Final", "grade": 0}
   ],
   "weaknesses": [
     {
-      "area": "Specific weak area name",
+      "area": "Specific unit or skill name",
       "score": 0,
-      "issue": "Detailed description of the exact problem and why it hurts their score",
+      "issue": "Write 2-3 sentences describing the exact academic problem this score reveals, what it means for the student on exam day, and the downstream consequences if left unaddressed. Be specific, urgent, and use the actual topic name.",
       "impact": "high"
     }
   ],
   "phases": [
     {
       "num": 1,
-      "name": "Phase Name",
+      "name": "Phase name",
       "weeks": "Weeks 1-2",
-      "description": "One line milestone summary",
-      "details": "3-4 sentence detailed description of exactly what will be covered in this phase, personalized to this student's specific gaps and exam format",
-      "topics": ["Topic Badge 1", "Topic Badge 2", "Topic Badge 3"],
+      "description": "One sentence milestone summary",
+      "details": "Write 4-5 sentences describing exactly what Northstar will do in this phase for THIS student. Name the specific weak topics being addressed. Describe the exact methods (diagnostic sessions, targeted drilling, frameworks, timed practice, etc.). Make it sound expert, personalized, and impossible to replicate with generic tutoring.",
+      "topics": ["Specific Topic 1", "Specific Topic 2", "Specific Topic 3", "Specific Topic 4"],
       "status": "upcoming",
-      "milestone": "Milestone achievement statement"
+      "milestone": "Concrete achievement unlocked at end of this phase"
     }
   ],
   "outcomes": {
     "targetDate": "",
     "sessionsCompleted": 0,
-    "sessionsTotal": 0,
-    "practiceProblems": 0
+    "sessionsTotal": 10,
+    "practiceProblems": 50
   }
 }
 
-Rules:
-- Extract all unit/topic scores directly from the grade report
-- startingGrade should be the overall % score from the report
-- startingGradeLabel should be the letter grade
-- targetGradeNum should be a % equivalent of the target (e.g. passing HiSET = 85, AP score 5 = 90)
-- Create exactly 4 phases tailored to this student's subject and gaps
-- All phase details must be specific to THIS student — mention their actual weak topics by name
-- weaknesses should list the 2-4 lowest scoring areas with detailed explanations
-- impact is "high" if score below 65%, "medium" if 65-74%
-- weeklyProgress should start at the starting grade — add projected checkpoints toward the target
-- Return ONLY the raw JSON, no explanation, no markdown code blocks</pre>
+---
+
+STRICT RULES — follow every one:
+
+UNITS: Extract every single unit, period, or topic from the grade report with its exact score. Do not skip any.
+
+STARTING GRADE: Use the overall/cumulative % from the grade report. startingGradeLabel should be the letter grade.
+
+TARGET: targetGradeNum should be the % equivalent (AP score 5 = 92, AP score 4 = 80, HiSET pass = 75, A- = 90, B+ = 87).
+
+WEEKLY PROGRESS: Generate 6 projected checkpoints showing a realistic but optimistic grade climb from the starting grade toward the target. Space them across the program weeks.
+
+WEAKNESSES: List the 3-4 lowest scoring units. For each one write a dramatic, specific 2-3 sentence description of the problem. impact is "high" if score below 65%, "medium" if 65-75%. Make parents feel the urgency.
+
+PHASES: Create exactly 4 phases. Each phase must:
+- Be named specifically for this student's exam and subject
+- Reference their actual weak topics by name in the details
+- Have 4-5 topic badge strings that are specific (not generic)
+- Have a details paragraph that sounds like it was written by an expert who studied this student's specific report
+- Status is "upcoming" for all phases since this is a new student
+
+TONE for details and issue fields: Authoritative, specific, urgent. Sound like a doctor giving a diagnosis — not a cheerleader. Parents and students should feel "this person knows exactly what's wrong and exactly how to fix it."
+
+Return ONLY the raw JSON. No text before or after.</pre>
         </div>
         <textarea id="pcJsonImport" class="pc-input" rows="4" style="resize:vertical;min-height:80px;font-family:monospace;font-size:.72rem" placeholder='Paste the JSON from Claude here, then click Import →'></textarea>
         <button onclick="_importProgressJSON()" style="margin-top:.5rem;width:100%;padding:.6rem;background:linear-gradient(135deg,#92400e,#b45309);border:none;border-radius:8px;font-size:.8rem;font-weight:700;color:#fff;cursor:pointer">⚡ Import & Auto-Fill All Fields</button>
