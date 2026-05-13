@@ -7766,6 +7766,7 @@ function _importProgressJSON() {
   if (cfg.startingGradeLabel) document.getElementById('pcStartLabel').value     = cfg.startingGradeLabel;
   if (cfg.targetGrade)        document.getElementById('pcTargetGrade').value    = cfg.targetGrade;
   if (cfg.targetGradeNum)     document.getElementById('pcTargetNum').value      = cfg.targetGradeNum;
+  if (cfg.totalHours)         document.getElementById('pcTotalHours').value     = cfg.totalHours;
   if (cfg.currentPhase)       document.getElementById('pcCurrentPhase').value   = cfg.currentPhase;
   if (cfg.masteryThreshold)   document.getElementById('pcThreshold').value      = cfg.masteryThreshold;
 
@@ -7861,10 +7862,12 @@ async function openProgressConfig(studentId, studentName) {
   _renderPCWeaknesses();
   // Outcomes
   const out = cfg.outcomes || {};
-  document.getElementById('pcOutDate').value    = out.targetDate||'';
-  document.getElementById('pcOutSessC').value   = out.sessionsCompleted||'';
-  document.getElementById('pcOutSessT').value   = out.sessionsTotal||'';
-  document.getElementById('pcOutPractice').value= out.practiceProblems||'';
+  document.getElementById('pcOutDate').value     = out.targetDate||'';
+  document.getElementById('pcOutSessC').value    = out.sessionsCompleted||'';
+  document.getElementById('pcOutSessT').value    = out.sessionsTotal||'';
+  document.getElementById('pcOutPractice').value = out.practiceProblems||'';
+  document.getElementById('pcTotalHours').value  = cfg.totalHours||'';
+  document.getElementById('pcTargetGrade').value = cfg.targetGrade||'';
   document.getElementById('admProgressModal').style.display = 'flex';
 }
 
@@ -7892,6 +7895,7 @@ async function saveProgressConfig() {
     startingGradeLabel: document.getElementById('pcStartLabel').value.trim(),
     targetGrade:        document.getElementById('pcTargetGrade').value.trim(),
     targetGradeNum:     parseFloat(document.getElementById('pcTargetNum').value)||90,
+    totalHours:         parseFloat(document.getElementById('pcTotalHours').value)||0,
     programWeeks:       parseInt(document.getElementById('pcWeeks').value)||0,
     currentPhase:       parseInt(document.getElementById('pcCurrentPhase').value)||1,
     subject:            document.getElementById('pcSubject').value.trim(),
@@ -8758,9 +8762,11 @@ The plan uses a "Hell → Bridge → Heaven" narrative framework:
 STUDENT INFO (fill in before sending):
 - Target goal: [e.g. Score a 4 or 5 on AP Exam, Pass HiSET, Raise grade to A-]
 - Target date: [e.g. May 2027]
-- Sessions planned: [e.g. 10]
+- Total hours purchased: [e.g. 20]
 
 Everything else — subject, scores, weaknesses, unit breakdown — extract directly from the attached grade report image. Use your knowledge of the exam format to fill in any gaps intelligently.
+
+Note on hours: Use the total hours to determine programWeeks (assume 1-2 hrs/week), sessionsTotal (assume 1hr sessions), and to space the 4 phases proportionally across the program.
 
 ---
 
@@ -8843,134 +8849,30 @@ Return ONLY the raw JSON. No text before or after.</pre>
         <button onclick="_importProgressJSON()" style="margin-top:.5rem;width:100%;padding:.6rem;background:linear-gradient(135deg,#92400e,#b45309);border:none;border-radius:8px;font-size:.8rem;font-weight:700;color:#fff;cursor:pointer">⚡ Import & Auto-Fill All Fields</button>
       </div>
 
-      <!-- Overview -->
-      <div class="pc-section-label">Overview</div>
-      <div class="pc-field-row">
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Subject</label>
-          <input id="pcSubject" class="pc-input" placeholder="e.g. AP US History"></div>
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Program Weeks</label>
-          <input id="pcWeeks" class="pc-input" type="number" min="1" placeholder="e.g. 10"></div>
-      </div>
-      <div class="pc-field-row">
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Starting Grade %</label>
-          <input id="pcStartGrade" class="pc-input" type="number" min="0" max="100" placeholder="e.g. 68"></div>
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Starting Grade Label</label>
-          <input id="pcStartLabel" class="pc-input" placeholder="e.g. D+, C-, 62%"></div>
-      </div>
-      <div class="pc-field-row">
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Goal</label>
-          <input id="pcTargetGrade" class="pc-input" placeholder="e.g. 5 on AP Exam, A-"></div>
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target % (for graph)</label>
-          <input id="pcTargetNum" class="pc-input" type="number" min="0" max="100" placeholder="e.g. 90"></div>
-      </div>
-      <div class="pc-field-row">
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Current Phase (1–4)</label>
-          <select id="pcCurrentPhase" class="pc-input" style="background:#fff">
-            <option value="1">Phase 1</option><option value="2">Phase 2</option>
-            <option value="3">Phase 3</option><option value="4">Phase 4</option>
-          </select></div>
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Mastery Threshold %</label>
-          <input id="pcThreshold" class="pc-input" type="number" min="0" max="100" placeholder="90"></div>
-      </div>
-
-      <!-- Units -->
-      <div class="pc-section-label">Unit / Period Scores (for bar chart)</div>
-      <div style="font-size:.72rem;color:#64748b;margin-bottom:.5rem">Enter each unit/period name and its starting score from the grade report.</div>
-      <div id="pcUnitsContainer"></div>
-      <button onclick="_pcUnits.push({name:'',score:0});_renderPCUnits()" style="margin-top:.35rem;font-size:.75rem;font-weight:700;color:#0f2044;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:.3rem .75rem;cursor:pointer">+ Add Unit</button>
-
-      <!-- Weekly Progress -->
-      <div class="pc-section-label">Weekly Progress Points (for line graph)</div>
-      <div style="font-size:.72rem;color:#64748b;margin-bottom:.5rem">Add grade checkpoints in chronological order (start → current).</div>
-      <div id="pcWeeklyContainer"></div>
-      <button onclick="_pcWeekly.push({label:'',grade:0});_renderPCWeekly()" style="margin-top:.35rem;font-size:.75rem;font-weight:700;color:#0f2044;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:.3rem .75rem;cursor:pointer">+ Add Point</button>
-
-      <!-- Phases -->
-      <div class="pc-section-label">Program Phases (Roadmap)</div>
-
-      <div class="pc-phase-block">
-        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase 1</div>
+      <!-- 3 quick fields you fill in before generating -->
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem">
+        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.08em">3 Things to Fill In Before Generating</div>
         <div class="pc-field-row">
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label><input id="pcPh1Name" class="pc-input" placeholder="Phase name"></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label><input id="pcPh1Weeks" class="pc-input" placeholder="e.g. Weeks 1–2"></div>
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Goal</label>
+            <input id="pcTargetGrade" class="pc-input" placeholder="e.g. Score 5 on AP Exam, Pass HiSET"></div>
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Date</label>
+            <input id="pcOutDate" class="pc-input" placeholder="e.g. May 2027"></div>
         </div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label><input id="pcPh1Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label><textarea id="pcPh1Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student."></textarea></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label><input id="pcPh1Topics" class="pc-input" placeholder="e.g. Fractions, Algebra, Word Problems"></div>
-        <div class="pc-field-row">
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
-            <select id="pcPh1Status" class="pc-input" style="background:#fff"><option value="upcoming">⏳ Upcoming</option><option value="active">🔄 Active</option><option value="complete">✅ Complete</option></select></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label><input id="pcPh1Milestone" class="pc-input" placeholder="Goal / achievement"></div>
-        </div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Total Hours Purchased</label>
+          <input id="pcTotalHours" class="pc-input" type="number" min="1" placeholder="e.g. 20"></div>
+        <div style="font-size:.68rem;color:#94a3b8;margin-top:.5rem">Copy these into the prompt before sending to Claude. Everything else is extracted automatically from the grade report.</div>
       </div>
 
-      <div class="pc-phase-block">
-        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase 2</div>
-        <div class="pc-field-row">
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label><input id="pcPh2Name" class="pc-input" placeholder="Phase name"></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label><input id="pcPh2Weeks" class="pc-input" placeholder="e.g. Weeks 3–5"></div>
-        </div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label><input id="pcPh2Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label><textarea id="pcPh2Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student."></textarea></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label><input id="pcPh2Topics" class="pc-input" placeholder="e.g. Fractions, Algebra, Word Problems"></div>
-        <div class="pc-field-row">
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
-            <select id="pcPh2Status" class="pc-input" style="background:#fff"><option value="upcoming">⏳ Upcoming</option><option value="active">🔄 Active</option><option value="complete">✅ Complete</option></select></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label><input id="pcPh2Milestone" class="pc-input" placeholder="Goal / achievement"></div>
-        </div>
-      </div>
-
-      <div class="pc-phase-block">
-        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase 3</div>
-        <div class="pc-field-row">
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label><input id="pcPh3Name" class="pc-input" placeholder="Phase name"></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label><input id="pcPh3Weeks" class="pc-input" placeholder="e.g. Weeks 6–8"></div>
-        </div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label><input id="pcPh3Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label><textarea id="pcPh3Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student."></textarea></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label><input id="pcPh3Topics" class="pc-input" placeholder="e.g. Fractions, Algebra, Word Problems"></div>
-        <div class="pc-field-row">
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
-            <select id="pcPh3Status" class="pc-input" style="background:#fff"><option value="upcoming">⏳ Upcoming</option><option value="active">🔄 Active</option><option value="complete">✅ Complete</option></select></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label><input id="pcPh3Milestone" class="pc-input" placeholder="Goal / achievement"></div>
-        </div>
-      </div>
-
-      <div class="pc-phase-block">
-        <div style="font-size:.72rem;font-weight:800;color:#0f2044;margin-bottom:.5rem">Phase 4</div>
-        <div class="pc-field-row">
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Name</label><input id="pcPh4Name" class="pc-input" placeholder="Phase name"></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Weeks</label><input id="pcPh4Weeks" class="pc-input" placeholder="e.g. Weeks 9–10"></div>
-        </div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Short Description</label><input id="pcPh4Desc" class="pc-input" placeholder="Brief summary shown under milestone"></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">In-Depth Details <span style="font-weight:400;color:#94a3b8">(shown in roadmap card)</span></label><textarea id="pcPh4Detail" class="pc-input" rows="3" style="resize:vertical;min-height:64px" placeholder="Describe exactly what will be covered in this phase, specific to this student."></textarea></div>
-        <div style="margin-bottom:.4rem"><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Topic Badges <span style="font-weight:400;color:#94a3b8">(comma-separated)</span></label><input id="pcPh4Topics" class="pc-input" placeholder="e.g. Fractions, Algebra, Word Problems"></div>
-        <div class="pc-field-row">
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Status</label>
-            <select id="pcPh4Status" class="pc-input" style="background:#fff"><option value="upcoming">⏳ Upcoming</option><option value="active">🔄 Active</option><option value="complete">✅ Complete</option></select></div>
-          <div><label style="font-size:.67rem;font-weight:700;color:#374151;display:block;margin-bottom:.2rem">Milestone</label><input id="pcPh4Milestone" class="pc-input" placeholder="Goal / achievement"></div>
-        </div>
-      </div>
-
-      <!-- Weaknesses -->
-      <div class="pc-section-label">Weakness Analysis</div>
-      <div style="font-size:.72rem;color:#64748b;margin-bottom:.5rem">Each weakness shows as a card in the "Hell" section. Leave blank to auto-generate from unit scores below 70%.</div>
-      <div id="pcWeaknessContainer"></div>
-      <button onclick="_pcWeaknesses.push({area:'',score:null,issue:'',impact:'high'});_renderPCWeaknesses()" style="margin-top:.35rem;font-size:.75rem;font-weight:700;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:.3rem .75rem;cursor:pointer">+ Add Weakness</button>
-
-      <!-- Outcomes -->
-      <div class="pc-section-label">Key Outcomes</div>
-      <div class="pc-field-row">
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Date</label>
-          <input id="pcOutDate" class="pc-input" placeholder="e.g. May 8, 2026"></div>
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Practice Problems</label>
-          <input id="pcOutPractice" class="pc-input" type="number" min="0" placeholder="e.g. 50"></div>
-      </div>
-      <div class="pc-field-row">
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Sessions Completed</label>
-          <input id="pcOutSessC" class="pc-input" type="number" min="0" placeholder="e.g. 10"></div>
-        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Sessions Total</label>
-          <input id="pcOutSessT" class="pc-input" type="number" min="0" placeholder="e.g. 10"></div>
+      <!-- Hidden fields kept for save compatibility -->
+      <div style="display:none">
+        <input id="pcSubject"><input id="pcWeeks"><input id="pcStartGrade"><input id="pcStartLabel">
+        <input id="pcTargetNum"><input id="pcCurrentPhase" value="1"><input id="pcThreshold" value="85">
+        <input id="pcOutSessC" value="0"><input id="pcOutSessT"><input id="pcOutPractice" value="0">
+        <input id="pcPh1Name"><input id="pcPh1Weeks"><input id="pcPh1Desc"><textarea id="pcPh1Detail"></textarea><input id="pcPh1Topics"><select id="pcPh1Status"><option value="upcoming">upcoming</option><option value="active">active</option><option value="complete">complete</option></select><input id="pcPh1Milestone">
+        <input id="pcPh2Name"><input id="pcPh2Weeks"><input id="pcPh2Desc"><textarea id="pcPh2Detail"></textarea><input id="pcPh2Topics"><select id="pcPh2Status"><option value="upcoming">upcoming</option><option value="active">active</option><option value="complete">complete</option></select><input id="pcPh2Milestone">
+        <input id="pcPh3Name"><input id="pcPh3Weeks"><input id="pcPh3Desc"><textarea id="pcPh3Detail"></textarea><input id="pcPh3Topics"><select id="pcPh3Status"><option value="upcoming">upcoming</option><option value="active">active</option><option value="complete">complete</option></select><input id="pcPh3Milestone">
+        <input id="pcPh4Name"><input id="pcPh4Weeks"><input id="pcPh4Desc"><textarea id="pcPh4Detail"></textarea><input id="pcPh4Topics"><select id="pcPh4Status"><option value="upcoming">upcoming</option><option value="active">active</option><option value="complete">complete</option></select><input id="pcPh4Milestone">
+        <div id="pcUnitsContainer"></div><div id="pcWeeklyContainer"></div><div id="pcWeaknessContainer"></div>
       </div>
 
     </div>
