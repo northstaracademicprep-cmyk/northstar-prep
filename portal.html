@@ -7767,6 +7767,7 @@ function _importProgressJSON() {
   if (cfg.targetGrade)        document.getElementById('pcTargetGrade').value    = cfg.targetGrade;
   if (cfg.targetGradeNum)     document.getElementById('pcTargetNum').value      = cfg.targetGradeNum;
   if (cfg.totalHours)         document.getElementById('pcTotalHours').value     = cfg.totalHours;
+  if (cfg.programType)        document.getElementById('pcProgramType').value    = cfg.programType;
   if (cfg.currentPhase)       document.getElementById('pcCurrentPhase').value   = cfg.currentPhase;
   if (cfg.masteryThreshold)   document.getElementById('pcThreshold').value      = cfg.masteryThreshold;
 
@@ -7869,6 +7870,7 @@ async function openProgressConfig(studentId, studentName) {
   document.getElementById('pcTotalHours').value     = cfg.totalHours||'';
   document.getElementById('pcTargetGrade').value    = cfg.targetGrade||'';
   document.getElementById('pcSubjectVisible').value = cfg.subject||'';
+  document.getElementById('pcProgramType').value    = cfg.programType||'';
   document.getElementById('admProgressModal').style.display = 'flex';
 }
 
@@ -7893,6 +7895,7 @@ async function saveProgressConfig() {
   }));
   const cfg = {
     subject:            document.getElementById('pcSubjectVisible').value.trim() || document.getElementById('pcSubject').value.trim(),
+    programType:        document.getElementById('pcProgramType').value,
     startingGrade:      parseFloat(document.getElementById('pcStartGrade').value)||0,
     startingGradeLabel: document.getElementById('pcStartLabel').value.trim(),
     targetGrade:        document.getElementById('pcTargetGrade').value.trim(),
@@ -8762,14 +8765,21 @@ The plan uses a "Hell → Bridge → Heaven" narrative framework:
 - HEAVEN: The target goal is achievable, transformational, and life-changing. Paint a vivid picture of success.
 
 STUDENT INFO (fill in before sending):
-- Subject: [e.g. AP US History, HiSET Math, SAT Math]
-- Target goal: [e.g. Score a 4 or 5 on AP Exam, Pass HiSET, Raise grade to A-]
-- Target date: [e.g. May 2027]
+- Subject: [e.g. AP US History, HiSET Math, Algebra 2]
+- Program type: [AP Exam Prep / Finals Prep / Summer Excel]
+- Target goal: [e.g. Score a 4 or 5 on AP Exam, Pass Finals with a B+, Master Algebra 2 foundations]
+- Target date: [e.g. June 2026]
 - Total hours purchased: [e.g. 20]
+- Starting grade (if not visible on grade report): [e.g. 64%, C-]
 
-Everything else — subject, scores, weaknesses, unit breakdown — extract directly from the attached grade report image. Use your knowledge of the exam format to fill in any gaps intelligently.
+Everything else — unit breakdown, weaknesses, scores — extract directly from the attached grade report. Use your knowledge of the subject to fill in gaps intelligently.
 
-Note on hours: Use the total hours to determine programWeeks (assume 1-2 hrs/week), sessionsTotal (assume 1hr sessions), and to space the 4 phases proportionally across the program.
+Note on hours: Use total hours to determine programWeeks (assume 1-2 hrs/week) and sessionsTotal (assume 1hr sessions). Space the 4 phases proportionally.
+
+PROGRAM TYPE CONTEXT — adjust your entire output based on this:
+- AP Exam Prep: Focus on AP exam format, scoring rubrics (1-5 scale), FRQ/MCQ/DBQ strategies, College Board standards. Heaven = scoring a 4 or 5. Phases build toward exam day.
+- Finals Prep: Focus is urgent — finals are weeks away. Phases are compressed and intense. Heaven = passing or acing the final exam and saving the semester grade. Tone is more time-pressured.
+- Summer Excel: Student is getting ahead before the school year. No exam pressure yet. Phases are foundational — build strong base, eliminate gaps, develop study habits. Heaven = starting the school year with total confidence and a massive advantage over peers.
 
 ---
 
@@ -8777,6 +8787,7 @@ Generate ONLY a raw JSON object with this exact structure. No explanation, no ma
 
 {
   "subject": "Full subject name extracted from grade report",
+  "programType": "AP Exam Prep / Finals Prep / Summer Excel",
   "programWeeks": 10,
   "startingGrade": 0,
   "startingGradeLabel": "Letter grade e.g. D+",
@@ -8858,15 +8869,22 @@ Return ONLY the raw JSON. No text before or after.</pre>
         <div class="pc-field-row">
           <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Subject</label>
             <input id="pcSubjectVisible" class="pc-input" placeholder="e.g. AP US History, HiSET Math"></div>
-          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Goal</label>
-            <input id="pcTargetGrade" class="pc-input" placeholder="e.g. Score 5 on AP Exam, Pass HiSET"></div>
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Program Type</label>
+            <select id="pcProgramType" class="pc-input" style="background:#fff">
+              <option value="">— Select program —</option>
+              <option value="AP Exam Prep">AP Exam Prep</option>
+              <option value="Finals Prep">Finals Prep</option>
+              <option value="Summer Excel">Summer Excel</option>
+            </select></div>
         </div>
         <div class="pc-field-row">
+          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Goal</label>
+            <input id="pcTargetGrade" class="pc-input" placeholder="e.g. Score 5 on AP Exam, Pass Finals"></div>
           <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Target Date</label>
-            <input id="pcOutDate" class="pc-input" placeholder="e.g. May 2027"></div>
-          <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Total Hours Purchased</label>
-            <input id="pcTotalHours" class="pc-input" type="number" min="1" placeholder="e.g. 20"></div>
+            <input id="pcOutDate" class="pc-input" placeholder="e.g. June 2026"></div>
         </div>
+        <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Total Hours Purchased</label>
+          <input id="pcTotalHours" class="pc-input" type="number" min="1" placeholder="e.g. 20"></div>
         <div style="font-size:.68rem;color:#94a3b8;margin-top:.5rem">Copy these into the prompt before sending to Claude. Everything else is extracted automatically from the grade report.</div>
       </div>
 
