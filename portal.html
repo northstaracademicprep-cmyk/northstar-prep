@@ -1901,6 +1901,10 @@ async function buildProgressPage() {
 
     // ══ HELL CARD ════════════════════════════════════════════════════════════
     const startLabel = cfg.startingGradeLabel || (cfg.startingGrade ? cfg.startingGrade+'%' : '—');
+    const isAPSubject = /^AP\b/i.test(cfg.subject || '');
+    const hellConsequences = isAPSubject
+      ? `failing the AP exam, losing GPA points that impact college applications, and falling further behind each week`
+      : `a permanent GPA hit on the 9th-grade transcript college admissions officers see four years later, foundation cracks that compound into Pre-Calc and Calc, and a midterm collapse around Chapter 2 that's nearly impossible to recover from`;
     html += `<div class="hell-card">
       <div style="position:relative;z-index:1">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
@@ -1909,7 +1913,7 @@ async function buildProgressPage() {
             <div style="font-size:2.4rem;font-weight:900;line-height:1;color:#ff6b6b;margin-bottom:.3rem">${startLabel}</div>
             <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:.85rem">${cfg.subject||'Your Subject'} — Before Northstar</div>
             <div style="font-size:.8rem;color:rgba(255,255,255,.65);line-height:1.6;max-width:480px">
-              Without targeted intervention, a grade in this range means failing the AP exam, losing GPA points that impact college applications, and falling further behind each week.
+              Without targeted intervention, a grade in this range means ${hellConsequences}.
               Struggling students who don't get the <em>right</em> help often repeat the same mistakes without knowing why — making it nearly impossible to catch up on their own.
             </div>
           </div>
