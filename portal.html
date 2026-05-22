@@ -7668,15 +7668,18 @@ function closeAdminEditModal() {
 }
 async function saveAdminEditStudent() {
   const id         = document.getElementById('admEditStuId').value;
+  const name       = document.getElementById('admEditStuName').value.trim();
   const hoursUsed  = parseFloat(document.getElementById('admEditHoursUsed').value)||0;
   const hoursTotal = parseFloat(document.getElementById('admEditHoursTotal').value)||0;
   const grade      = document.getElementById('admEditGrade').value.trim();
-  const code       = document.getElementById('admEditCode').value.trim();
+  // Always store code uppercased — login flow uppercases input before lookup
+  const code       = document.getElementById('admEditCode').value.trim().toUpperCase();
   const tutorId    = document.getElementById('admEditTutor').value || null;
   const btn        = document.getElementById('admEditSaveBtn');
+  if (!name) { showToast('Student name cannot be empty','error'); return; }
   btn.textContent  = 'Saving…'; btn.disabled = true;
   const { error }  = await db.from('students').update({
-    hours_used: hoursUsed, hours_total: hoursTotal, grade, code, tutor_id: tutorId
+    name, hours_used: hoursUsed, hours_total: hoursTotal, grade, code, tutor_id: tutorId
   }).eq('id', id);
   btn.textContent  = 'Save Changes'; btn.disabled = false;
   if (error) { showToast('Error: '+error.message,'error'); return; }
@@ -8645,7 +8648,7 @@ async function loadAdminConvo(studentId, studentName) {
       <input type="hidden" id="admEditStuId">
       <div>
         <label style="display:block;font-size:.72rem;font-weight:700;color:#374151;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.06em">Student Name</label>
-        <input id="admEditStuName" type="text" disabled style="width:100%;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;background:#f8fafc;color:#64748b">
+        <input id="admEditStuName" type="text" style="width:100%;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
         <div>
