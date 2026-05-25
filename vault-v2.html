@@ -48,6 +48,14 @@ header.app-header .subtitle {
   color: var(--muted);
   margin-top: .25rem;
 }
+.back-link {
+  display: inline-block;
+  font-size: .8rem;
+  color: var(--muted);
+  text-decoration: none;
+  margin-bottom: .75rem;
+}
+.back-link:hover { color: var(--text); }
 .progress { margin-bottom: 1.25rem; }
 .progress-bar {
   height: 6px;
@@ -231,6 +239,7 @@ code {
 <body>
 <div class="container">
   <header class="app-header">
+    <a href="portal.html" class="back-link">← Back to portal</a>
     <h1>Practice Vault v2 · APUSH FRQs</h1>
     <div class="subtitle">College Board 2025 · Real free-response questions, rubric reveal after each attempt</div>
     <div id="student-banner" class="muted" style="margin-top:.4rem;font-size:.78rem" hidden></div>
