@@ -233,6 +233,7 @@ code {
   <header class="app-header">
     <h1>Practice Vault v2 · APUSH FRQs</h1>
     <div class="subtitle">College Board 2025 · Real free-response questions, rubric reveal after each attempt</div>
+    <div id="student-banner" class="muted" style="margin-top:.4rem;font-size:.78rem" hidden></div>
   </header>
 
   <div id="loading-view" class="card">
@@ -260,7 +261,6 @@ code {
 (function () {
   const SUPABASE_URL = 'https://hqqugqfdlcinktsblupu.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_eHbuUITIGOZ5ckLI03fXjQ_9h_915Hn';
-  const PLACEHOLDER_STUDENT_ID = '00000000-0000-0000-0000-000000000001';
   const SESSION_ID = crypto.randomUUID();
   const SUBJECT = 'AP US History';
 
@@ -270,6 +270,8 @@ code {
     groups: [],
     currentIndex: 0,
     questionStartTime: 0,
+    studentId: null,
+    studentName: null,
   };
 
   function escapeHtml(s) {
@@ -280,6 +282,14 @@ code {
 
   async function init() {
     try {
+      const auth = await resolveStudent();
+      if (!auth.ok) { showAuthError(auth.reason); return; }
+      state.studentId = auth.studentId;
+      state.studentName = auth.name;
+      const banner = document.getElementById('student-banner');
+      banner.textContent = `Signed in as ${auth.name}`;
+      banner.hidden = false;
+
       const rows = await fetchQuestions();
       if (!rows.length) {
         showError(`No rows in question_bank with subject="${SUBJECT}". Run the seed script first.`);
@@ -293,6 +303,21 @@ code {
       console.error(err);
       showError('Failed to load questions: ' + (err.message || err));
     }
+  }
+
+  async function resolveStudent() {
+    const code = sessionStorage.getItem('portalCode');
+    const role = sessionStorage.getItem('portalRole');
+    if (!code) return { ok: false, reason: 'not-logged-in' };
+    if (role !== 'student') return { ok: false, reason: 'not-student' };
+    const { data, error } = await sb
+      .from('students')
+      .select('id, name')
+      .eq('code', code)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return { ok: false, reason: 'demo-account' };
+    return { ok: true, studentId: data.id, name: data.name };
   }
 
   async function fetchQuestions() {
@@ -417,7 +442,7 @@ code {
     document.getElementById('submit-btn').disabled = true;
 
     const inserts = group.parts.map((p, i) => ({
-      student_id: PLACEHOLDER_STUDENT_ID,
+      student_id: state.studentId,
       question_id: p.id,
       selected_answer: responses[i] || null,
       is_correct: null,
@@ -443,7 +468,7 @@ code {
     document.getElementById('submit-btn').disabled = true;
 
     await saveAttempts([{
-      student_id: PLACEHOLDER_STUDENT_ID,
+      student_id: state.studentId,
       question_id: row.id,
       selected_answer: response || null,
       is_correct: null,
@@ -505,6 +530,34 @@ code {
     const ev = document.getElementById('error-view');
     ev.hidden = false;
     ev.innerHTML = `<strong>Error</strong><br>${escapeHtml(msg)}`;
+  }
+
+  function showAuthError(reason) {
+    const messages = {
+      'not-logged-in': {
+        title: 'Not signed in',
+        body: 'Sign in to the student portal first, then return here.',
+        ctaLabel: 'Go to portal login →',
+        ctaHref: 'portal.html',
+      },
+      'not-student': {
+        title: 'Students only',
+        body: 'The Practice Vault is only available to students.',
+      },
+      'demo-account': {
+        title: 'Real account required',
+        body: 'Vault requires a real student account. Please contact your tutor for access.',
+      },
+    };
+    const m = messages[reason] || { title: 'Access denied', body: 'Unknown auth state.' };
+    document.getElementById('loading-view').hidden = true;
+    const ev = document.getElementById('error-view');
+    ev.hidden = false;
+    ev.innerHTML =
+      `<strong>${escapeHtml(m.title)}</strong><br>${escapeHtml(m.body)}` +
+      (m.ctaHref
+        ? `<div style="margin-top:.75rem"><a href="${escapeHtml(m.ctaHref)}" style="color:#fca5a5;text-decoration:underline">${escapeHtml(m.ctaLabel)}</a></div>`
+        : '');
   }
 
   init();
