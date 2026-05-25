@@ -254,6 +254,7 @@ function buildSAQRow(q, part, scorePart) {
     source_year: 2025,
     tags: [],
     sub_index: part.letter,                       // 'A' | 'B' | 'C' — see migration 20260523220000
+    parent_question_number: q.number,             // SAQ Q1→1, Q2→2, Q3→3, Q4→4
   };
 }
 
@@ -276,6 +277,7 @@ function buildLongFormRow(q, score, type) {
     source_year: 2025,
     tags: [],
     sub_index: null,                              // long-form questions are one row
+    parent_question_number: q.number + 4,         // Section II offset: DBQ(1)→5, LEQs(2,3,4)→6,7,8
   };
 }
 

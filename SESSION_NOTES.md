@@ -1,92 +1,126 @@
-# Session notes — 2026-05-23
+# Session notes — 2026-05-24
 
-State at end of session: `question_bank` populated with 16 clean rows from the 2025 APUSH FRQ Set 1. **NOT committed yet** — ready for Supabase Table Editor verification + commit.
+State at end of session: `vault-v2.html` exists at repo root, end-to-end verified (renders all 8 question groups from `question_bank`, writes 16 attempt rows per session to `student_attempts`). **NOT committed yet.** Not linked from `portal.html` — by design; v2 is a standalone page until the UX is solid.
 
-## Final verification (all five properties pass)
+## Final verification (all checks pass)
 
 ```
-✅ Property 1: counts saq=12, dbq=1, leq=3
-✅ Property 2: Q1 — three SAQ rows (A,B,C) share Wilentz/Bouton stimulus
-✅ Property 3: Q2 — three SAQ rows (A,B,C) share Webster stimulus
-✅ Property 4: Q3+Q4 — six SAQ rows have null stimulus (No Stimulus type)
-✅ Bonus:      no question_text shows the stimulus-leakage pattern
+✅ Schema delta vs. 2026-05-23:
+   - student_attempts.is_correct: NOT NULL → nullable
+   - question_bank.parent_question_number: new INT (nullable)
+   - students: +1 placeholder row (id=00000000-...-001, code=VAULT-V2-TEST)
+
+✅ 16 rows in question_bank, parent_question_number populated:
+     Parent #1: saq×3 (A,B,C)   — Wilentz/Bouton stimulus
+     Parent #2: saq×3 (A,B,C)   — Webster stimulus
+     Parent #3: saq×3 (A,B,C)   — No Stimulus
+     Parent #4: saq×3 (A,B,C)   — No Stimulus
+     Parent #5: dbq×1            — Federal Government role
+     Parent #6: leq×1            — Native Am/Europeans
+     Parent #7: leq×1            — Reform/Industrialization
+     Parent #8: leq×1            — US Foreign Policy
+
+✅ Full vault pass writes 16 attempts in 1 session_id, time_spent_seconds
+   non-null (one observed run: avg=152s, min=10, max=666).
 ```
 
-## What got built
+## What got built tonight
 
-### Schema
-- Migration 1: `supabase/migrations/20260523120000_question_bank.sql`
-  - `question_bank` (18 cols). CHECK on `question_type` ∈ {mcq, frq, saq, dbq, leq} and `difficulty` ∈ {easy, medium, hard}. 5 indexes. RLS disabled.
-  - `student_attempts` (8 cols). FKs to `students` + `question_bank` with ON DELETE CASCADE. 3 indexes.
-- Migration 2: `supabase/migrations/20260523220000_add_sub_index.sql`
-  - Adds nullable `sub_index TEXT` to `question_bank`. SAQ rows store `'A'`/`'B'`/`'C'`; DBQ/LEQ rows store `NULL`.
-- Both migrations applied via Supabase SQL Editor (publishable key can't DDL).
-- Legacy tables left alone: `practice_questions` (10 rows), `practice_submissions` (0), `practice_attempts` (0).
+### Migrations (applied via Supabase SQL Editor)
+- `supabase/migrations/20260524120000_vault_v2_attempts_relax.sql`
+  - `ALTER student_attempts.is_correct DROP NOT NULL` — rubric-only FRQ flow has no correctness signal at attempt time. Future AI grader populates it.
+  - Seeds `students` row id=`00000000-0000-0000-0000-000000000001`, code=`VAULT-V2-TEST` so vault writes don't violate the FK before auth lands.
+- `supabase/migrations/20260524130000_question_bank_parent_question_number.sql`
+  - `ALTER question_bank ADD COLUMN parent_question_number INT` (nullable, no index — only 16 rows).
+  - Reason: bulk-insert in seeder gave all 16 rows the same `created_at`; secondary `sub_index` sort then scatters SAQ parents (Q1-A, Q2-A, Q3-A, Q4-A, Q1-B, …) and breaks client-side grouping. `parent_question_number` is now the authoritative grouping key.
 
-### Node tooling
-- `package.json`: `name=northstar-prep-scripts`, `type=module`, devDeps `pdf-parse@2.4.5`, `@supabase/supabase-js@2.106.1`, `dotenv`.
-- `.gitignore`: `.env*`, `node_modules/`.
-- `.env` (gitignored): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` — user-managed via TextEdit.
+### New page
+- `vault-v2.html` — single static file at repo root. ~360 lines. Standalone (does NOT import portal.html anything).
+  - Hardcoded `SUPABASE_URL` + publishable key `sb_publishable_eHbuUITIGOZ5ckLI03fXjQ_9h_915Hn`
+  - Hardcoded `PLACEHOLDER_STUDENT_ID = '00000000-0000-0000-0000-000000000001'`
+  - `SUBJECT = 'AP US History'` constant for easy multi-subject extension later
+  - Per-page-load `SESSION_ID = crypto.randomUUID()` groups one student's 16 attempts
+  - Display-rubric-after-attempt UX. No grading, no AI, no MCQs. Three render modes:
+    - SAQ group: shared stimulus once, then Parts A/B/C each with prompt + textarea, single Submit. On submit writes 3 rows to `student_attempts`.
+    - DBQ: stimulus (likely null) + `question_text` 8k blob in scrollable max-height 520px container + textarea. Writes 1 row.
+    - LEQ: stimulus null + short prompt + textarea. Writes 1 row.
+  - 8 screens total: 4 SAQ groups + 1 DBQ + 3 LEQs.
 
-### PDFs
-- `data/apush-pdfs/2025-set-1.pdf` — 11 pages, FRQ paper
-- `data/apush-pdfs/2025-set-1-scoring.pdf` — 38 pages, scoring guidelines
+### Seeder + script updates
+- `scripts/seed-apush-2025-set-1.mjs` — populates new `parent_question_number` column.
+  - SAQ rows: `parent_question_number = q.number` (1, 2, 3, 4)
+  - DBQ + LEQ rows: `parent_question_number = q.number + 4` (Section II offset → 5, 6, 7, 8)
+- `scripts/verify-parent-numbers.mjs` — new. Asserts all 16 rows have non-null `parent_question_number` and that the mapping matches the spec.
+- `scripts/inspect-attempts.mjs` — new. Groups `student_attempts` by `session_id`, reports per-session count + time_spent stats. Use after vault runs to confirm writes.
 
-### Scripts (all in `scripts/`)
-- `seed-apush-2025-set-1.mjs` — parses both PDFs, builds 16 `question_bank` rows, inserts with idempotency check
-- `inspect-question-bank.mjs` — verification queries (group-by, sample SAQs)
-- `verify-post-fix.mjs` — automated post-fix property checks (5 properties)
-- `truncate-question-bank.mjs` — one-shot clean-slate delete
-- `inspect-practice-tables.mjs`, `verify-question-bank.mjs` — schema diagnostics
-- Pre-existing (unrelated to vault rebuild): `fetch-nav-progress.mjs`, `seed-monira-progress.mjs`, `rewrite-apw-baselines.mjs`, `rewrite-alg2-baselines.mjs`, `fix-algebra-code.mjs`, `fix-apw-phase-numbers.mjs`, `set-alg2-programtype-label.mjs`, `check-alg2-program-type.mjs`
+## Bugs found + fixed this session
 
-## Parser bugs fixed this session
-
-1. **Stimulus contamination from front matter** — `extractStimulus()` skips to first `Source N` line or opening quote
-2. **SAQ Q2/Q3/Q4 missing parts** — Q3/Q4 "No Stimulus" rubrics have `1 point` inline; regex now accepts either layout
-3. **Question-number collisions across sections** — SAQ Q1 and DBQ Q1 both have `number=1`. Join indexes scoring by `(type_family, number)`
-4. **Long-form detection guard** — `currentQ.parts.length >= 2` guard blocked back-to-back LEQs. Dropped, widened action-verb list
-5. **SAQ last-part contamination (discovered post-insert, fixed this session)** — when a stimulus marker (`Source N` or opening quote) arrives while `currentPart` is set, parser now flushes the question and accumulates the line as stimulus for the next question. Fixes both the part-prompt bleed AND the resulting empty `stimulus` field on Q2
+| # | Bug | Root cause | Fix |
+|---|-----|------------|-----|
+| 1 | "No APUSH rows in question_bank" on first load | Vault queried `.eq('subject', 'APUSH')` but seeder writes `'AP US History'` | Hoisted to `const SUBJECT = 'AP US History'` and threaded through query + error msg |
+| 2 | First screen showed only Part A and no stimulus | Bulk insert → identical `created_at` → secondary `.order('sub_index')` returned A,A,A,A,B,B,B,B,C,C,C,C. Client-side `groupQuestions` started a new group at every 'A' boundary, then dumped all B's/C's into the last A's group | Added `parent_question_number` column (migration 20260524130000). Vault query now `.order('parent_question_number').order('sub_index', {nullsFirst:true})`. `groupQuestions` rewritten to group by `parent_question_number` instead of "new group when sub_index === 'A'" |
 
 ## DB state right now
 
-- `question_bank`: 16 rows
-  - 12 SAQ parts (Q1×3 + Q2×3 + Q3×3 + Q4×3), `sub_index` populated with `A`/`B`/`C`
-  - 1 DBQ, `sub_index = NULL`
-  - 3 LEQs, `sub_index = NULL`
-  - All `source='College Board'`, `source_year=2025`
-- `student_attempts`: 0 rows
-- Legacy tables: unchanged from start of session
+- `question_bank`: 16 rows, all with `parent_question_number` populated 1–8.
+- `student_attempts`: 16 rows from the verification run (1 session_id, placeholder student). Real-student data will land here once auth wiring happens.
+- `students`: existing rows + 1 new (`VAULT-V2-TEST`). No prod-student impact.
+- Legacy tables (`practice_questions`, `practice_submissions`, `practice_attempts`): unchanged.
 
-## Deferred TODOs (resume from these)
+## Deferred TODOs
+
+Carried over from 2026-05-23 (still open):
 
 | # | TODO | Severity | Notes |
 |---|------|----------|-------|
-| 1 | DBQ `question_text` ~8k chars (7 documents inline) | medium | Needs DBQ stimulus/prompt split. Tied to image-extraction work for the 7 source documents. |
-| 2 | All 16 rows have `unit = "Unassigned"`, `tags = []` | medium | Per-question Period mapping (Period 1-9) needs a tagging pass before the new vault UI can filter by curriculum location. |
-| 3 | DBQ/LEQ `official_explanation` is the raw rubric blob | low | Need essay grader → split rubric criteria (Thesis/Contextualization/Evidence/etc.) into structured fields. |
-| 4 | Idempotency match key uses `question_text` | low | Fragile if parser changes prompt text. Consider switching to `(source, source_year, question_type, sub_index_or_question_number)` for stable matching across parser revisions. |
-| 5 | SAQ Q4's Part C may still absorb Section II header/instructions noise (text content, not stimulus) | low | The stimulus-marker fix only catches `Source N` / quote-line cases. Section II's prose instructions don't trigger it, so Q4 Part C's tail can have noise. Cosmetic; doesn't corrupt rendering. |
-| 6 | Init log says `"no DB writes this run"` but the script now writes | trivial | One-line edit in `seed-apush-2025-set-1.mjs`. |
+| 1 | DBQ `question_text` ~8k chars (7 documents inline) | medium | Needs DBQ stimulus/prompt split + image extraction for the 7 sources. v2 renders the blob as-is in a scroll cage; functional but ugly. |
+| 2 | All 16 rows have `unit = "Unassigned"`, `tags = []` | medium | Per-question Period mapping (Period 1-9) for curriculum-location filtering. Vault v2 doesn't filter yet, so not blocking. |
+| 3 | DBQ/LEQ `official_explanation` is the raw rubric blob | low | Will matter once we want structured criteria display (Thesis/Contextualization/Evidence/etc.). v2 just dumps the blob in `.rubric-text`. |
+| 4 | Idempotency match key uses `question_text` | low | Fragile if parser changes prompt text. Consider switching to `(source, source_year, parent_question_number, sub_index)` — we now have the column to support this. |
+| 5 | SAQ Q4 Part C may have Section II header/instructions noise in tail | low | Stimulus-marker fix only catches `Source N` / quote-line cases. Cosmetic. |
+| 6 | Seeder init log says `"no DB writes this run"` but it does write | trivial | One-line edit. |
+
+New as of 2026-05-24:
+
+| # | TODO | Severity | Notes |
+|---|------|----------|-------|
+| 7 | Vault v2 has no auth — all attempts written under placeholder student | high (blocker for real use) | Next big chunk of work. Decide: integrate with existing portal auth (access-code based) or build separate? Affects how students reach the page. |
+| 8 | Vault v2 not linked from `portal.html` | medium | Intentional until UX solid. When ready: add link from Practice Vault tab for APUSH-subject students, OR add a new top-level nav entry. |
+| 9 | `SUPABASE_KEY` hardcoded in vault-v2.html | low | Publishable key is safe in client code. When/if more pages need it, switch to `<meta name="supabase-anon-key">` pattern and read in JS — single point of update. |
+| 10 | DBQ scroll cage is 520px max-height — may push the textarea offscreen on small viewports | low | Smoke test was on desktop. Worth checking on iPad / mobile when student-tested. |
+| 11 | Idempotency check (TODO #4 above) now feasible to fix | low | Switch match key to `(source, source_year, parent_question_number, sub_index)`. Stable across parser revisions. |
 
 ## Resume sequence for next session
 
-1. Verify in Supabase Table Editor: 16 rows in `question_bank`, all from College Board 2025, `sub_index` column populated correctly
-2. Commit the work: 2 migrations + `package.json` + `.gitignore` + seed script + helpers (decide commit-vs-local per script)
-3. Pick next direction: DBQ stimulus extraction (TODO #1), OR Period tagging pass (TODO #2), OR start on Practice Vault UI rewrite to read from `question_bank`
+1. **Commit tonight's work.** Six files changed: 2 migrations + `vault-v2.html` + `scripts/seed-apush-2025-set-1.mjs` + `scripts/verify-parent-numbers.mjs` + `scripts/inspect-attempts.mjs`. SESSION_NOTES.md too. Suggest one commit.
+2. Pick next direction:
+   - **Auth wiring** (TODO #7) — biggest blocker; vault is useless to real students until they can be identified
+   - **Portal integration** (TODO #8) — wire vault-v2.html into the existing Practice Vault tab for APUSH students
+   - **DBQ stimulus/prompt split** (TODO #1) — biggest UX improvement for the vault itself
+   - **Period tagging** (TODO #2) — enables unit/period filters; needed before vault scales past one test set
 
-## Key file locations (quick reference)
+## Key file locations (delta from 2026-05-23)
 
 ```
-supabase/migrations/20260523120000_question_bank.sql     # initial schema
-supabase/migrations/20260523220000_add_sub_index.sql     # sub_index column
-scripts/seed-apush-2025-set-1.mjs                        # the seeder
-scripts/verify-post-fix.mjs                              # automated property checks
-scripts/inspect-question-bank.mjs                        # ad-hoc query script
-scripts/truncate-question-bank.mjs                       # clean-slate helper
-data/apush-pdfs/2025-set-1.pdf                           # source FRQs
-data/apush-pdfs/2025-set-1-scoring.pdf                   # source rubrics
-/tmp/2025-set-1-frqs.txt                                 # extracted text (regenerable)
-/tmp/2025-set-1-scoring.txt                              # extracted text (regenerable)
-.env                                                     # gitignored secrets
+vault-v2.html                                            # NEW — standalone vault page
+supabase/migrations/20260524120000_vault_v2_attempts_relax.sql       # NEW
+supabase/migrations/20260524130000_question_bank_parent_question_number.sql  # NEW
+scripts/seed-apush-2025-set-1.mjs                        # MODIFIED — parent_question_number populated
+scripts/verify-parent-numbers.mjs                        # NEW
+scripts/inspect-attempts.mjs                             # NEW
 ```
+
+## How to test the vault locally
+
+```
+python3 -m http.server 8000          # from repo root
+open http://localhost:8000/vault-v2.html
+```
+
+Walk all 8 screens. Then:
+
+```
+node scripts/inspect-attempts.mjs
+```
+
+Should report N×16 attempts under N distinct session_ids (one per page-load test pass).

@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice Vault v2 — APUSH FRQs</title>
+<style>
+:root {
+  --bg: #0f1729;
+  --bg-card: #1a2540;
+  --bg-elevated: #243152;
+  --border: #2a3654;
+  --text: #e8eef9;
+  --muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  min-height: 100vh;
+}
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+header.app-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+header.app-header h1 {
+  font-size: 1.2rem;
+  margin: 0;
+  font-weight: 700;
+}
+header.app-header .subtitle {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: .25rem;
+}
+.progress { margin-bottom: 1.25rem; }
+.progress-bar {
+  height: 6px;
+  background: var(--bg-card);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+.progress-label {
+  margin-top: .5rem;
+  font-size: .8rem;
+  color: var(--muted);
+}
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.badges { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.badge {
+  display: inline-block;
+  padding: .25rem .65rem;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.badge.type-saq { background: rgba(59,130,246,.18); color: #93c5fd; }
+.badge.type-dbq { background: rgba(245,158,11,.18); color: #fbbf24; }
+.badge.type-leq { background: rgba(16,185,129,.18); color: #6ee7b7; }
+.stimulus {
+  background: var(--bg-elevated);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+  max-height: 380px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: .92rem;
+  color: #cbd5e1;
+}
+.stimulus-image {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.question-text {
+  font-size: 1rem;
+  white-space: pre-wrap;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+.dbq-text {
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 1rem 1.1rem;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  font-weight: 400;
+}
+.saq-intro {
+  font-size: .9rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+.saq-part { margin-bottom: 1.5rem; }
+.saq-part-label {
+  font-weight: 700;
+  font-size: .85rem;
+  color: #93c5fd;
+  margin-bottom: .4rem;
+  letter-spacing: .04em;
+}
+.saq-part-text {
+  font-size: .95rem;
+  white-space: pre-wrap;
+  margin-bottom: .6rem;
+}
+textarea {
+  width: 100%;
+  min-height: 160px;
+  padding: .75rem .9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .95rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+textarea:focus { outline: none; border-color: var(--accent); }
+textarea:disabled { opacity: .6; cursor: not-allowed; }
+.actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+}
+.btn {
+  display: inline-block;
+  padding: .65rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: .9rem;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s ease;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { background: #475569; cursor: not-allowed; }
+.rubric {
+  margin-top: 1.25rem;
+  padding: 1.1rem;
+  background: rgba(16,185,129,.08);
+  border: 1px solid rgba(16,185,129,.3);
+  border-radius: 10px;
+}
+.rubric h3 {
+  margin: 0 0 .75rem;
+  font-size: .85rem;
+  color: var(--success);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.rubric-part { margin-bottom: 1.25rem; }
+.rubric-part:last-of-type { margin-bottom: 1rem; }
+.rubric-part-label {
+  font-weight: 700;
+  font-size: .85rem;
+  color: #6ee7b7;
+  margin-bottom: .5rem;
+  letter-spacing: .04em;
+}
+.rubric-section { margin-bottom: .75rem; }
+.rubric-section:last-child { margin-bottom: 0; }
+.rubric-section-label {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .35rem;
+}
+.rubric-text {
+  white-space: pre-wrap;
+  font-size: .9rem;
+  color: #d1d5db;
+  background: var(--bg-elevated);
+  padding: .8rem 1rem;
+  border-radius: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.error-card {
+  background: rgba(239,68,68,.1);
+  border: 1px solid rgba(239,68,68,.3);
+  color: #fca5a5;
+}
+.muted { color: var(--muted); font-size: .85rem; }
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: .82rem;
+  background: var(--bg-elevated);
+  padding: .15rem .4rem;
+  border-radius: 4px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="app-header">
+    <h1>Practice Vault v2 · APUSH FRQs</h1>
+    <div class="subtitle">College Board 2025 · Real free-response questions, rubric reveal after each attempt</div>
+  </header>
+
+  <div id="loading-view" class="card">
+    <div class="muted">Loading question bank…</div>
+  </div>
+
+  <div id="error-view" class="card error-card" hidden></div>
+
+  <div id="question-view" hidden>
+    <div class="progress">
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
+      <div id="progress-label" class="progress-label">Question 1 of 1</div>
+    </div>
+    <div id="question-card" class="card"></div>
+  </div>
+
+  <div id="done-view" class="card" hidden>
+    <h2 style="margin-top:0">Done — all questions complete</h2>
+    <p class="muted">Attempts saved to <code>student_attempts</code>. Refresh to start a new session.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function () {
+  const SUPABASE_URL = 'https://hqqugqfdlcinktsblupu.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_eHbuUITIGOZ5ckLI03fXjQ_9h_915Hn';
+  const PLACEHOLDER_STUDENT_ID = '00000000-0000-0000-0000-000000000001';
+  const SESSION_ID = crypto.randomUUID();
+  const SUBJECT = 'AP US History';
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const state = {
+    groups: [],
+    currentIndex: 0,
+    questionStartTime: 0,
+  };
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+  }
+
+  async function init() {
+    try {
+      const rows = await fetchQuestions();
+      if (!rows.length) {
+        showError(`No rows in question_bank with subject="${SUBJECT}". Run the seed script first.`);
+        return;
+      }
+      state.groups = groupQuestions(rows);
+      document.getElementById('loading-view').hidden = true;
+      document.getElementById('question-view').hidden = false;
+      renderCurrent();
+    } catch (err) {
+      console.error(err);
+      showError('Failed to load questions: ' + (err.message || err));
+    }
+  }
+
+  async function fetchQuestions() {
+    const { data, error } = await sb
+      .from('question_bank')
+      .select('*')
+      .eq('subject', SUBJECT)
+      .order('parent_question_number', { ascending: true })
+      .order('sub_index', { ascending: true, nullsFirst: true });
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Collapse SAQ rows sharing a parent_question_number into one screen.
+  // DBQ and LEQ each become their own single-row screen.
+  function groupQuestions(rows) {
+    const out = [];
+    let saqGroup = null;
+    let currentParent = null;
+    for (const row of rows) {
+      if (row.question_type === 'saq') {
+        if (row.parent_question_number !== currentParent) {
+          saqGroup = {
+            kind: 'saq-group',
+            stimulus: row.stimulus,
+            stimulus_image_url: row.stimulus_image_url,
+            parts: [row],
+          };
+          out.push(saqGroup);
+          currentParent = row.parent_question_number;
+        } else {
+          saqGroup.parts.push(row);
+        }
+      } else {
+        saqGroup = null;
+        currentParent = null;
+        out.push({ kind: 'single', row });
+      }
+    }
+    return out;
+  }
+
+  function renderCurrent() {
+    const group = state.groups[state.currentIndex];
+    const total = state.groups.length;
+    document.getElementById('progress-fill').style.width =
+      Math.round((state.currentIndex / total) * 100) + '%';
+    document.getElementById('progress-label').textContent =
+      `Question ${state.currentIndex + 1} of ${total}`;
+
+    state.questionStartTime = Date.now();
+
+    const card = document.getElementById('question-card');
+    if (group.kind === 'saq-group') {
+      card.innerHTML = renderSaqGroup(group);
+      document.getElementById('submit-btn').addEventListener('click', onSubmitSaq);
+    } else {
+      card.innerHTML = renderSingle(group.row);
+      document.getElementById('submit-btn').addEventListener('click', onSubmitSingle);
+    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function badgeHtml(type) {
+    return `<div class="badges"><span class="badge type-${type}">${type.toUpperCase()}</span></div>`;
+  }
+
+  function stimulusHtml(stimulus, imageUrl) {
+    let out = '';
+    if (imageUrl) out += `<img class="stimulus-image" src="${escapeHtml(imageUrl)}" alt="Stimulus">`;
+    if (stimulus) out += `<div class="stimulus">${escapeHtml(stimulus)}</div>`;
+    return out;
+  }
+
+  function renderSaqGroup(group) {
+    const partsHtml = group.parts.map((p, i) => {
+      const letter = p.sub_index || String.fromCharCode(65 + i);
+      return `
+        <div class="saq-part">
+          <div class="saq-part-label">Part ${escapeHtml(letter)}</div>
+          <div class="saq-part-text">${escapeHtml(p.question_text)}</div>
+          <textarea id="saq-textarea-${i}" placeholder="Type your response to Part ${escapeHtml(letter)}…"></textarea>
+        </div>`;
+    }).join('');
+
+    return `
+      ${badgeHtml('saq')}
+      ${stimulusHtml(group.stimulus, group.stimulus_image_url)}
+      <div class="saq-intro">Short-Answer Question — answer all parts below, then reveal the rubric.</div>
+      ${partsHtml}
+      <div class="actions">
+        <button id="submit-btn" class="btn btn-primary">Submit &amp; Reveal Rubric</button>
+      </div>
+      <div id="rubric-container"></div>
+    `;
+  }
+
+  function renderSingle(row) {
+    const type = row.question_type;
+    const isDbq = type === 'dbq';
+    return `
+      ${badgeHtml(type)}
+      ${stimulusHtml(row.stimulus, row.stimulus_image_url)}
+      <div class="question-text${isDbq ? ' dbq-text' : ''}">${escapeHtml(row.question_text)}</div>
+      <textarea id="single-textarea" placeholder="Type your response…"></textarea>
+      <div class="actions">
+        <button id="submit-btn" class="btn btn-primary">Submit &amp; Reveal Rubric</button>
+      </div>
+      <div id="rubric-container"></div>
+    `;
+  }
+
+  async function onSubmitSaq() {
+    const group = state.groups[state.currentIndex];
+    const seconds = Math.round((Date.now() - state.questionStartTime) / 1000);
+    const responses = group.parts.map((_, i) =>
+      document.getElementById(`saq-textarea-${i}`).value);
+
+    group.parts.forEach((_, i) => {
+      document.getElementById(`saq-textarea-${i}`).disabled = true;
+    });
+    document.getElementById('submit-btn').disabled = true;
+
+    const inserts = group.parts.map((p, i) => ({
+      student_id: PLACEHOLDER_STUDENT_ID,
+      question_id: p.id,
+      selected_answer: responses[i] || null,
+      is_correct: null,
+      time_spent_seconds: seconds,
+      session_id: SESSION_ID,
+    }));
+    await saveAttempts(inserts);
+
+    revealRubric(group.parts.map(p => ({
+      label: `Part ${p.sub_index || ''}`,
+      correct_answer: p.correct_answer,
+      official_explanation: p.official_explanation,
+    })));
+  }
+
+  async function onSubmitSingle() {
+    const group = state.groups[state.currentIndex];
+    const row = group.row;
+    const seconds = Math.round((Date.now() - state.questionStartTime) / 1000);
+    const response = document.getElementById('single-textarea').value;
+
+    document.getElementById('single-textarea').disabled = true;
+    document.getElementById('submit-btn').disabled = true;
+
+    await saveAttempts([{
+      student_id: PLACEHOLDER_STUDENT_ID,
+      question_id: row.id,
+      selected_answer: response || null,
+      is_correct: null,
+      time_spent_seconds: seconds,
+      session_id: SESSION_ID,
+    }]);
+
+    revealRubric([{
+      label: null,
+      correct_answer: row.correct_answer,
+      official_explanation: row.official_explanation,
+    }]);
+  }
+
+  async function saveAttempts(inserts) {
+    const { error } = await sb.from('student_attempts').insert(inserts);
+    if (error) console.warn('saveAttempts error:', error.message, error);
+  }
+
+  function revealRubric(sections) {
+    const isLast = state.currentIndex >= state.groups.length - 1;
+    const html = `
+      <div class="rubric">
+        <h3>Scoring rubric</h3>
+        ${sections.map(s => `
+          <div class="rubric-part">
+            ${s.label ? `<div class="rubric-part-label">${escapeHtml(s.label)}</div>` : ''}
+            <div class="rubric-section">
+              <div class="rubric-section-label">Correct answer / scoring criteria</div>
+              <div class="rubric-text">${escapeHtml(s.correct_answer)}</div>
+            </div>
+            <div class="rubric-section">
+              <div class="rubric-section-label">Official explanation</div>
+              <div class="rubric-text">${escapeHtml(s.official_explanation)}</div>
+            </div>
+          </div>`).join('')}
+        <div class="actions">
+          <button id="next-btn" class="btn btn-primary">${isLast ? 'Finish' : 'Next question →'}</button>
+        </div>
+      </div>`;
+    document.getElementById('rubric-container').innerHTML = html;
+    document.getElementById('next-btn').addEventListener('click', onNext);
+    document.getElementById('rubric-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function onNext() {
+    state.currentIndex++;
+    if (state.currentIndex >= state.groups.length) {
+      document.getElementById('question-view').hidden = true;
+      document.getElementById('done-view').hidden = false;
+      document.getElementById('progress-fill').style.width = '100%';
+      return;
+    }
+    renderCurrent();
+  }
+
+  function showError(msg) {
+    document.getElementById('loading-view').hidden = true;
+    const ev = document.getElementById('error-view');
+    ev.hidden = false;
+    ev.innerHTML = `<strong>Error</strong><br>${escapeHtml(msg)}`;
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
