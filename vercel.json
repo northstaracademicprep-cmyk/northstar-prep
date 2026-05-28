@@ -6,6 +6,10 @@
       "dest": "/portal.html"
     },
     {
+      "src": "^/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
       "src": "^/(.*)$",
       "dest": "/$1"
     }

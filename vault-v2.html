@@ -234,6 +234,92 @@ code {
   padding: .15rem .4rem;
   border-radius: 4px;
 }
+.btn-grade {
+  background: rgba(245,158,11,.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245,158,11,.35);
+}
+.btn-grade:hover:not(:disabled) { background: rgba(245,158,11,.22); }
+.btn-grade:disabled { opacity: .5; cursor: not-allowed; }
+.grade-loading {
+  margin-top: 1rem;
+  padding: .75rem 1rem;
+  color: var(--muted);
+  font-size: .9rem;
+  font-style: italic;
+}
+.grade-error {
+  margin-top: 1rem;
+  padding: .75rem 1rem;
+  background: rgba(239,68,68,.1);
+  border: 1px solid rgba(239,68,68,.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: .88rem;
+}
+.grade-panel {
+  margin-top: 1.25rem;
+  padding: 1.1rem;
+  background: rgba(245,158,11,.07);
+  border: 1px solid rgba(245,158,11,.28);
+  border-radius: 10px;
+}
+.grade-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .9rem;
+}
+.grade-label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #fbbf24;
+}
+.grade-score { font-size: 1.1rem; font-weight: 700; }
+.score-good { color: #4ade80; }
+.score-ok   { color: #fbbf24; }
+.score-low  { color: #f87171; }
+.grade-row {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(245,158,11,.15);
+}
+.grade-row:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.grade-row-label {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-weight: 600;
+  font-size: .88rem;
+  color: var(--text);
+  margin-bottom: .3rem;
+}
+.grade-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  font-size: .68rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.dot-pass { background: rgba(74,222,128,.18); color: #4ade80; }
+.dot-fail { background: rgba(248,113,113,.18); color: #f87171; }
+.grade-pts { font-weight: 400; font-size: .78rem; color: var(--muted); }
+.grade-feedback { font-size: .88rem; color: #d1d5db; line-height: 1.55; }
+.grade-overall {
+  margin-top: .75rem;
+  padding-top: .75rem;
+  border-top: 1px solid rgba(245,158,11,.15);
+  font-size: .88rem;
+  color: #e2c77a;
+  font-style: italic;
+  line-height: 1.55;
+}
 </style>
 </head>
 <body>
@@ -458,6 +544,7 @@ code {
     const seconds = Math.round((Date.now() - state.questionStartTime) / 1000);
     const responses = group.parts.map((_, i) =>
       document.getElementById(`saq-textarea-${i}`).value);
+    group._responses = responses.slice();
 
     group.parts.forEach((_, i) => {
       document.getElementById(`saq-textarea-${i}`).disabled = true;
@@ -478,7 +565,7 @@ code {
       label: `Part ${p.sub_index || ''}`,
       correct_answer: p.correct_answer,
       official_explanation: p.official_explanation,
-    })));
+    })), group);
   }
 
   async function onSubmitSingle() {
@@ -486,6 +573,7 @@ code {
     const row = group.row;
     const seconds = Math.round((Date.now() - state.questionStartTime) / 1000);
     const response = document.getElementById('single-textarea').value;
+    group.row._studentResponse = response;
 
     document.getElementById('single-textarea').disabled = true;
     document.getElementById('submit-btn').disabled = true;
@@ -503,7 +591,7 @@ code {
       label: null,
       correct_answer: row.correct_answer,
       official_explanation: row.official_explanation,
-    }]);
+    }], group);
   }
 
   async function saveAttempts(inserts) {
@@ -511,7 +599,7 @@ code {
     if (error) console.warn('saveAttempts error:', error.message, error);
   }
 
-  function revealRubric(sections) {
+  function revealRubric(sections, group) {
     const isLast = state.currentIndex >= state.groups.length - 1;
     const html = `
       <div class="rubric">
@@ -529,11 +617,14 @@ code {
             </div>
           </div>`).join('')}
         <div class="actions">
+          <button id="grade-btn" class="btn btn-grade">Grade my answer</button>
           <button id="next-btn" class="btn btn-primary">${isLast ? 'Finish' : 'Next question →'}</button>
         </div>
-      </div>`;
+      </div>
+      <div id="grade-container"></div>`;
     document.getElementById('rubric-container').innerHTML = html;
     document.getElementById('next-btn').addEventListener('click', onNext);
+    document.getElementById('grade-btn').addEventListener('click', () => gradeWithAI(group));
     document.getElementById('rubric-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -581,6 +672,98 @@ code {
       (m.ctaHref
         ? `<div style="margin-top:.75rem"><a href="${escapeHtml(m.ctaHref)}" style="color:#fca5a5;text-decoration:underline">${escapeHtml(m.ctaLabel)}</a></div>`
         : '');
+  }
+
+  async function gradeWithAI(group) {
+    const btn = document.getElementById('grade-btn');
+    const container = document.getElementById('grade-container');
+    btn.disabled = true;
+    btn.textContent = 'Grading…';
+    container.innerHTML = '<div class="grade-loading">Asking the AP reader…</div>';
+
+    let questionType, parts;
+    if (group.kind === 'saq-group') {
+      questionType = 'saq';
+      parts = group.parts.map((p, i) => ({
+        partLabel: p.sub_index || String.fromCharCode(65 + i),
+        questionText: p.question_text,
+        correctAnswer: p.correct_answer,
+        officialExplanation: p.official_explanation,
+        studentResponse: (group._responses || [])[i] || '',
+      }));
+    } else {
+      const row = group.row;
+      questionType = row.question_type;
+      parts = [{
+        partLabel: null,
+        questionText: row.question_text,
+        correctAnswer: row.correct_answer,
+        officialExplanation: row.official_explanation,
+        studentResponse: row._studentResponse || '',
+      }];
+    }
+
+    try {
+      const res = await fetch('/api/grade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionType, parts }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      showGradeResult(data, questionType);
+      btn.hidden = true;
+    } catch (err) {
+      container.innerHTML = `<div class="grade-error">Grading failed: ${escapeHtml(err.message)}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Grade my answer';
+    }
+  }
+
+  function showGradeResult(data, questionType) {
+    const earned = data.earnedPoints ?? 0;
+    const total  = data.totalPoints  ?? 0;
+    const ratio  = total > 0 ? earned / total : 0;
+    const scoreClass = ratio >= 0.67 ? 'score-good' : ratio >= 0.34 ? 'score-ok' : 'score-low';
+
+    let rowsHtml = '';
+    if (questionType === 'saq' && Array.isArray(data.parts)) {
+      rowsHtml = data.parts.map(p => `
+        <div class="grade-row">
+          <div class="grade-row-label">
+            <span class="grade-dot ${p.earned ? 'dot-pass' : 'dot-fail'}">${p.earned ? '✓' : '✗'}</span>
+            Part ${escapeHtml(p.partLabel || '')}
+            <span class="grade-pts">${p.earned}/${p.possible} pt</span>
+          </div>
+          <div class="grade-feedback">${escapeHtml(p.feedback || '')}</div>
+        </div>`).join('');
+    } else if (Array.isArray(data.categories)) {
+      rowsHtml = data.categories.map(c => `
+        <div class="grade-row">
+          <div class="grade-row-label">
+            <span class="grade-dot ${c.earned > 0 ? 'dot-pass' : 'dot-fail'}">${c.earned > 0 ? '✓' : '✗'}</span>
+            ${escapeHtml(c.name)}
+            <span class="grade-pts">${c.earned}/${c.possible} pt${c.possible !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="grade-feedback">${escapeHtml(c.feedback || '')}</div>
+        </div>`).join('');
+    }
+
+    document.getElementById('grade-container').innerHTML = `
+      <div class="grade-panel">
+        <div class="grade-header">
+          <span class="grade-label">AI Grader</span>
+          <span class="grade-score ${scoreClass}">${earned} / ${total} points</span>
+        </div>
+        ${rowsHtml}
+        ${data.overallFeedback
+          ? `<div class="grade-overall">${escapeHtml(data.overallFeedback)}</div>`
+          : ''}
+      </div>`;
+    document.getElementById('grade-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   init();
