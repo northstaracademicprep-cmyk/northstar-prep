@@ -1,3 +1,64 @@
+# Session notes — 2026-05-27/28 (AP World vault)
+
+State at end of session: AP World History practice vault shipped end-to-end and **live on origin/main** (commit `3628730`). `vault-v2.html` now serves both APUSH and AP World via `?subject=` URL param. `portal.html` has an AP World branch in `buildPracticeVault()`. Seeder `scripts/seed-apworld-2025-set-1.mjs` populated 11 new rows; DB now has 27 rows (16 APUSH + 11 AP World).
+
+## What got built this session
+
+### vault-v2.html: subject-param generalization
+- Replaced `const SUBJECT = 'AP US History'` with a `SUBJECT_MAP` keyed by `apush` / `apworld`.
+- URL param `?subject=apush|apworld` sets `dbSubject`, `label`, and `year` for the page title, subtitle, and DB query.
+- Added `id` attributes to `<title>`, `<h1>`, subtitle `<p>`, and done-message elements so JS can update them on load.
+- APUSH behaviour is fully unchanged; `?subject=apworld` loads `AP World History` rows from `question_bank`.
+
+### portal.html: AP World branch
+- APUSH CTA link updated from `vault-v2.html` → `vault-v2.html?subject=apush`.
+- New branch in `buildPracticeVault()` matches `subjects` containing `'apwh'`, `'ap world history'`, or `'ap world'` (case-insensitive).
+- Renders a `pv-hero` + 🌍 intro card (5 questions summary, "Opens in this tab") with a navy "Open Practice Vault →" button to `vault-v2.html?subject=apworld`.
+
+### scripts/seed-apworld-2025-set-1.mjs (new file)
+Key diffs from the APUSH seeder:
+- `SUBJECT='AP World History'`, `SAQ_COUNT=3`, `SECTION_II_OFFSET=3`, `LEQ_Q_NUMBER=2`, `EXPECTED_ROW_COUNT=11`
+- `normalize()` strips AP World-specific page headers (`AP WORLD HISTORY: MODERN \d{4}...`, `AP® World History: Modern \d{4} Scoring Guidelines`)
+- `extractStimulus()` / `looksLikeStimulusMarker()`: regex uses `“”` Unicode escapes — AP World PDFs use LEFT/RIGHT DOUBLE QUOTATION MARK (U+201C/D), not ASCII `"`
+- `parseFrqs()`: SAQ header also matches `Using the .+?,\s+respond to parts` (2024 format); parts regex is case-insensitive; added `leqIntro` detection for `"In the period circa..."` / `"During the ..."` format (AP World LEQs don't start with action verbs like APUSH's)
+- `parsePartsFromScoring()`: completely rewritten for AP World's indented format (`         A    prompt   1 point`)
+- `buildRows()`: skips SAQ Q4 (`q.number > SAQ_COUNT`) and LEQ Q3/Q4 (`q.number !== LEQ_Q_NUMBER`)
+
+### question_bank rows added
+| parent# | type | sub_index | stimulus |
+|---------|------|-----------|---------|
+| 1 | saq | A, B, C | Primary source stimulus |
+| 2 | saq | A, B, C | Primary source stimulus |
+| 3 | saq | A, B, C | No stimulus |
+| 4 | dbq | (null) | 7-document DBQ blob |
+| 5 | leq | (null) | No stimulus |
+
+(11 rows total; subject='AP World History', source_year=2025)
+
+## Bugs fixed this session
+
+| # | Bug | Root cause | Fix |
+|---|-----|------------|-----|
+| A | `stimulus: null` on all 11 AP World rows after first seed | `extractStimulus` regex `/^["""]/.test(t)` only matched ASCII `"` (U+0022); AP World PDFs use U+201C LEFT DOUBLE QUOTATION MARK | Added `“”` to both `extractStimulus` and `looksLikeStimulusMarker` regexes via Python patch (Edit tool only writes ASCII) |
+| B | 11 bad rows left in DB after first seed | Idempotency check passed with wrong data (stimulus=null but rows existed) | Manually deleted the 11 rows in Supabase SQL Editor before re-running the corrected seeder |
+
+## DB state right now (as of 2026-05-28)
+
+- `question_bank`: **27 rows** — 16 APUSH (parent# 1-8, source_year=2025) + 11 AP World (parent# 1-5, source_year=2025).
+- `student_attempts`: prior rows from smoke tests + Arnav Kumar's auth-test pass.
+- Migrations: no new migrations this session (no schema changes needed — `parent_question_number` already existed).
+
+## Deferred TODOs (AP World additions)
+
+| # | TODO | Severity | Notes |
+|---|------|----------|-------|
+| 16 | Seed 2024 AP World FRQ set | medium | `seed-apworld-2024-set-1.mjs` not yet written. Pipeline is proven; just needs the 2024 PDF pair. |
+| 17 | `year` hardcoded as `'2025'` in SUBJECT_MAP | low | When multi-year data exists, `year` should come from DB or be removed from the subtitle. |
+| 18 | vault-v2 subject-gating for AP World (mirrors TODO #14) | low | A non-APWH student URL-typing `vault-v2.html?subject=apworld` loads the AP World questions. Extend `resolveStudent()` to check subjects. |
+| 19 | AP World portal branch can't be E2E tested without a real APWH student | low | `currentStudent` is module-scope `let` in portal.html; can't be injected via `window.currentStudent =`. Need a real student row with `subjects` containing `'AP World History'`. |
+
+---
+
 # Session notes — 2026-05-24
 
 State at end of session: vault-v2.html shipped end-to-end and **live on origin/main**. Three commits tonight (`78b9301` vault-v2 page, `3597598` portal-auth wiring, `4bc2d6a` portal routing card). APUSH students logging into the portal now see an intro card on the Practice Vault tab that navigates to `vault-v2.html` in the same tab; real `students.id` resolves from sessionStorage and attempts write under that UUID.
@@ -111,39 +172,49 @@ Open from 2026-05-24:
 | 14 | vault-v2 doesn't gate on `student.subjects` | low | A non-APUSH student URL-typing `vault-v2.html` directly still loads the APUSH questions. Auth gates on role only. Future: extend `resolveStudent()` to also check the subject list. |
 | 15 | Multi-subject students with APUSH + another lose access to the existing Gemini MCQ vault | low | No such students today. When they exist: show both surfaces, or pick a primary subject. |
 
-## Resume sequence for next session
+## Resume sequence for next session (as of 2026-05-28)
 
 1. Pick next direction:
-   - **DBQ stimulus/prompt split** (TODO #1) — biggest UX improvement; the 8k blob with inline documents is the ugliest thing in the vault right now. Needs image extraction for the 7 source documents.
-   - **Period tagging pass** (TODO #2) — `unit='Unassigned'` on all 16 rows. Tag each to a Period (1-9). Enables filtering/recommendations once the bank grows.
-   - **Add more APUSH FRQ sets** — pipeline is proven. Seed 2024, 2023, 2022 sets (each is one PDF pair + one node script run). Lets students get reps on more than 8 questions before they exhaust the bank.
-   - **AI grader** — closes the loop on the "is_correct nullable" decision. Even a simple Claude/Gemini pass against the rubric would beat self-grade. Bigger project; design first.
-   - **Quick cleanups** — TODOs #6, #12, #13 are all sub-30-min and worth a hygiene commit.
-2. Roughly in priority order I'd suggest: cleanups → more APUSH sets → DBQ split → Period tagging → AI grader.
+   - **Add real APWH student** — create a `students` row with `subjects=['AP World History']` so the portal AP World branch can be E2E tested (TODO #19). Trivial Supabase SQL Editor step.
+   - **Seed 2024 AP World FRQ set** (TODO #16) — pipeline proven; just need the 2024 PDF pair.
+   - **Seed 2024/2023/2022 APUSH sets** — same pipeline. Lets APUSH students get reps beyond 8 questions.
+   - **DBQ stimulus/prompt split** (TODO #1) — biggest UX improvement; 8k blob with inline documents is ugly.
+   - **Period tagging pass** (TODO #2) — `unit='Unassigned'` on all 27 rows.
+   - **Quick cleanups** — TODOs #6, #12, #13 are sub-30-min.
+   - **AI grader** — bigger project; design first.
+2. Roughly in priority order I'd suggest: APWH student row → more seeds → DBQ split → Period tagging → AI grader.
 
-## Key file locations (full state as of 2026-05-24)
+## Key file locations (full state as of 2026-05-28)
 
 ```
-vault-v2.html                                            # standalone vault page, ships
-portal.html                                              # MODIFIED — APUSH branch in buildPracticeVault()
+vault-v2.html                                            # MODIFIED — subject-param generalization
+portal.html                                              # MODIFIED — AP World branch in buildPracticeVault()
 supabase/migrations/20260523120000_question_bank.sql            # from 2026-05-23
 supabase/migrations/20260523220000_add_sub_index.sql            # from 2026-05-23
-supabase/migrations/20260524120000_vault_v2_attempts_relax.sql  # NEW 2026-05-24
-supabase/migrations/20260524130000_question_bank_parent_question_number.sql  # NEW 2026-05-24
-scripts/seed-apush-2025-set-1.mjs                        # MODIFIED — populates parent_question_number
-scripts/verify-parent-numbers.mjs                        # NEW
-scripts/inspect-attempts.mjs                             # NEW (hardcodes placeholder UUID — see TODO #12)
+supabase/migrations/20260524120000_vault_v2_attempts_relax.sql  # from 2026-05-24
+supabase/migrations/20260524130000_question_bank_parent_question_number.sql  # from 2026-05-24
+scripts/seed-apush-2025-set-1.mjs                        # MODIFIED 2026-05-24 — populates parent_question_number
+scripts/seed-apworld-2025-set-1.mjs                      # NEW 2026-05-28 — 11 AP World rows
+scripts/verify-parent-numbers.mjs                        # from 2026-05-24
+scripts/inspect-attempts.mjs                             # from 2026-05-24 (hardcodes placeholder UUID — TODO #12)
 ```
 
-## Commits shipped this session
+## Commits shipped this session (2026-05-28)
 
 ```
-4bc2d6a Route APUSH students from portal Practice Vault to vault-v2.html
-3597598 Wire vault-v2 to portal sessionStorage auth
-78b9301 Add vault-v2: standalone APUSH FRQ practice from question_bank
+3628730 Add AP World History practice vault (vault-v2 + portal branch)
 ```
 
-All three pushed to `origin/main`.
+Pushed to `origin/main`.
+
+## How to test the AP World vault locally
+
+```
+python3 -m http.server 8000          # from repo root
+open http://localhost:8000/vault-v2.html?subject=apworld
+# no auth needed for a direct URL test — resolveStudent() will show "not signed in" error
+# for full portal flow: need a student row with subjects=['AP World History'] (TODO #19)
+```
 
 ## How to test the vault locally
 
