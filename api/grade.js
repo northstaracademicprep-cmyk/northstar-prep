@@ -6,7 +6,16 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
+  if (!apiKey) {
+    return res.status(500).json({
+      error: 'GEMINI_API_KEY not configured on server',
+      _debug: {
+        total: Object.keys(process.env).length,
+        geminiKeys: Object.keys(process.env).filter(k => k.toUpperCase().includes('GEMINI')),
+        customSample: Object.keys(process.env).filter(k => !/^(VERCEL|AWS|LAMBDA|NODE|PATH|_|TZ|LANG|HOME|PWD|SHLVL|HOSTNAME)/.test(k)).slice(0, 25)
+      }
+    });
+  }
 
   const { questionType, parts } = req.body || {};
   if (!questionType || !Array.isArray(parts) || !parts.length) {
