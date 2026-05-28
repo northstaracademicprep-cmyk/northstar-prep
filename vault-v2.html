@@ -97,6 +97,9 @@ header.app-header .subtitle {
 .badge.type-saq { background: rgba(201,160,58,.18); color: #e0b84a; }
 .badge.type-dbq { background: rgba(245,158,11,.18); color: #fbbf24; }
 .badge.type-leq { background: rgba(16,185,129,.18); color: #6ee7b7; }
+.badge.ai { background: transparent; color: #e0b84a; border: 1px solid var(--accent); }
+.gen-block { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+.gen-label { font-size: .9rem; color: var(--muted); margin-bottom: .75rem; }
 .stimulus {
   background: var(--bg-elevated);
   border-left: 3px solid var(--accent);
@@ -381,6 +384,14 @@ code {
   <div id="done-view" class="card" hidden>
     <h2 style="margin-top:0">Done — all questions complete</h2>
     <p class="muted" id="done-msg">Attempts saved to <code>student_attempts</code>. Refresh to start a new session.</p>
+    <div class="gen-block">
+      <div class="gen-label">Want more practice? Generate a fresh AI question in the same style.</div>
+      <div class="actions" style="justify-content:flex-start">
+        <button id="gen-saq-btn" class="btn btn-primary">✨ Generate SAQ</button>
+        <button id="gen-leq-btn" class="btn btn-primary">✨ Generate LEQ</button>
+      </div>
+      <div id="gen-status" class="muted" style="margin-top:.6rem" hidden></div>
+    </div>
   </div>
 </div>
 
@@ -467,6 +478,7 @@ code {
       .from('question_bank')
       .select('*')
       .eq('subject', SUBJECT)
+      .eq('ai_generated', false)
       .order('parent_question_number', { ascending: true })
       .order('sub_index', { ascending: true, nullsFirst: true });
     if (error) throw error;
@@ -523,8 +535,10 @@ code {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  function badgeHtml(type) {
-    return `<div class="badges"><span class="badge type-${type}">${type.toUpperCase()}</span></div>`;
+  function badgeHtml(type, aiGenerated) {
+    const typeBadge = `<span class="badge type-${type}">${type.toUpperCase()}</span>`;
+    const aiBadge = aiGenerated ? `<span class="badge ai">✨ AI Practice</span>` : '';
+    return `<div class="badges">${typeBadge}${aiBadge}</div>`;
   }
 
   function stimulusHtml(stimulus, imageUrl) {
@@ -546,7 +560,7 @@ code {
     }).join('');
 
     return `
-      ${badgeHtml('saq')}
+      ${badgeHtml('saq', group.ai_generated)}
       ${stimulusHtml(group.stimulus, group.stimulus_image_url)}
       <div class="saq-intro">Short-Answer Question — answer all parts below, then reveal the rubric.</div>
       ${partsHtml}
@@ -561,7 +575,7 @@ code {
     const type = row.question_type;
     const isDbq = type === 'dbq';
     return `
-      ${badgeHtml(type)}
+      ${badgeHtml(type, row.ai_generated)}
       ${stimulusHtml(row.stimulus, row.stimulus_image_url)}
       <div class="question-text${isDbq ? ' dbq-text' : ''}">${escapeHtml(row.question_text)}</div>
       <textarea id="single-textarea" placeholder="Type your response…"></textarea>
@@ -799,6 +813,84 @@ code {
     document.getElementById('grade-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  async function generateQuestion(type) {
+    const statusEl = document.getElementById('gen-status');
+    const saqBtn = document.getElementById('gen-saq-btn');
+    const leqBtn = document.getElementById('gen-leq-btn');
+    saqBtn.disabled = true;
+    leqBtn.disabled = true;
+    statusEl.hidden = false;
+    statusEl.textContent = `Generating a new ${type.toUpperCase()}…`;
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: SUBJECT, questionType: type }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const group = buildGroupFromGenerated(data);
+      state.groups.push(group);
+      state.currentIndex = state.groups.length - 1;
+      document.getElementById('done-view').hidden = true;
+      document.getElementById('question-view').hidden = false;
+      statusEl.hidden = true;
+      renderCurrent();
+    } catch (err) {
+      statusEl.hidden = false;
+      statusEl.textContent = `Generation failed: ${err.message}`;
+    } finally {
+      saqBtn.disabled = false;
+      leqBtn.disabled = false;
+    }
+  }
+
+  function buildGroupFromGenerated(data) {
+    if (data.questionType === 'saq') {
+      return {
+        kind: 'saq-group',
+        ai_generated: true,
+        stimulus: data.stimulus || null,
+        stimulus_image_url: null,
+        parts: data.parts.map(p => ({
+          id: p.id,
+          question_type: 'saq',
+          sub_index: p.sub_index,
+          question_text: p.question_text,
+          correct_answer: p.correct_answer,
+          official_explanation: p.official_explanation,
+          ai_generated: true,
+        })),
+      };
+    }
+    return {
+      kind: 'single',
+      ai_generated: true,
+      row: {
+        id: data.row.id,
+        question_type: data.row.question_type,
+        stimulus: data.row.stimulus || null,
+        stimulus_image_url: data.row.stimulus_image_url || null,
+        question_text: data.row.question_text,
+        correct_answer: data.row.correct_answer,
+        official_explanation: data.row.official_explanation,
+        ai_generated: true,
+      },
+    };
+  }
+
+  function wireGenerateButtons() {
+    const saqBtn = document.getElementById('gen-saq-btn');
+    const leqBtn = document.getElementById('gen-leq-btn');
+    if (saqBtn) saqBtn.addEventListener('click', () => generateQuestion('saq'));
+    if (leqBtn) leqBtn.addEventListener('click', () => generateQuestion('leq'));
+  }
+
+  wireGenerateButtons();
   init();
 })();
 </script>
