@@ -324,9 +324,38 @@ code {
   font-style: italic;
   line-height: 1.55;
 }
+.vault-header { border-bottom: 1px solid var(--border); background: var(--bg); }
+.vault-brand {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.1rem 1.25rem;
+  text-decoration: none;
+}
+.vault-brand-logo { width: 36px; height: 36px; flex-shrink: 0; }
+.vault-brand-name {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.vault-brand-sub { font-size: .7rem; color: var(--muted); }
 </style>
 </head>
 <body>
+<header class="vault-header">
+  <a href="portal.html" class="vault-brand" aria-label="Northstar Academic Prep — back to portal">
+    <img src="logo.png" class="vault-brand-logo" alt="Northstar logo" />
+    <div>
+      <div class="vault-brand-name">Northstar</div>
+      <div class="vault-brand-sub">Academic Prep</div>
+    </div>
+  </a>
+</header>
 <div class="container">
   <header class="app-header">
     <a href="portal.html" class="back-link">← Back to portal</a>
