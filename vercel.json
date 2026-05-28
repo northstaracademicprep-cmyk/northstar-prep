@@ -1,9 +1,17 @@
 {
-  "rewrites": [
+  "routes": [
     {
-      "source": "/",
+      "src": "^/$",
       "has": [{ "type": "host", "value": "portal.northstaracademicprep.com" }],
-      "destination": "/portal.html"
+      "dest": "/portal.html"
+    },
+    {
+      "src": "^/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "^/(.*)$",
+      "dest": "/$1"
     }
   ]
 }
