@@ -4361,9 +4361,10 @@ function buildPracticeVault() {
   // Check if admin has issued a reset since last login — clears seen-question cache if so
   _checkPracticeReset();
 
-  // APUSH students: real College Board FRQs live in vault-v2.html (separate page).
+  // FRQ vault subjects: real College Board FRQs via vault-v2.html?subject=X.
   // Anything else falls through to the existing Gemini MCQ vault below.
   const subjects = (currentStudent?.subjects || []).map(s => (s || '').toLowerCase());
+
   if (subjects.some(s => s === 'apush' || s === 'ap us history')) {
     container.innerHTML = `
       <div class="pv-hero">
@@ -4379,7 +4380,32 @@ function buildPracticeVault() {
           8 questions — 4 short-answer (SAQ), 1 document-based (DBQ), 3 long-essay (LEQ).<br>
           Write your response, then reveal the official scoring rubric to self-grade.
         </div>
-        <a href="vault-v2.html" style="display:inline-block;background:var(--navy);color:#fff;padding:.85rem 2rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:.95rem">
+        <a href="vault-v2.html?subject=apush" style="display:inline-block;background:var(--navy);color:#fff;padding:.85rem 2rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:.95rem">
+          Open Practice Vault →
+        </a>
+        <div style="margin-top:1rem;font-size:.75rem;color:#94a3b8">
+          Opens in this tab. Your responses save automatically.
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (subjects.some(s => s === 'apwh' || s === 'ap world history' || s === 'ap world')) {
+    container.innerHTML = `
+      <div class="pv-hero">
+        <div class="pv-hero-text">
+          <h2>🎯 Practice Vault</h2>
+          <p>Real AP World History free-response questions from the College Board.</p>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2.5rem 2rem;text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:1rem">🌍</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#0f2044;margin-bottom:.6rem">2025 College Board AP World History FRQs</div>
+        <div style="font-size:.9rem;color:#64748b;margin-bottom:1.75rem;line-height:1.65;max-width:480px;margin-left:auto;margin-right:auto">
+          5 questions — 3 short-answer (SAQ), 1 document-based (DBQ), 1 long-essay (LEQ).<br>
+          Write your response, then reveal the official scoring rubric to self-grade.
+        </div>
+        <a href="vault-v2.html?subject=apworld" style="display:inline-block;background:var(--navy);color:#fff;padding:.85rem 2rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:.95rem">
           Open Practice Vault →
         </a>
         <div style="margin-top:1rem;font-size:.75rem;color:#94a3b8">

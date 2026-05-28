@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Practice Vault v2 — APUSH FRQs</title>
+<title id="page-title">Practice Vault v2 — APUSH FRQs</title>
 <style>
 :root {
   --bg: #0f1729;
@@ -240,8 +240,8 @@ code {
 <div class="container">
   <header class="app-header">
     <a href="portal.html" class="back-link">← Back to portal</a>
-    <h1>Practice Vault v2 · APUSH FRQs</h1>
-    <div class="subtitle">College Board 2025 · Real free-response questions, rubric reveal after each attempt</div>
+    <h1 id="vault-title">Practice Vault v2 · APUSH FRQs</h1>
+    <div class="subtitle" id="vault-subtitle">College Board 2025 · Real free-response questions, rubric reveal after each attempt</div>
     <div id="student-banner" class="muted" style="margin-top:.4rem;font-size:.78rem" hidden></div>
   </header>
 
@@ -261,7 +261,7 @@ code {
 
   <div id="done-view" class="card" hidden>
     <h2 style="margin-top:0">Done — all questions complete</h2>
-    <p class="muted">Attempts saved to <code>student_attempts</code>. Refresh to start a new session.</p>
+    <p class="muted" id="done-msg">Attempts saved to <code>student_attempts</code>. Refresh to start a new session.</p>
   </div>
 </div>
 
@@ -271,7 +271,21 @@ code {
   const SUPABASE_URL = 'https://hqqugqfdlcinktsblupu.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_eHbuUITIGOZ5ckLI03fXjQ_9h_915Hn';
   const SESSION_ID = crypto.randomUUID();
-  const SUBJECT = 'AP US History';
+
+  // Subject is driven by ?subject= URL param so one page serves all subjects
+  // that share the SAQ/DBQ/LEQ format. (AP Chem etc. get their own page.)
+  const SUBJECT_MAP = {
+    apush:   { dbSubject: 'AP US History',    label: 'APUSH FRQs',         year: '2025' },
+    apworld: { dbSubject: 'AP World History', label: 'AP World History FRQs', year: '2025' },
+  };
+  const subjectKey  = (new URLSearchParams(location.search).get('subject') || 'apush').toLowerCase();
+  const subjectCfg  = SUBJECT_MAP[subjectKey] || SUBJECT_MAP['apush'];
+  const SUBJECT     = subjectCfg.dbSubject;
+
+  // Update page chrome to reflect subject
+  document.getElementById('page-title').textContent  = `Practice Vault v2 — ${subjectCfg.label}`;
+  document.getElementById('vault-title').textContent  = `Practice Vault v2 · ${subjectCfg.label}`;
+  document.getElementById('vault-subtitle').textContent = `College Board ${subjectCfg.year} · Real free-response questions, rubric reveal after each attempt`;
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
