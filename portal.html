@@ -1845,17 +1845,17 @@ function buildDashCC() {
 /* ══════════════════════════════════════
    MY PROGRESS (enhanced)
 ══════════════════════════════════════ */
-async function buildProgressPage() {
-  const s = currentStudent;
-  const progEl = document.getElementById('sec-progress');
-  if (!progEl) return;
+async function buildProgressPage(student, targetEl) {
+  const s = student || currentStudent;
+  const progEl = targetEl || document.getElementById('sec-progress');
+  if (!s || !progEl) return;
 
   // Destroy any existing Chart.js instances to avoid canvas-reuse errors
   ['_pvBarChart','_pvLineChart'].forEach(k => { if(window[k]){try{window[k].destroy();}catch(e){}window[k]=null;} });
 
-  // Load practice attempts
+  // Load practice attempts (only needed for the student-only blocks)
   let attempts = [];
-  if (s.studentId) {
+  if (!s._tutorView && s.studentId) {
     const { data } = await db.from('practice_attempts').select('*').eq('student_id', s.studentId).order('attempted_at', {ascending: false});
     attempts = data || [];
   }
@@ -1873,7 +1873,7 @@ async function buildProgressPage() {
   let html = '';
 
   // ── Overview Stats ──────────────────────────────────────────────────────────
-  html += `<div class="prog-overview-grid" style="margin-bottom:1.5rem">
+  if (!s._tutorView) html += `<div class="prog-overview-grid" style="margin-bottom:1.5rem">
     <div class="prog-overview-card">
       <div class="prog-overview-val${hwAvg!=null?(hwAvg>=80?' green':hwAvg>=65?' gold':' red'):''}">${hwAvg!=null?hwAvg+'%':'—'}</div>
       <div class="prog-overview-label">Homework Avg</div>
@@ -1905,7 +1905,7 @@ async function buildProgressPage() {
     const hellConsequences = isAPSubject
       ? `failing the AP exam, losing GPA points that impact college applications, and falling further behind each week`
       : `a permanent GPA hit on the 9th-grade transcript college admissions officers see four years later, foundation cracks that compound into Pre-Calc and Calc, and a midterm collapse around Chapter 2 that's nearly impossible to recover from`;
-    html += `<div class="hell-card">
+    if (!s._tutorView) html += `<div class="hell-card">
       <div style="position:relative;z-index:1">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
           <div>
@@ -1969,7 +1969,7 @@ async function buildProgressPage() {
     }
 
     // ══ BRIDGE SEPARATOR ═════════════════════════════════════════════════════
-    html += `<div class="bridge-sep">
+    if (!s._tutorView) html += `<div class="bridge-sep">
       <div style="font-size:2.2rem;flex-shrink:0;position:relative;z-index:1">🌉</div>
       <div style="position:relative;z-index:1;flex:1">
         <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(201,160,58,.9);margin-bottom:.2rem">The Northstar Bridge</div>
@@ -2013,7 +2013,7 @@ async function buildProgressPage() {
 
     // ══ HEAVEN CARD ══════════════════════════════════════════════════════════
     const gainPts = cfg.targetGradeNum && cfg.startingGrade ? (cfg.targetGradeNum - cfg.startingGrade) : null;
-    html += `<div class="heaven-card">
+    if (!s._tutorView) html += `<div class="heaven-card">
       <div style="position:relative;z-index:1">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
           <div>
@@ -2050,7 +2050,7 @@ async function buildProgressPage() {
     </div>`;
 
     // ══ PROGRESS TRAJECTORY LINE CHART ═══════════════════════════════════════
-    html += `<div class="card" style="margin-bottom:1.5rem">
+    if (!s._tutorView) html += `<div class="card" style="margin-bottom:1.5rem">
       <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
         <div class="card-title">📈 Grade Trajectory</div>
         <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
@@ -2065,7 +2065,7 @@ async function buildProgressPage() {
   }
 
   // ── Homework Grades ─────────────────────────────────────────────────────────
-  html += `<div class="card" style="margin-bottom:1.5rem">
+  if (!s._tutorView) html += `<div class="card" style="margin-bottom:1.5rem">
     <div class="card-header">
       <div class="card-title">📝 Homework Grades</div>
       <div style="font-size:.75rem;color:var(--muted)">${graded.length} graded · ${submitted.length} awaiting · ${pending.length} pending</div>
@@ -2087,7 +2087,7 @@ async function buildProgressPage() {
   </div>`;
 
   // ── Practice History ────────────────────────────────────────────────────────
-  html += `<div class="card"${s.progress?` style="margin-bottom:1.5rem"`:''}>`+
+  if (!s._tutorView) html += `<div class="card"${s.progress?` style="margin-bottom:1.5rem"`:''}>`+
     `<div class="card-header">
       <div class="card-title">🎯 Practice History</div>
       <button onclick="showSection('practice',document.getElementById('nav-practice'))" style="font-size:.78rem;font-weight:700;color:var(--navy-light);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px">Go to Practice Vault →</button>
@@ -6352,7 +6352,7 @@ async function selectTutorStudent(studentId, keepTab=false) {
   // Messages tab badge to the newly selected student's unread count.
   _refreshAllBadges();
   // Async-load the progress panel in the background
-  buildTutorProgressPanel(homework, studentId, subj);
+  buildTutorProgressPanel(studentId);
   buildTutorMessagesPanel(studentId);
 }
 
@@ -6809,257 +6809,23 @@ async function postAnnouncement(studentId) {
 }
 
 /* ── TUTOR PROGRESS PANEL ── */
-async function buildTutorProgressPanel(homework, studentId, subject) {
+async function buildTutorProgressPanel(studentId) {
   const panel = document.getElementById('ttab-panel-progress');
   if (!panel) return;
 
-  // Load practice attempts for this student
-  const { data: attempts } = await db.from('practice_attempts')
-    .select('*').eq('student_id', studentId).order('attempted_at', {ascending: false});
-  const pvAttempts = attempts || [];
+  // The tutor Progress tab renders ONLY three sections from the student's
+  // roadmap: Performance by Unit, Weakness Analysis, Personalized Program
+  // Roadmap. Everything else (HW stats, Hell/Heaven cards, Trajectory chart,
+  // HW Grades list, Practice History, Recommendations, Practice by Section)
+  // is suppressed by the _tutorView flag inside buildProgressPage.
+  panel.innerHTML = `<div id="t-stu-progress-mount"></div>`;
 
-  // ── Homework stats ──────────────────────────────────
-  const graded    = homework.filter(h => h.status === 'graded' && h.score != null);
-  const submitted = homework.filter(h => h.status === 'submitted');
-  const pending   = homework.filter(h => h.status === 'pending');
-  const hwAvg     = graded.length ? Math.round(graded.reduce((s,h)=>s+Number(h.score),0)/graded.length) : null;
-
-  // ── Practice stats ───────────────────────────────────
-  // Best score per period
-  const pvByPeriod = {};
-  pvAttempts.forEach(a => {
-    const pct = Math.round((a.score/a.total)*100);
-    if (!pvByPeriod[a.period_key] || pct > pvByPeriod[a.period_key].best)
-      pvByPeriod[a.period_key] = { best: pct, attempts: 0, total: a.total };
-    pvByPeriod[a.period_key].attempts++;
-  });
-  const pvAvg = pvAttempts.length
-    ? Math.round(pvAttempts.reduce((s,a)=>s+Math.round((a.score/a.total)*100),0)/pvAttempts.length)
-    : null;
-
-  // ── Helpers ──────────────────────────────────────────
-  const col  = p => p >= 85 ? '#10b981' : p >= 70 ? '#f59e0b' : '#ef4444';
-  const bg   = p => p >= 85 ? '#ecfdf5' : p >= 70 ? '#fffbeb' : '#fef2f2';
-  const ltr  = p => p >= 90 ? 'A' : p >= 80 ? 'B' : p >= 70 ? 'C' : p >= 60 ? 'D' : 'F';
-  const star = p => p >= 85 ? '🟢' : p >= 70 ? '🟡' : '🔴';
-
-  // ── Determine which practice bank this student uses ──
-  const _bankResult  = getPracticeBank(selectedStudent?.subjects);
-  const _practiceBank = _bankResult?.bank || APUSH_BANK;
-
-  // ── Recommendations engine ───────────────────────────
-  const recs = generateRecommendations(graded, pvByPeriod, pvAttempts.length, subject, _practiceBank);
-
-  // ── Render ──────────────────────────────────────────
-  panel.innerHTML = `
-  <!-- Overview cards -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;margin-bottom:1.5rem">
-    <div class="t-card" style="padding:1rem;text-align:center">
-      <div style="font-size:1.75rem;font-weight:800;color:${hwAvg!=null?col(hwAvg):'#94a3b8'};line-height:1">${hwAvg!=null?hwAvg+'%':'—'}</div>
-      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-top:.3rem">HW Average</div>
-      ${hwAvg!=null?`<div style="font-size:.75rem;font-weight:700;color:${col(hwAvg)};margin-top:.2rem">${ltr(hwAvg)}</div>`:''}
-    </div>
-    <div class="t-card" style="padding:1rem;text-align:center">
-      <div style="font-size:1.75rem;font-weight:800;color:${pvAvg!=null?col(pvAvg):'#94a3b8'};line-height:1">${pvAvg!=null?pvAvg+'%':'—'}</div>
-      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-top:.3rem">Practice Avg</div>
-      ${pvAvg!=null?`<div style="font-size:.75rem;color:#64748b;margin-top:.2rem">${pvAttempts.length} attempt${pvAttempts.length!==1?'s':''}</div>`:''}
-    </div>
-    <div class="t-card" style="padding:1rem;text-align:center">
-      <div style="font-size:1.75rem;font-weight:800;color:#0f2044;line-height:1">${graded.length}</div>
-      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-top:.3rem">Graded</div>
-      <div style="font-size:.75rem;color:#64748b;margin-top:.2rem">${submitted.length} awaiting · ${pending.length} pending</div>
-    </div>
-  </div>
-
-  <!-- Recommendations -->
-  <div class="t-card" style="margin-bottom:1.25rem">
-    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
-      <h3 style="margin:0;font-size:.92rem">📋 ${currentTutor?.name?.split(' ')[0]||'Tutor'}'s Recommendations for ${selectedStudent?.name?.split(' ')[0]||'Student'}</h3>
-      <span style="font-size:.7rem;background:#eff6ff;color:#1e40af;padding:.2rem .6rem;border-radius:99px;font-weight:700">${subject}</span>
-    </div>
-    <div style="padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:.75rem">
-      ${recs.map(r => `
-        <div style="display:flex;gap:.85rem;padding:.85rem;border-radius:10px;background:${r.bg};border:1px solid ${r.border}">
-          <div style="font-size:1.2rem;flex-shrink:0">${r.icon}</div>
-          <div>
-            <div style="font-size:.83rem;font-weight:700;color:#0f2044;margin-bottom:.2rem">${r.title}</div>
-            <div style="font-size:.78rem;color:#374151;line-height:1.55">${r.body}</div>
-          </div>
-        </div>`).join('')}
-    </div>
-  </div>
-
-  <!-- Homework grades -->
-  <div class="t-card" style="margin-bottom:1.25rem">
-    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0"><h3 style="margin:0;font-size:.92rem">📝 Homework Grades</h3></div>
-    <div style="padding:1rem 1.25rem">
-      ${graded.length ? `<div style="display:flex;flex-direction:column;gap:.5rem">
-        ${graded.map(h => {
-          const pct = Math.round((Number(h.score)/Number(h.max_score||100))*100);
-          return `<div style="display:flex;align-items:center;gap:.85rem;padding:.65rem .85rem;border-radius:8px;border:1px solid #e5e7eb;background:#fff">
-            <div style="flex:1">
-              <div style="font-size:.82rem;font-weight:600;color:#0f2044">${h.title}</div>
-              ${h.feedback?`<div style="font-size:.72rem;color:#64748b;margin-top:.15rem">💬 ${h.feedback}</div>`:''}
-            </div>
-            <div style="text-align:right">
-              <div style="font-size:.85rem;font-weight:800;color:${col(pct)}">${h.score}/${h.max_score||100}</div>
-              <div style="font-size:.7rem;font-weight:700;background:${bg(pct)};color:${col(pct)};padding:.1rem .45rem;border-radius:6px;display:inline-block;margin-top:.15rem">${ltr(pct)}</div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>` : `<div style="text-align:center;padding:1.5rem;color:#94a3b8;font-size:.85rem">No graded assignments yet.</div>`}
-    </div>
-  </div>
-
-  <!-- Practice by period -->
-  <div class="t-card">
-    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0"><h3 style="margin:0;font-size:.92rem">🎯 Practice Performance by Section</h3></div>
-    <div style="padding:1rem 1.25rem">
-      ${Object.keys(pvByPeriod).length ? `<div style="display:flex;flex-direction:column;gap:.5rem">
-        ${Object.keys(pvByPeriod).map(key => {
-          const b = findBankSection(key);
-          if (!b) return '';
-          const d = pvByPeriod[key];
-          return `<div style="display:flex;align-items:center;gap:.85rem;padding:.6rem .85rem;border-radius:8px;border:1px solid #e5e7eb;background:#fff">
-            <div style="font-size:1.1rem">${b.icon||'📚'}</div>
-            <div style="flex:1">
-              <div style="font-size:.8rem;font-weight:600;color:#0f2044">${b.label}</div>
-              <div style="font-size:.7rem;color:#64748b">${d.attempts} attempt${d.attempts!==1?'s':''}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:.5rem">
-              <div style="background:#e2e8f0;border-radius:99px;height:6px;width:80px;overflow:hidden">
-                <div style="height:100%;width:${d.best}%;background:${col(d.best)};border-radius:99px"></div>
-              </div>
-              <div style="font-size:.82rem;font-weight:800;color:${col(d.best)};width:38px;text-align:right">${d.best}%</div>
-              <div style="font-size:.9rem">${star(d.best)}</div>
-            </div>
-          </div>`;
-        }).filter(Boolean).join('')}
-      </div>` : `<div style="text-align:center;padding:1.5rem;color:#94a3b8;font-size:.85rem">No practice attempts yet. Encourage ${(selectedStudent?.name||'the student').split(' ')[0]} to try the Practice Vault!</div>`}
-    </div>
-  </div>`;
-}
-
-function generateRecommendations(graded, pvByPeriod, pvTotal, subject, bank) {
-  const recs = [];
-  const sl   = (subject||'').toLowerCase();
-  const sName = (selectedStudent?.name||'The student').split(' ')[0];
-  const practiceBank = bank || APUSH_BANK;
-
-  // Subject type flags
-  const isAPUSH = sl.includes('ap us hist') || sl.includes('apush');
-  const isAPWH  = sl.includes('ap world');
-  const isAPBio = sl.includes('ap bio');
-  const isAPChem= sl.includes('ap chem');
-  const isAPCalc= sl.includes('ap calc');
-  const isAPStat= sl.includes('ap stat');
-  const isAPGov = sl.includes('ap gov');
-  const isSAT   = sl.includes('sat');
-  const isACT   = sl.includes('act');
-  const isAlg2  = sl.includes('algebra 2')||sl.includes('algebra ii')||sl.includes('alg 2')||sl.includes('alg2');
-  const isHiSET = sl.includes('hiset')||sl.includes('ged');
-  const isAP    = isAPUSH||isAPWH||isAPBio||isAPChem||isAPCalc||isAPStat||isAPGov;
-
-  // 1. Weak sections (below 70%)
-  const weakSections = practiceBank.filter(b => pvByPeriod[b.key] && pvByPeriod[b.key].best < 70);
-  const okSections   = practiceBank.filter(b => pvByPeriod[b.key] && pvByPeriod[b.key].best >= 70);
-
-  if (weakSections.length) {
-    const names = weakSections.map(b => b.label).join(', ');
-    recs.push({
-      icon:'🔴', bg:'#fef2f2', border:'#fecaca',
-      title:`Priority Review: ${names}`,
-      body:`${sName} scored below 70% on ${names}. Dedicate focused session time to these sections — drill core concepts, work through similar problems together, and have them re-attempt in the Practice Vault to confirm improvement.`
-    });
-  }
-
-  // 2. Low homework average
-  const hwAvg = graded.length ? Math.round(graded.reduce((s,h)=>s+Number(h.score),0)/graded.length) : null;
-  if (hwAvg !== null && hwAvg < 75) {
-    recs.push({
-      icon:'📝', bg:'#fff7ed', border:'#fed7aa',
-      title:'Written Work Needs Attention',
-      body:`Homework average is ${hwAvg}%. Consider slowing down to reinforce fundamentals — identify specific concept gaps from the graded work and address them directly in session before moving to new material.`
-    });
-  }
-
-  // 3. No practice yet
-  if (pvTotal === 0) {
-    recs.push({
-      icon:'🎯', bg:'#eff6ff', border:'#bfdbfe',
-      title:'Start Practice Vault Drills',
-      body:`No practice attempts yet. Assign 1–2 sections per week in the Practice Vault as homework — consistent practice is one of the highest-leverage activities for score improvement. Have ${sName} complete at least one section before each session so you can review errors together.`
-    });
-  }
-
-  // 4. Strong across the board
-  if (pvTotal > 0 && weakSections.length === 0 && okSections.length >= 4) {
-    recs.push({
-      icon:'🔥', bg:'#ecfdf5', border:'#a7f3d0',
-      title:'Strong Foundation — Level Up',
-      body:`Great consistency across all practiced sections. Push into timed, full-length practice now and focus sessions on the hardest question types. Challenge ${sName} with more complex problems to build exam-day confidence.`
-    });
-  }
-
-  // 5. Untouched sections (any subject)
-  if (pvTotal > 0) {
-    const untouched = practiceBank.filter(b => !pvByPeriod[b.key]);
-    if (untouched.length >= 3) {
-      const urgentNames = untouched.slice(0,3).map(b=>b.label).join(', ');
-      recs.push({
-        icon:'⚡', bg:'#fffbeb', border:'#fde68a',
-        title:`Unexplored Sections: ${urgentNames}${untouched.length>3?' + more':''}`,
-        body:`These sections haven't been practiced yet. Prioritize them in the Practice Vault to build comprehensive coverage — aim for at least one attempt per section before the exam.`
-      });
-    }
-  }
-
-  // 6. Subject-specific exam structure tips
-  if (isAPUSH) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'APUSH Exam Structure',
-      body:`55 MCQ (55 min) + 3 SAQ (40 min) + 1 DBQ (60 min) + 1 LEQ (40 min). MCQ/SAQ = 55%, DBQ/LEQ = 45%. Biggest leverage: DBQ with strong thesis, 6+ sourced documents, and outside evidence. Ensure at least one session covers document analysis.` });
-  } else if (isAPWH) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP World History Exam Structure',
-      body:`55 MCQ (55 min) + 3 SAQ (40 min) + 1 DBQ (60 min) + 1 LEQ (40 min). Focus on cross-cultural comparisons and change-over-time analysis. Practice sourcing documents by HAPP (Historical context, Audience, Purpose, Point of view).` });
-  } else if (isAPCalc) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Calculus Exam Structure',
-      body:`45 MCQ (1 hr 45 min) + 6 FRQ (1 hr 30 min). Calculator allowed for ~half. Make sure ${sName} can show all work clearly on FRQs — partial credit matters significantly. FRQ practice is often the biggest score lever.` });
-  } else if (isAPStat) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Statistics Exam Structure',
-      body:`40 MCQ (90 min) + 6 FRQ (90 min). Interpretation is as important as calculation — ${sName} must write clear conclusions in context. Practice writing full sentences for every statistical result.` });
-  } else if (isAPBio) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Biology Exam Structure',
-      body:`60 MCQ + 6 FRQ (2 long + 4 short). Emphasis on experimental design and data analysis. Make sure ${sName} can design a controlled experiment and interpret graphs/tables under timed conditions.` });
-  } else if (isAPChem) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Chemistry Exam Structure',
-      body:`60 MCQ (90 min) + 7 FRQ (105 min). Calculator allowed throughout. Focus on stoichiometry, equilibrium, and electrochemistry — these are the highest-weight topics. FRQ requires clear notation and unit analysis.` });
-  } else if (isAPGov) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'AP Gov Exam Structure',
-      body:`55 MCQ (80 min) + 4 FRQ (100 min). The SCOTUS comparison FRQ is unique — practice connecting required cases to non-required cases with evidence. ${sName} should know all 15 required SCOTUS cases cold.` });
-  } else if (isSAT) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'SAT Strategy',
-      body:`Digital SAT: 2 Reading/Writing modules (64 min) + 2 Math modules (70 min). Module 2 difficulty adapts to Module 1 performance — doing well in Module 1 is critical. Math no-calculator section requires clean algebra fundamentals.` });
-  } else if (isACT) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'ACT Strategy',
-      body:`English (45 min) + Math (60 min) + Reading (35 min) + Science (35 min). Time pressure is real — pacing is as important as content. Have ${sName} practice skipping and returning to hard questions to maximize score.` });
-  } else if (isAlg2) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'Algebra 2 Focus Areas',
-      body:`Prioritize functions (linear, quadratic, exponential/log) as they appear throughout the course and on standardized tests. Polynomial and rational expressions are frequently tested. Make sure ${sName} can graph and interpret all function families fluently.` });
-  } else if (isHiSET) {
-    recs.push({ icon:'📖', bg:'#f5f3ff', border:'#ddd6fe', title:'HiSET/GED Strategy',
-      body:`Focus on math reasoning and language arts — these carry the most weight. ${sName} needs to show mastery in all 5 subject areas to pass. Consistent practice in the lowest-scoring areas first will maximize overall results.` });
-  }
-
-  // 7. Default if no recs
-  if (recs.length === 0) {
-    recs.push({
-      icon:'🚀', bg:'#f0fdf4', border:'#bbf7d0',
-      title:'Ready to Build the Plan',
-      body:`No grades or practice data yet. Have ${sName} start in the Practice Vault to establish a baseline, then assign targeted homework based on the results. Use the first session to identify their biggest knowledge gaps.`
-    });
-  }
-
-  return recs;
+  buildProgressPage({
+    studentId,
+    name:            selectedStudent?.name || '',
+    progress_config: selectedStudent?.progress_config || null,
+    _tutorView:      true
+  }, document.getElementById('t-stu-progress-mount'));
 }
 
 /* ── TUTOR EDIT / DELETE HELPERS ── */
