@@ -1853,9 +1853,9 @@ async function buildProgressPage(student, targetEl) {
   // Destroy any existing Chart.js instances to avoid canvas-reuse errors
   ['_pvBarChart','_pvLineChart'].forEach(k => { if(window[k]){try{window[k].destroy();}catch(e){}window[k]=null;} });
 
-  // Load practice attempts (only needed for the student-only blocks)
+  // Load practice attempts
   let attempts = [];
-  if (!s._tutorView && s.studentId) {
+  if (s.studentId) {
     const { data } = await db.from('practice_attempts').select('*').eq('student_id', s.studentId).order('attempted_at', {ascending: false});
     attempts = data || [];
   }
@@ -1873,7 +1873,7 @@ async function buildProgressPage(student, targetEl) {
   let html = '';
 
   // ── Overview Stats ──────────────────────────────────────────────────────────
-  if (!s._tutorView) html += `<div class="prog-overview-grid" style="margin-bottom:1.5rem">
+  html += `<div class="prog-overview-grid" style="margin-bottom:1.5rem${s._tutorView ? ';grid-template-columns:repeat(2,1fr)' : ''}">
     <div class="prog-overview-card">
       <div class="prog-overview-val${hwAvg!=null?(hwAvg>=80?' green':hwAvg>=65?' gold':' red'):''}">${hwAvg!=null?hwAvg+'%':'—'}</div>
       <div class="prog-overview-label">Homework Avg</div>
@@ -1881,11 +1881,11 @@ async function buildProgressPage(student, targetEl) {
     <div class="prog-overview-card">
       <div class="prog-overview-val${pvAvg!=null?(pvAvg>=80?' green':pvAvg>=65?' gold':' red'):''}">${pvAvg!=null?pvAvg+'%':'—'}</div>
       <div class="prog-overview-label">Practice Avg</div>
-    </div>
+    </div>${s._tutorView ? '' : `
     <div class="prog-overview-card">
       <div class="prog-overview-val">${graded.length+attempts.length}</div>
       <div class="prog-overview-label">Total Completed</div>
-    </div>
+    </div>`}
   </div>`;
 
   if (cfg) {
