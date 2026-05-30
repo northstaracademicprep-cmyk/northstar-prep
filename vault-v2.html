@@ -490,6 +490,7 @@ code {
   const subjectCfg  = SUBJECT_MAP[subjectKey] || SUBJECT_MAP['apush'];
   const SUBJECT     = subjectCfg.dbSubject;
   const MODE        = (new URLSearchParams(location.search).get('mode') || 'frq').toLowerCase();
+  const MCQ_PREFETCH_TARGET = 2;
 
   // AP World units (College Board CED). MCQ unit picker reads from here.
   // APUSH list is a trivial follow-up once MCQ ships.
@@ -529,6 +530,8 @@ code {
       picked: null,
       questionStartTime: 0,
       inFlight: false,
+      buffer: [],
+      prefetchInFlight: false,
     },
   };
 
@@ -1045,6 +1048,10 @@ code {
     select.addEventListener('change', () => {
       state.mcq.unitId = select.value;
       sessionStorage.setItem('mcq_unit', select.value);
+      clearMcqBuffer();
+      // Only kick prefetches if the user has already started a session —
+      // the very first question should still take the on-demand loading path.
+      if (state.mcq.currentRow) refillMcqBuffer();
     });
 
     document.getElementById('mcq-progress-btn').addEventListener('click', toggleMcqProgress);
@@ -1070,35 +1077,96 @@ code {
     return units.find(u => u.id === state.mcq.unitId) || units[0];
   }
 
+  // Network call only. Returns { row }. Throws on HTTP error.
+  // Accepts an optional pre-picked unitObj so the on-demand path can show
+  // a loading message that names the same unit it ends up fetching for.
+  async function fetchMcq(unitObj) {
+    const u = unitObj || pickConcreteUnit();
+    const unitPayload = `${u.label} (${u.period})`;
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject: SUBJECT, questionType: 'mcq', unit: unitPayload }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return { row: data.row };
+  }
+
+  function showMcqRow(row) {
+    state.mcq.currentRow = row;
+    state.mcq.picked = null;
+    state.mcq.questionStartTime = Date.now();
+    document.getElementById('mcq-status').hidden = true;
+    renderMcq(row);
+  }
+
+  function clearMcqBuffer() {
+    state.mcq.buffer.length = 0;
+    // Any in-flight prefetch is left to land; its result is dropped by the
+    // staleness check inside refillMcqBuffer().
+  }
+
+  // Background fill toward MCQ_PREFETCH_TARGET. Self-chaining: on each
+  // settled prefetch, kicks itself again until the target is reached.
+  // Single-flight: a second concurrent call no-ops until the first lands.
+  function refillMcqBuffer() {
+    if (state.mcq.prefetchInFlight) return;
+    if (state.mcq.buffer.length >= MCQ_PREFETCH_TARGET) return;
+
+    state.mcq.prefetchInFlight = true;
+    const targetUnit = state.mcq.unitId;
+    let didError = false;
+
+    fetchMcq()
+      .then(({ row }) => {
+        // Drop the result if the user switched unit during this fetch.
+        if (state.mcq.unitId !== targetUnit) return;
+        state.mcq.buffer.push(row);
+      })
+      .catch(err => {
+        console.warn('MCQ prefetch failed:', err.message);
+        didError = true;
+      })
+      .finally(() => {
+        state.mcq.prefetchInFlight = false;
+        // Re-evaluate against current state — the guards above decide.
+        // Skip on error so we don't tight-loop against a failing API; the
+        // next user-driven Next will retry through the on-demand path
+        // (which shows a real error UI if it also fails).
+        if (!didError) refillMcqBuffer();
+      });
+  }
+
   async function generateMcq() {
     if (state.mcq.inFlight) return;
+
+    // Fast path: pop instantly from the buffer, then top it off in the background.
+    if (state.mcq.buffer.length > 0) {
+      showMcqRow(state.mcq.buffer.shift());
+      refillMcqBuffer();
+      return;
+    }
+
+    // Buffer empty — first question of a session, or just cleared after a
+    // unit change. Fall back to an on-demand fetch with a loading state.
     state.mcq.inFlight = true;
+    const targetUnit = state.mcq.unitId;
     const statusEl = document.getElementById('mcq-status');
     const card = document.getElementById('mcq-card');
     const unitObj = pickConcreteUnit();
-    const unitPayload = `${unitObj.label} (${unitObj.period})`;
-
     statusEl.hidden = false;
     statusEl.textContent = `Generating a fresh ${SUBJECT} MCQ for ${unitObj.label}…`;
     card.innerHTML = `<div class="muted" style="padding:1.5rem;text-align:center">Loading…</div>`;
 
+    let row;
     try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: SUBJECT, questionType: 'mcq', unit: unitPayload }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      state.mcq.currentRow = data.row;
-      state.mcq.picked = null;
-      state.mcq.questionStartTime = Date.now();
-      renderMcq(data.row);
-      statusEl.hidden = true;
+      row = (await fetchMcq(unitObj)).row;
     } catch (err) {
+      state.mcq.inFlight = false;
       statusEl.hidden = true;
       card.innerHTML = `
         <div class="mcq-start-cta">
@@ -1107,9 +1175,18 @@ code {
           <button id="mcq-retry-btn" class="btn btn-primary">Try again</button>
         </div>`;
       document.getElementById('mcq-retry-btn').addEventListener('click', generateMcq);
-    } finally {
-      state.mcq.inFlight = false;
+      return;
     }
+    state.mcq.inFlight = false;
+
+    // Staleness: unit changed mid-fetch — discard and restart on the new unit.
+    if (state.mcq.unitId !== targetUnit) {
+      generateMcq();
+      return;
+    }
+
+    showMcqRow(row);
+    refillMcqBuffer();
   }
 
   function renderMcq(row) {
