@@ -7049,7 +7049,7 @@ function showAdminSection(id) {
   if (id !== 'adm-messages' && _activeMsgCtx) _unsubscribeMessages();
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
-    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', 'adm-messages':'Messages'}[id] || id;
+    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', 'seed-bank':'Seed Bank', 'adm-messages':'Messages'}[id] || id;
   // Full-bleed layout for messages, restore padding for other sections
   const admContent = document.querySelector('.adm-content');
   if (admContent) admContent.style.padding = id === 'adm-messages' ? '0' : '';
@@ -7062,6 +7062,7 @@ function showAdminSection(id) {
   else if (id === 'tutors')       buildAdminTutors();
   else if (id === 'billing')      buildAdminBilling();
   else if (id === 'tutor-mgmt')   buildAdminTutorMgmt();
+  else if (id === 'seed-bank')    buildAdminSeedBank();
   else if (id === 'adm-messages') buildAdminMessages();
 }
 
@@ -7702,6 +7703,203 @@ async function adminClearMessages(studentId, name) {
   const { error } = await db.from('messages').delete().eq('student_id', studentId);
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast(`✅ Message history cleared for ${name} — fresh start!`, 'success');
+}
+
+/* ── SEED BANK ─────────────────────────────────────────────────────────────────
+   Phase 1a: admin trigger that fires /api/seed-batch to bulk-generate AI
+   questions into question_bank (approved=false). Throttled so the matrix
+   loop doesn't burst past Gemini's per-minute rate limit.
+─────────────────────────────────────────────────────────────────────────────── */
+const SEED_UNITS_BY_SUBJECT = {
+  'AP World History': [
+    { label: 'Unit 1: The Global Tapestry',               period: 'c. 1200–1450'    },
+    { label: 'Unit 2: Networks of Exchange',              period: 'c. 1200–1450'    },
+    { label: 'Unit 3: Land-Based Empires',                period: 'c. 1450–1750'    },
+    { label: 'Unit 4: Transoceanic Interconnections',     period: 'c. 1450–1750'    },
+    { label: 'Unit 5: Revolutions',                       period: 'c. 1750–1900'    },
+    { label: 'Unit 6: Consequences of Industrialization', period: 'c. 1750–1900'    },
+    { label: 'Unit 7: Global Conflict',                   period: 'c. 1900–present' },
+    { label: 'Unit 8: Cold War and Decolonization',       period: 'c. 1900–present' },
+    { label: 'Unit 9: Globalization',                     period: 'c. 1900–present' },
+  ],
+};
+// Throttle: stay comfortably under Gemini's per-minute rate limit on the
+// flash family. 8s spacing = 7.5 RPM, well under the typical 10-15 RPM cap.
+const SEED_THROTTLE_MS = 8000;
+let _seedCancelled = false;
+let _seedRunning   = false;
+
+async function buildAdminSeedBank() {
+  const body = document.getElementById('admBody');
+  const subjects = ['AP World History']; // expand when APUSH gets unit mapping
+  const unitOptions = SEED_UNITS_BY_SUBJECT['AP World History']
+    .map(u => `<option value="${escapeHtmlPortal(u.label)} (${escapeHtmlPortal(u.period)})">${escapeHtmlPortal(u.label)}</option>`)
+    .join('');
+
+  body.innerHTML = `
+    <div style="max-width:780px;margin:0 auto">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.5rem;margin-bottom:1.25rem">
+        <h2 style="margin:0 0 .5rem;font-size:1.05rem;color:#0f2044">🌱 Seed Question Bank</h2>
+        <p style="margin:0;color:#64748b;font-size:.88rem;line-height:1.5">
+          Generates AI questions in batches and inserts into <code style="background:#f1f5f9;padding:.1rem .35rem;border-radius:4px;font-size:.78rem">question_bank</code>
+          with <strong>approved=false</strong>. Review in Supabase Studio (or the upcoming Review queue) before they reach students.
+          Live mode (<code style="background:#f1f5f9;padding:.1rem .35rem;border-radius:4px;font-size:.78rem">/api/generate</code>) is unaffected.
+        </p>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.5rem;margin-bottom:1.25rem">
+        <div style="display:grid;grid-template-columns:auto 1fr auto 80px;gap:.75rem;align-items:center;margin-bottom:1rem">
+          <label style="font-size:.82rem;font-weight:700;color:#374151">Subject</label>
+          <select id="seedSubject" style="padding:.45rem .65rem;border:1px solid #cbd5e1;border-radius:7px;font-size:.85rem">
+            ${subjects.map(s => `<option>${escapeHtmlPortal(s)}</option>`).join('')}
+          </select>
+          <label style="font-size:.82rem;font-weight:700;color:#374151">Batch size</label>
+          <input id="seedCount" type="number" min="1" max="20" value="10" style="padding:.45rem .65rem;border:1px solid #cbd5e1;border-radius:7px;font-size:.85rem;text-align:center">
+        </div>
+
+        <button id="seedAllBtn" onclick="seedAllStart()" style="width:100%;padding:.85rem;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:9px;font-size:.95rem;font-weight:700;cursor:pointer">
+          🌱 Seed all  ·  9 × MCQ (one per unit) + 1 × SAQ + 1 × LEQ
+        </button>
+        <div style="margin-top:.5rem;font-size:.72rem;color:#94a3b8;text-align:center">
+          ~11 Gemini calls, spaced ${SEED_THROTTLE_MS/1000}s apart (~90s total) to stay under per-minute rate limits. Cancel anytime.
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.5rem;margin-bottom:1.25rem">
+        <h3 style="margin:0 0 .85rem;font-size:.9rem;color:#0f2044">Or run one batch at a time</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.85rem">
+          <button onclick="seedOneFromUi('saq')" style="padding:.55rem 1rem;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:600;color:#0f2044;cursor:pointer">📝 SAQ batch</button>
+          <button onclick="seedOneFromUi('leq')" style="padding:.55rem 1rem;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:600;color:#0f2044;cursor:pointer">📜 LEQ batch</button>
+        </div>
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+          <span style="font-size:.78rem;color:#64748b">🎯 MCQ for:</span>
+          <select id="seedMcqUnit" style="flex:1;min-width:220px;padding:.45rem .65rem;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem">${unitOptions}</select>
+          <button onclick="seedOneFromUi('mcq', document.getElementById('seedMcqUnit').value)" style="padding:.55rem 1rem;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:600;color:#0f2044;cursor:pointer">Run</button>
+        </div>
+      </div>
+
+      <div id="seedLog" style="background:#0f172a;color:#e2e8f0;border-radius:12px;padding:1rem 1.25rem;font-family:ui-monospace,Menlo,monospace;font-size:.78rem;line-height:1.65;min-height:80px;max-height:420px;overflow-y:auto">
+        <div style="color:#64748b">Log will appear here…</div>
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtmlPortal(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function _seedLogAppend(html) {
+  const log = document.getElementById('seedLog');
+  if (!log) return;
+  if (log.firstElementChild?.textContent === 'Log will appear here…') log.innerHTML = '';
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function _seedSecretPrompt() {
+  let s = sessionStorage.getItem('adminResetSecret');
+  if (!s) {
+    s = prompt('Admin secret (ADMIN_RESET_SECRET):');
+    if (s) sessionStorage.setItem('adminResetSecret', s);
+  }
+  return s;
+}
+
+async function seedAllStart() {
+  if (_seedRunning) {
+    _seedCancelled = true;
+    _seedLogAppend(`<span style="color:#fbbf24">⏸ Cancel requested — finishing current call…</span>`);
+    return;
+  }
+  const secret = _seedSecretPrompt();
+  if (!secret) return;
+  const subject = document.getElementById('seedSubject').value;
+  const count = Math.max(1, Math.min(20, Number(document.getElementById('seedCount').value) || 10));
+  const units = SEED_UNITS_BY_SUBJECT[subject] || [];
+  const jobs = [
+    ...units.map(u => ({ type: 'mcq', unit: `${u.label} (${u.period})`, label: `MCQ · ${u.label}` })),
+    { type: 'saq', label: 'SAQ batch' },
+    { type: 'leq', label: 'LEQ batch' },
+  ];
+
+  _seedRunning = true;
+  _seedCancelled = false;
+  const btn = document.getElementById('seedAllBtn');
+  btn.textContent = '⏸ Cancel Seed all';
+  btn.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+
+  document.getElementById('seedLog').innerHTML = '';
+  _seedLogAppend(`<span style="color:#94a3b8">Starting Seed all · ${jobs.length} jobs · ${subject} · ${count} per batch</span>`);
+
+  let totalInserted = 0;
+  for (let i = 0; i < jobs.length; i++) {
+    if (_seedCancelled) { _seedLogAppend(`<span style="color:#fbbf24">⏸ Cancelled at job ${i + 1}/${jobs.length}.</span>`); break; }
+    const job = jobs[i];
+    _seedLogAppend(`<span style="color:#94a3b8">[${i + 1}/${jobs.length}] ⏳ ${job.label}…</span>`);
+    try {
+      const r = await _seedCall(subject, job.type, job.unit, count, secret);
+      totalInserted += r.inserted;
+      _seedLogAppend(`<span style="color:#34d399">[${i + 1}/${jobs.length}] ✅ ${job.label}: ${r.inserted} inserted${r.skipped ? `, ${r.skipped} skipped` : ''}</span>`);
+    } catch (err) {
+      _seedLogAppend(`<span style="color:#f87171">[${i + 1}/${jobs.length}] ❌ ${job.label}: ${escapeHtmlPortal(err.message)}</span>`);
+      if (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')) {
+        sessionStorage.removeItem('adminResetSecret');
+        _seedLogAppend(`<span style="color:#fbbf24">Wrong admin secret — aborting.</span>`);
+        break;
+      }
+      if (err.message.includes('503')) {
+        _seedLogAppend(`<span style="color:#fbbf24">Server missing ADMIN_RESET_SECRET env var — aborting.</span>`);
+        break;
+      }
+    }
+    if (i < jobs.length - 1 && !_seedCancelled) {
+      _seedLogAppend(`<span style="color:#64748b">    waiting ${SEED_THROTTLE_MS / 1000}s …</span>`);
+      await new Promise(r => setTimeout(r, SEED_THROTTLE_MS));
+    }
+  }
+
+  _seedLogAppend(`<span style="color:#34d399;font-weight:700">Done · ${totalInserted} questions inserted across all jobs.</span>`);
+  _seedRunning = false;
+  _seedCancelled = false;
+  btn.textContent = '🌱 Seed all  ·  9 × MCQ (one per unit) + 1 × SAQ + 1 × LEQ';
+  btn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+}
+
+async function seedOneFromUi(type, unit) {
+  const secret = _seedSecretPrompt();
+  if (!secret) return;
+  const subject = document.getElementById('seedSubject').value;
+  const count = Math.max(1, Math.min(20, Number(document.getElementById('seedCount').value) || 10));
+  const label = type === 'mcq' ? `MCQ · ${unit}` : type.toUpperCase() + ' batch';
+  _seedLogAppend(`<span style="color:#94a3b8">⏳ ${label}…</span>`);
+  try {
+    const r = await _seedCall(subject, type, unit, count, secret);
+    _seedLogAppend(`<span style="color:#34d399">✅ ${label}: ${r.inserted} inserted${r.skipped ? `, ${r.skipped} skipped` : ''}</span>`);
+  } catch (err) {
+    _seedLogAppend(`<span style="color:#f87171">❌ ${label}: ${escapeHtmlPortal(err.message)}</span>`);
+    if (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')) {
+      sessionStorage.removeItem('adminResetSecret');
+    }
+  }
+}
+
+async function _seedCall(subject, type, unit, count, secret) {
+  const body = { subject, questionType: type, count, adminSecret: secret };
+  if (unit) body.unit = unit;
+  const res = await fetch('/api/seed-batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { const j = await res.json(); detail = j.detail || j.error || ''; } catch {}
+    throw new Error(`HTTP ${res.status}${detail ? ' · ' + detail.slice(0, 200) : ''}`);
+  }
+  return res.json();
 }
 
 /* ── PROGRESS CONFIG ADMIN ──────────────────────────────────────────────────── */
@@ -8601,6 +8799,7 @@ async function loadAdminConvo(studentId, studentName) {
         <div class="adm-nav-item" data-id="billing" onclick="showAdminSection('billing')"><span class="adm-nav-icon">💰</span> Hours &amp; Billing</div>
         <div class="adm-nav-label">Tools</div>
         <div class="adm-nav-item" data-id="tutor-mgmt" onclick="showAdminSection('tutor-mgmt')"><span class="adm-nav-icon">🎓</span> Tutor Management</div>
+        <div class="adm-nav-item" data-id="seed-bank" onclick="showAdminSection('seed-bank')"><span class="adm-nav-icon">🌱</span> Seed Bank</div>
         <div class="adm-nav-item" data-id="adm-messages" onclick="showAdminSection('adm-messages')">
           <span class="adm-nav-icon">💬</span>
           <span style="flex:1;display:flex;flex-direction:column;gap:.04rem;min-width:0">
