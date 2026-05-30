@@ -11,15 +11,27 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
   if (!sbUrl || !sbKey) return res.status(500).json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured on server' });
 
-  const { subject, questionType } = req.body || {};
+  // MCQ reuses existing question_bank columns (no schema additions):
+  //   stimulus, stimulus_image_url, choices, correct_answer,
+  //   official_explanation, wrong_answer_explanations.
+  // student_attempts stores MCQ attempts via selected_answer + is_correct.
+  const { subject, questionType, unit: requestedUnit } = req.body || {};
   if (!subject || typeof subject !== 'string') {
     return res.status(400).json({ error: 'Missing subject' });
   }
   if (questionType === 'dbq') {
     return res.status(400).json({ error: 'DBQ generation is not supported yet' });
   }
-  if (questionType !== 'saq' && questionType !== 'leq') {
+  if (questionType !== 'saq' && questionType !== 'leq' && questionType !== 'mcq') {
     return res.status(400).json({ error: `Unsupported questionType: ${questionType}` });
+  }
+  if (questionType === 'mcq') {
+    if (!requestedUnit || typeof requestedUnit !== 'string') {
+      return res.status(400).json({ error: 'MCQ requires a unit string' });
+    }
+    if (requestedUnit.length > 200) {
+      return res.status(400).json({ error: 'MCQ unit too long (max 200 chars)' });
+    }
   }
 
   // ── Pull real (non-AI) reference questions for few-shot style guidance ──
@@ -32,32 +44,47 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(502).json({ error: 'Failed to load reference questions', detail: err.message });
   }
-  if (!examples.length) {
+  // SAQ/LEQ require ≥1 reference example. MCQ falls back to no-shot generation
+  // because the curated bank doesn't ship with seeded MCQs yet.
+  if (!examples.length && questionType !== 'mcq') {
     return res.status(422).json({ error: `No reference ${questionType.toUpperCase()} questions found for subject "${subject}"` });
   }
 
-  const unit = refUnit && String(refUnit).trim() ? refUnit : 'Unassigned';
+  const unit = questionType === 'mcq'
+    ? requestedUnit
+    : (refUnit && String(refUnit).trim() ? refUnit : 'Unassigned');
   const difficulty = VALID_DIFFICULTY.has(refDifficulty)
     ? refDifficulty
     : (questionType === 'leq' ? 'hard' : 'medium');
 
+  // Server-side 80/20 stimulus mix for MCQ — random per generation, enforced
+  // in validateGenerated so the model can't drift the mix.
+  const wantStimulus = questionType === 'mcq' ? Math.random() < 0.8 : null;
+
   const prompt = questionType === 'saq'
     ? buildSaqGenPrompt(subject, examples)
-    : buildLeqGenPrompt(subject, examples);
+    : questionType === 'leq'
+    ? buildLeqGenPrompt(subject, examples)
+    : buildMcqGenPrompt(subject, unit, examples, wantStimulus);
 
   // ── Generate with one retry on validation/parse/network failure ──
   let generated;
   try {
-    generated = await generateValidated(apiKey, prompt, questionType);
+    generated = await generateValidated(apiKey, prompt, questionType, wantStimulus);
   } catch (firstErr) {
     try {
-      generated = await generateValidated(apiKey, prompt, questionType);
+      generated = await generateValidated(apiKey, prompt, questionType, wantStimulus);
     } catch (secondErr) {
       return res.status(502).json({
         error: 'Question generation failed after retry',
         detail: secondErr.message,
       });
     }
+  }
+
+  // Shuffle MCQ choices server-side to kill the model's letter-position bias.
+  if (questionType === 'mcq') {
+    generated = shuffleMcq(generated);
   }
 
   // ── Insert into question_bank (tagged ai_generated) and return rows ──
@@ -95,7 +122,7 @@ export default async function handler(req, res) {
       correct_answer: p.correct_answer,
       official_explanation: p.official_explanation,
     }));
-  } else {
+  } else if (questionType === 'leq') {
     rows = [{
       ...base,
       question_type: 'leq',
@@ -103,6 +130,19 @@ export default async function handler(req, res) {
       question_text: generated.question_text,
       correct_answer: generated.correct_answer,
       official_explanation: generated.official_explanation,
+    }];
+  } else {
+    // mcq
+    rows = [{
+      ...base,
+      question_type: 'mcq',
+      sub_index: null,
+      stimulus: generated.stimulus || null,
+      question_text: generated.question_text,
+      choices: generated.choices,
+      correct_answer: generated.correct_answer,
+      official_explanation: generated.official_explanation,
+      wrong_answer_explanations: generated.wrong_answer_explanations,
     }];
   }
 
@@ -126,6 +166,26 @@ export default async function handler(req, res) {
         correct_answer: r.correct_answer,
         official_explanation: r.official_explanation,
       })),
+    });
+  }
+
+  if (questionType === 'mcq') {
+    const r = inserted[0];
+    return res.status(200).json({
+      questionType: 'mcq',
+      ai_generated: true,
+      row: {
+        id: r.id,
+        question_type: 'mcq',
+        unit: r.unit,
+        stimulus: r.stimulus,
+        stimulus_image_url: null,
+        question_text: r.question_text,
+        choices: r.choices,
+        correct_answer: r.correct_answer,
+        official_explanation: r.official_explanation,
+        wrong_answer_explanations: r.wrong_answer_explanations,
+      },
     });
   }
 
@@ -180,6 +240,22 @@ async function fetchExamples(sbUrl, sbKey, subject, questionType) {
     return { examples, unit: rows[0]?.unit, difficulty: rows[0]?.difficulty };
   }
 
+  if (questionType === 'mcq') {
+    const url = `${sbUrl}/rest/v1/question_bank?select=stimulus,question_text,choices,correct_answer,official_explanation,wrong_answer_explanations,unit,difficulty`
+      + `&subject=eq.${enc}&question_type=eq.mcq&ai_generated=eq.false`
+      + `&order=parent_question_number.asc,created_at.asc&limit=2`;
+    const rows = await sbGet(url, sbKey);
+    const examples = rows.map(r => ({
+      stimulus: r.stimulus,
+      question_text: r.question_text,
+      choices: r.choices,
+      correct_answer: r.correct_answer,
+      official_explanation: r.official_explanation,
+      wrong_answer_explanations: r.wrong_answer_explanations,
+    }));
+    return { examples, unit: rows[0]?.unit, difficulty: rows[0]?.difficulty };
+  }
+
   const url = `${sbUrl}/rest/v1/question_bank?select=question_text,official_explanation,unit,difficulty`
     + `&subject=eq.${enc}&question_type=eq.leq&ai_generated=eq.false`
     + `&order=parent_question_number.asc&limit=2`;
@@ -226,7 +302,7 @@ async function insertRows(sbUrl, sbKey, rows) {
 }
 
 // ── Gemini call + validation (one attempt; caller retries once) ──
-async function generateValidated(apiKey, prompt, questionType) {
+async function generateValidated(apiKey, prompt, questionType, wantStimulus) {
   const geminiRes = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
@@ -250,14 +326,14 @@ async function generateValidated(apiKey, prompt, questionType) {
   } catch {
     throw new Error('Gemini returned invalid JSON');
   }
-  return validateGenerated(obj, questionType);
+  return validateGenerated(obj, questionType, wantStimulus);
 }
 
 function nonEmpty(v) {
   return typeof v === 'string' && v.trim().length > 0;
 }
 
-function validateGenerated(obj, questionType) {
+function validateGenerated(obj, questionType, wantStimulus) {
   if (!obj || typeof obj !== 'object') throw new Error('Generated payload is not an object');
 
   if (questionType === 'saq') {
@@ -272,6 +348,10 @@ function validateGenerated(obj, questionType) {
     return { parts: obj.parts };
   }
 
+  if (questionType === 'mcq') {
+    return validateMcq(obj, wantStimulus);
+  }
+
   // leq
   if (!nonEmpty(obj.question_text) || !nonEmpty(obj.correct_answer) || !nonEmpty(obj.official_explanation)) {
     throw new Error('LEQ has empty fields');
@@ -280,6 +360,77 @@ function validateGenerated(obj, questionType) {
     question_text: obj.question_text,
     correct_answer: obj.correct_answer,
     official_explanation: obj.official_explanation,
+  };
+}
+
+function validateMcq(obj, wantStimulus) {
+  if (!nonEmpty(obj.question_text)) throw new Error('MCQ has empty question_text');
+  if (!nonEmpty(obj.official_explanation)) throw new Error('MCQ has empty official_explanation');
+
+  const hasStimulus = nonEmpty(obj.stimulus);
+  if (wantStimulus && !hasStimulus) throw new Error('MCQ expected stimulus-based but none provided');
+  if (!wantStimulus && hasStimulus) throw new Error('MCQ expected standalone but stimulus provided');
+
+  if (!Array.isArray(obj.choices) || obj.choices.length !== 4) {
+    throw new Error('MCQ must have exactly 4 choices');
+  }
+  const letters = obj.choices.map(c => c?.letter);
+  if (!['A','B','C','D'].every(L => letters.includes(L))) {
+    throw new Error('MCQ choices must be lettered A, B, C, D');
+  }
+  obj.choices.forEach((c, i) => {
+    if (!nonEmpty(c?.text)) throw new Error(`MCQ choice at index ${i} has empty text`);
+  });
+
+  if (!['A','B','C','D'].includes(obj.correct_answer)) {
+    throw new Error('MCQ correct_answer must be A, B, C, or D');
+  }
+
+  const wrong = obj.wrong_answer_explanations;
+  if (!wrong || typeof wrong !== 'object') {
+    throw new Error('MCQ wrong_answer_explanations must be an object');
+  }
+  ['A','B','C','D'].filter(L => L !== obj.correct_answer).forEach(L => {
+    if (!nonEmpty(wrong[L])) throw new Error(`MCQ wrong_answer_explanations missing or empty for ${L}`);
+  });
+
+  return {
+    stimulus: hasStimulus ? obj.stimulus : null,
+    question_text: obj.question_text,
+    choices: obj.choices,
+    correct_answer: obj.correct_answer,
+    official_explanation: obj.official_explanation,
+    wrong_answer_explanations: wrong,
+  };
+}
+
+// Fisher-Yates shuffle of the 4 choices, then relabel A-D in new positions,
+// recompute correct_answer to the letter the originally-correct option now
+// occupies, and remap wrong_answer_explanations keys.
+function shuffleMcq(obj) {
+  const tagged = obj.choices.map(c => ({ originalLetter: c.letter, text: c.text }));
+  for (let i = tagged.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [tagged[i], tagged[j]] = [tagged[j], tagged[i]];
+  }
+  const newChoices = tagged.map((c, i) => ({
+    letter: String.fromCharCode(65 + i),
+    text: c.text,
+  }));
+  const correctIdx = tagged.findIndex(c => c.originalLetter === obj.correct_answer);
+  const newCorrect = String.fromCharCode(65 + correctIdx);
+  const newWrong = {};
+  tagged.forEach((c, i) => {
+    if (i === correctIdx) return;
+    const newLetter = String.fromCharCode(65 + i);
+    const exp = obj.wrong_answer_explanations?.[c.originalLetter];
+    if (exp) newWrong[newLetter] = exp;
+  });
+  return {
+    ...obj,
+    choices: newChoices,
+    correct_answer: newCorrect,
+    wrong_answer_explanations: newWrong,
   };
 }
 
@@ -359,5 +510,57 @@ Return ONLY valid JSON:
   "question_text": "...",
   "correct_answer": "...",
   "official_explanation": "..."
+}`;
+}
+
+function buildMcqGenPrompt(subject, unit, examples, wantStimulus) {
+  const examplesBlock = examples.length
+    ? '\n\nEXAMPLES (real College Board MCQs — use ONLY for style, NEVER copy):\n\n' + examples.map((ex, i) => {
+        const choicesStr = (ex.choices || []).map(c => `${c.letter}) ${truncate(c.text, 110)}`).join(' | ');
+        return `EXAMPLE ${i + 1}:\n${ex.stimulus ? `Stimulus: ${truncate(ex.stimulus, 400)}\n` : ''}Stem: ${truncate(ex.question_text, 250)}\nChoices: ${choicesStr}\nCorrect: ${ex.correct_answer}\nWhy: ${truncate(ex.official_explanation, 250)}`;
+      }).join('\n\n')
+    : '';
+
+  const stimulusInstr = wantStimulus
+    ? `STIMULUS-BASED: include a "stimulus" field — a 50–110 word analytical passage, primary-source-style excerpt, or contextual description grounded in ${unit}.`
+    : `STANDALONE: NO stimulus. Set "stimulus" to null. The stem must be answerable from historical knowledge alone.`;
+
+  const accuracyBlock = wantStimulus
+    ? `- The stimulus may be a SYNTHESIZED analytical passage in an unattributed contemporary voice (e.g. "An anonymous Malian merchant, c. 1350, observed:") OR a generic descriptive paragraph.
+- Do NOT attribute the stimulus to a real named historian, scholar, author, or any specific living or historical person. Phrases like "According to [real name]" or "[Real historian] argues that..." are FORBIDDEN.
+- Do NOT fabricate specific quotes from real people. Do NOT invent a real-sounding document title that doesn't exist.`
+    : `- Do NOT cite or quote any real named person; do NOT fabricate sources, documents, or quotations anywhere in the stem or choices.`;
+
+  return `You are an AP ${subject} item writer. Write ONE brand-new College Board–style multiple-choice question for ${unit}.${examplesBlock}
+
+${stimulusInstr}
+
+Structure:
+- Stem: typical College Board phrasing — e.g. "The excerpt most strongly suggests...", "The process described most directly contributed to...", "Which of the following best explains..."
+- Exactly FOUR answer choices labeled A, B, C, D. Exactly ONE is correct.
+- The three distractors must be plausible — each wrong for a specific identifiable reason, not obviously absurd.
+
+HISTORICAL ACCURACY (non-negotiable):
+- All historical content (events, dates, regions, processes, demographic claims, named groups, institutions) MUST be factually accurate and correctly scoped to ${unit}.
+${accuracyBlock}
+- If you cannot meet the accuracy bar on a chosen angle, pick a different angle.
+
+Return ONLY valid JSON:
+{
+  "stimulus": ${wantStimulus ? '"..."' : 'null'},
+  "question_text": "...",
+  "choices": [
+    {"letter":"A","text":"..."},
+    {"letter":"B","text":"..."},
+    {"letter":"C","text":"..."},
+    {"letter":"D","text":"..."}
+  ],
+  "correct_answer": "A",
+  "official_explanation": "Why the correct answer is correct.",
+  "wrong_answer_explanations": {
+    "B": "Why B is wrong.",
+    "C": "Why C is wrong.",
+    "D": "Why D is wrong."
+  }
 }`;
 }

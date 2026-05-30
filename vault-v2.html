@@ -347,6 +347,68 @@ code {
   color: var(--accent);
 }
 .vault-brand-sub { font-size: .7rem; color: var(--muted); }
+
+/* ── MCQ mode ──────────────────────────────────────────── */
+.app-header-top { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: .25rem; }
+.mode-swap-link { font-size: .8rem; color: var(--accent); text-decoration: none; flex-shrink: 0; }
+.mode-swap-link:hover { color: var(--accent-hover); }
+
+.mcq-toolbar { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: .75rem 1rem; margin-bottom: 1rem; }
+.mcq-toolbar-row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.mcq-toolbar-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.mcq-select { flex: 1; min-width: 220px; padding: .55rem .75rem; border-radius: 7px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: inherit; font-size: .9rem; }
+.mcq-select:focus { outline: none; border-color: var(--accent); }
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg-elevated); }
+
+.mcq-unit-tag { display: inline-block; padding: .15rem .55rem; border-radius: 4px; background: rgba(201,160,58,.15); color: var(--accent); font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-bottom: .85rem; }
+.mcq-stem { font-size: 1rem; font-weight: 500; margin-bottom: 1rem; white-space: pre-wrap; }
+
+.mcq-choices { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1rem; }
+.mcq-choice { display: flex; gap: .65rem; padding: .75rem 1rem; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color .12s, background .12s; align-items: flex-start; }
+.mcq-choice:hover:not(.mcq-locked) { border-color: var(--accent); background: rgba(201,160,58,.08); }
+.mcq-choice input { margin-top: 3px; accent-color: var(--accent); }
+.mcq-choice-letter { font-weight: 700; min-width: 1.5em; color: var(--accent); }
+.mcq-choice-text { flex: 1; font-size: .92rem; line-height: 1.5; white-space: pre-wrap; }
+.mcq-choice.mcq-correct { border-color: var(--success); background: rgba(16,185,129,.12); }
+.mcq-choice.mcq-correct .mcq-choice-letter { color: var(--success); }
+.mcq-choice.mcq-wrong { border-color: var(--error); background: rgba(239,68,68,.12); }
+.mcq-choice.mcq-wrong .mcq-choice-letter { color: var(--error); }
+.mcq-choice.mcq-locked { cursor: default; }
+.mcq-choice.mcq-locked:hover { border-color: var(--border); background: transparent; }
+.mcq-choice.mcq-locked.mcq-correct:hover { border-color: var(--success); background: rgba(16,185,129,.12); }
+.mcq-choice.mcq-locked.mcq-wrong:hover { border-color: var(--error); background: rgba(239,68,68,.12); }
+
+.mcq-feedback { margin-top: 1rem; padding: 1rem 1.1rem; background: var(--bg-elevated); border-radius: 8px; border-left: 3px solid var(--accent); }
+.mcq-feedback-section + .mcq-feedback-section { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+.mcq-feedback-header { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
+.mcq-feedback-header.feedback-correct { color: var(--success); }
+.mcq-feedback-header.feedback-wrong { color: var(--error); }
+.mcq-feedback-text { font-size: .9rem; color: #d1d5db; line-height: 1.55; white-space: pre-wrap; }
+
+.mcq-start-cta { text-align: center; padding: 2rem 1rem; }
+.mcq-start-cta-title { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; font-family: 'Josefin Sans', sans-serif; }
+.mcq-start-cta-sub { color: var(--muted); font-size: .9rem; margin-bottom: 1.25rem; }
+
+.mcq-progress-panel { padding: 1.25rem; }
+.mcq-progress-title { font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 1rem; font-weight: 700; }
+.mcq-progress-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+.mcq-stat-card { background: var(--bg-elevated); border-radius: 8px; padding: .85rem 1rem; text-align: center; }
+.mcq-stat-val { font-size: 1.5rem; font-weight: 800; color: var(--accent); line-height: 1; }
+.mcq-stat-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-top: .3rem; }
+.mcq-streak-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-align: center; margin-bottom: .4rem; }
+.mcq-streak { display: flex; gap: .25rem; justify-content: center; margin-bottom: 1.25rem; }
+.mcq-streak-dot { width: 14px; height: 14px; border-radius: 50%; }
+.mcq-streak-dot.streak-correct { background: var(--success); }
+.mcq-streak-dot.streak-wrong { background: var(--error); }
+.mcq-unit-rows { display: flex; flex-direction: column; gap: .55rem; }
+.mcq-unit-row { display: flex; align-items: center; gap: .65rem; font-size: .82rem; }
+.mcq-unit-row.small-sample .mcq-unit-name, .mcq-unit-row.small-sample .mcq-unit-pct { opacity: .55; font-style: italic; }
+.mcq-unit-name { flex: 1; }
+.mcq-unit-bar { background: var(--bg); border-radius: 999px; height: 6px; width: 90px; overflow: hidden; flex-shrink: 0; }
+.mcq-unit-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
+.mcq-unit-pct { font-weight: 700; min-width: 3.5em; text-align: right; }
+.mcq-unit-count { color: var(--muted); font-size: .72rem; min-width: 4em; text-align: right; }
 </style>
 </head>
 <body>
@@ -361,7 +423,10 @@ code {
 </header>
 <div class="container">
   <header class="app-header">
-    <a href="portal.html" class="back-link">← Back to portal</a>
+    <div class="app-header-top">
+      <a href="portal.html" class="back-link">← Back to portal</a>
+      <a id="mode-swap" class="mode-swap-link" href="#"></a>
+    </div>
     <h1 id="vault-title">Practice Vault v2 · APUSH FRQs</h1>
     <div class="subtitle" id="vault-subtitle">College Board 2025 · Real free-response questions, rubric reveal after each attempt</div>
     <div id="student-banner" class="muted" style="margin-top:.4rem;font-size:.78rem" hidden></div>
@@ -393,6 +458,19 @@ code {
       <div id="gen-status" class="muted" style="margin-top:.6rem" hidden></div>
     </div>
   </div>
+
+  <div id="mcq-view" hidden>
+    <div class="mcq-toolbar">
+      <div class="mcq-toolbar-row">
+        <label for="mcq-unit-select" class="mcq-toolbar-label">Unit / Period</label>
+        <select id="mcq-unit-select" class="mcq-select"></select>
+        <button id="mcq-progress-btn" class="btn btn-ghost">📊 Progress</button>
+      </div>
+    </div>
+    <div id="mcq-progress-panel" class="card mcq-progress-panel" hidden></div>
+    <div id="mcq-status" class="muted" style="margin-bottom:.75rem" hidden></div>
+    <div id="mcq-card" class="card"></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -411,11 +489,31 @@ code {
   const subjectKey  = (new URLSearchParams(location.search).get('subject') || 'apush').toLowerCase();
   const subjectCfg  = SUBJECT_MAP[subjectKey] || SUBJECT_MAP['apush'];
   const SUBJECT     = subjectCfg.dbSubject;
+  const MODE        = (new URLSearchParams(location.search).get('mode') || 'frq').toLowerCase();
 
-  // Update page chrome to reflect subject
-  document.getElementById('page-title').textContent  = `Practice Vault v2 — ${subjectCfg.label}`;
-  document.getElementById('vault-title').textContent  = `Practice Vault v2 · ${subjectCfg.label}`;
-  document.getElementById('vault-subtitle').textContent = `College Board ${subjectCfg.year} · Real free-response questions, rubric reveal after each attempt`;
+  // AP World units (College Board CED). MCQ unit picker reads from here.
+  // APUSH list is a trivial follow-up once MCQ ships.
+  const UNITS_BY_SUBJECT = {
+    'AP World History': [
+      { id: 'u1', label: 'Unit 1: The Global Tapestry',               period: 'c. 1200–1450'    },
+      { id: 'u2', label: 'Unit 2: Networks of Exchange',              period: 'c. 1200–1450'    },
+      { id: 'u3', label: 'Unit 3: Land-Based Empires',                period: 'c. 1450–1750'    },
+      { id: 'u4', label: 'Unit 4: Transoceanic Interconnections',     period: 'c. 1450–1750'    },
+      { id: 'u5', label: 'Unit 5: Revolutions',                       period: 'c. 1750–1900'    },
+      { id: 'u6', label: 'Unit 6: Consequences of Industrialization', period: 'c. 1750–1900'    },
+      { id: 'u7', label: 'Unit 7: Global Conflict',                   period: 'c. 1900–present' },
+      { id: 'u8', label: 'Unit 8: Cold War and Decolonization',       period: 'c. 1900–present' },
+      { id: 'u9', label: 'Unit 9: Globalization',                     period: 'c. 1900–present' },
+    ],
+  };
+
+  // Update page chrome to reflect subject + mode
+  const modeLabel = MODE === 'mcq' ? 'MCQ' : 'FRQs';
+  document.getElementById('page-title').textContent  = `Practice Vault v2 — ${subjectCfg.label.replace('FRQs', modeLabel)}`;
+  document.getElementById('vault-title').textContent  = `Practice Vault v2 · ${subjectCfg.label.replace('FRQs', modeLabel)}`;
+  document.getElementById('vault-subtitle').textContent = MODE === 'mcq'
+    ? `AI-generated College Board–style multiple-choice · pick a unit and go`
+    : `College Board ${subjectCfg.year} · Real free-response questions, rubric reveal after each attempt`;
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -425,6 +523,13 @@ code {
     questionStartTime: 0,
     studentId: null,
     studentName: null,
+    mcq: {
+      unitId: null,
+      currentRow: null,
+      picked: null,
+      questionStartTime: 0,
+      inFlight: false,
+    },
   };
 
   function escapeHtml(s) {
@@ -433,7 +538,18 @@ code {
     })[c]);
   }
 
+  function wireModeSwap() {
+    const link = document.getElementById('mode-swap');
+    if (!link) return;
+    const otherMode = MODE === 'mcq' ? 'frq' : 'mcq';
+    const params = new URLSearchParams(location.search);
+    params.set('mode', otherMode);
+    link.href = `${location.pathname}?${params.toString()}`;
+    link.textContent = otherMode === 'mcq' ? '🎯 Try MCQ →' : '📝 Back to FRQs →';
+  }
+
   async function init() {
+    wireModeSwap();
     try {
       const auth = await resolveStudent();
       if (!auth.ok) { showAuthError(auth.reason); return; }
@@ -442,6 +558,11 @@ code {
       const banner = document.getElementById('student-banner');
       banner.textContent = `Signed in as ${auth.name}`;
       banner.hidden = false;
+
+      if (MODE === 'mcq') {
+        mcqInit();
+        return;
+      }
 
       const rows = await fetchQuestions();
       if (!rows.length) {
@@ -888,6 +1009,277 @@ code {
     const leqBtn = document.getElementById('gen-leq-btn');
     if (saqBtn) saqBtn.addEventListener('click', () => generateQuestion('saq'));
     if (leqBtn) leqBtn.addEventListener('click', () => generateQuestion('leq'));
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     MCQ MODE — endless, one-at-a-time, unit-picker driven.
+     Stores attempts in student_attempts (FK → question_bank.id);
+     unit/correctness derived from question_bank on the read path.
+  ──────────────────────────────────────────────────────────── */
+  function mcqInit() {
+    const units = UNITS_BY_SUBJECT[SUBJECT];
+    if (!units) {
+      showError(`MCQ mode is not configured for "${SUBJECT}" yet.`);
+      return;
+    }
+
+    document.getElementById('loading-view').hidden = true;
+    document.getElementById('mcq-view').hidden = false;
+
+    // Populate unit picker (sessionStorage remembers the last selection)
+    const select = document.getElementById('mcq-unit-select');
+    const stored = sessionStorage.getItem('mcq_unit') || 'mix';
+    units.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.id;
+      opt.textContent = `${u.label}  (${u.period})`;
+      select.appendChild(opt);
+    });
+    const mixOpt = document.createElement('option');
+    mixOpt.value = 'mix';
+    mixOpt.textContent = 'Mix — random unit each question';
+    select.appendChild(mixOpt);
+    // Apply stored selection (if it's still a valid option)
+    if ([...select.options].some(o => o.value === stored)) select.value = stored;
+    state.mcq.unitId = select.value;
+    select.addEventListener('change', () => {
+      state.mcq.unitId = select.value;
+      sessionStorage.setItem('mcq_unit', select.value);
+    });
+
+    document.getElementById('mcq-progress-btn').addEventListener('click', toggleMcqProgress);
+
+    renderMcqStartCta();
+  }
+
+  function renderMcqStartCta() {
+    document.getElementById('mcq-card').innerHTML = `
+      <div class="mcq-start-cta">
+        <div class="mcq-start-cta-title">Ready when you are</div>
+        <div class="mcq-start-cta-sub">Pick a unit above, then click Start. Each question is freshly generated.</div>
+        <button id="mcq-start-btn" class="btn btn-primary">Start →</button>
+      </div>`;
+    document.getElementById('mcq-start-btn').addEventListener('click', generateMcq);
+  }
+
+  function pickConcreteUnit() {
+    const units = UNITS_BY_SUBJECT[SUBJECT];
+    if (state.mcq.unitId === 'mix') {
+      return units[Math.floor(Math.random() * units.length)];
+    }
+    return units.find(u => u.id === state.mcq.unitId) || units[0];
+  }
+
+  async function generateMcq() {
+    if (state.mcq.inFlight) return;
+    state.mcq.inFlight = true;
+    const statusEl = document.getElementById('mcq-status');
+    const card = document.getElementById('mcq-card');
+    const unitObj = pickConcreteUnit();
+    const unitPayload = `${unitObj.label} (${unitObj.period})`;
+
+    statusEl.hidden = false;
+    statusEl.textContent = `Generating a fresh ${SUBJECT} MCQ for ${unitObj.label}…`;
+    card.innerHTML = `<div class="muted" style="padding:1.5rem;text-align:center">Loading…</div>`;
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: SUBJECT, questionType: 'mcq', unit: unitPayload }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      state.mcq.currentRow = data.row;
+      state.mcq.picked = null;
+      state.mcq.questionStartTime = Date.now();
+      renderMcq(data.row);
+      statusEl.hidden = true;
+    } catch (err) {
+      statusEl.hidden = true;
+      card.innerHTML = `
+        <div class="mcq-start-cta">
+          <div class="mcq-start-cta-title">Couldn't generate</div>
+          <div class="mcq-start-cta-sub">${escapeHtml(err.message)}</div>
+          <button id="mcq-retry-btn" class="btn btn-primary">Try again</button>
+        </div>`;
+      document.getElementById('mcq-retry-btn').addEventListener('click', generateMcq);
+    } finally {
+      state.mcq.inFlight = false;
+    }
+  }
+
+  function renderMcq(row) {
+    const card = document.getElementById('mcq-card');
+    const choicesHtml = (row.choices || []).map(c => `
+      <label class="mcq-choice" data-letter="${escapeHtml(c.letter)}">
+        <input type="radio" name="mcq-choice" value="${escapeHtml(c.letter)}">
+        <span class="mcq-choice-letter">${escapeHtml(c.letter)}</span>
+        <span class="mcq-choice-text">${escapeHtml(c.text)}</span>
+      </label>`).join('');
+
+    card.innerHTML = `
+      <div class="mcq-unit-tag">${escapeHtml(row.unit || '')}</div>
+      ${row.stimulus ? `<div class="stimulus">${escapeHtml(row.stimulus)}</div>` : ''}
+      <div class="mcq-stem">${escapeHtml(row.question_text)}</div>
+      <div class="mcq-choices" id="mcq-choices">${choicesHtml}</div>
+      <div class="actions">
+        <button id="mcq-submit-btn" class="btn btn-primary" disabled>Submit</button>
+      </div>
+      <div id="mcq-feedback-container"></div>`;
+
+    card.querySelectorAll('input[name="mcq-choice"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.getElementById('mcq-submit-btn').disabled = false;
+      });
+    });
+    document.getElementById('mcq-submit-btn').addEventListener('click', onMcqSubmit);
+
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function onMcqSubmit() {
+    const picked = document.querySelector('input[name="mcq-choice"]:checked')?.value;
+    if (!picked) return;
+    const row = state.mcq.currentRow;
+    const correct = row.correct_answer;
+    const isCorrect = picked === correct;
+    const seconds = Math.round((Date.now() - state.mcq.questionStartTime) / 1000);
+
+    state.mcq.picked = picked;
+
+    // Lock and color the choices
+    document.querySelectorAll('#mcq-choices .mcq-choice').forEach(label => {
+      label.classList.add('mcq-locked');
+      const input = label.querySelector('input');
+      if (input) input.disabled = true;
+    });
+    const pickedLabel = document.querySelector(`#mcq-choices .mcq-choice[data-letter="${picked}"]`);
+    if (pickedLabel) pickedLabel.classList.add(isCorrect ? 'mcq-correct' : 'mcq-wrong');
+    if (!isCorrect) {
+      const correctLabel = document.querySelector(`#mcq-choices .mcq-choice[data-letter="${correct}"]`);
+      if (correctLabel) correctLabel.classList.add('mcq-correct');
+    }
+
+    // Feedback panel
+    const wrongExp = row.wrong_answer_explanations || {};
+    const distractorFeedback = !isCorrect && wrongExp[picked] ? wrongExp[picked] : null;
+    document.getElementById('mcq-feedback-container').innerHTML = `
+      <div class="mcq-feedback">
+        <div class="mcq-feedback-section">
+          <div class="mcq-feedback-header ${isCorrect ? 'feedback-correct' : 'feedback-wrong'}">
+            ${isCorrect ? '✓ Correct' : `✗ Incorrect · correct answer is ${escapeHtml(correct)}`}
+          </div>
+          <div class="mcq-feedback-text">${escapeHtml(row.official_explanation)}</div>
+        </div>
+        ${distractorFeedback ? `
+        <div class="mcq-feedback-section">
+          <div class="mcq-feedback-header feedback-wrong">Why ${escapeHtml(picked)} is wrong</div>
+          <div class="mcq-feedback-text">${escapeHtml(distractorFeedback)}</div>
+        </div>` : ''}
+        <div class="actions">
+          <button id="mcq-next-btn" class="btn btn-primary">Next question →</button>
+        </div>
+      </div>`;
+    document.getElementById('mcq-submit-btn').hidden = true;
+    document.getElementById('mcq-next-btn').addEventListener('click', generateMcq);
+    document.getElementById('mcq-feedback-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Save attempt — fire-and-forget; warn on error.
+    sb.from('student_attempts').insert([{
+      student_id: state.studentId,
+      question_id: row.id,
+      selected_answer: picked,
+      is_correct: isCorrect,
+      time_spent_seconds: seconds,
+      session_id: SESSION_ID,
+    }]).then(({ error }) => {
+      if (error) console.warn('MCQ attempt save error:', error.message, error);
+    });
+  }
+
+  async function toggleMcqProgress() {
+    const panel = document.getElementById('mcq-progress-panel');
+    if (!panel.hidden) { panel.hidden = true; return; }
+    panel.hidden = false;
+    panel.innerHTML = '<div class="muted">Loading your MCQ progress…</div>';
+    try {
+      const attempts = await loadMcqProgress();
+      panel.innerHTML = renderMcqProgress(attempts);
+    } catch (err) {
+      panel.innerHTML = `<div class="muted">Couldn't load progress: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  async function loadMcqProgress() {
+    const { data, error } = await sb
+      .from('student_attempts')
+      .select('is_correct, attempted_at, question_bank!inner(unit, question_type)')
+      .eq('student_id', state.studentId)
+      .eq('question_bank.question_type', 'mcq')
+      .order('attempted_at', { ascending: false })
+      .limit(500);
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  function renderMcqProgress(attempts) {
+    if (!attempts.length) {
+      return `
+        <div class="mcq-progress-title">📊 Your MCQ Progress</div>
+        <div class="muted" style="text-align:center;padding:1rem 0">No MCQs answered yet. Start practicing — your stats will appear here.</div>`;
+    }
+
+    const total = attempts.length;
+    const correct = attempts.filter(a => a.is_correct === true).length;
+    const pct = Math.round((correct / total) * 100);
+
+    const last10 = attempts.slice(0, 10).reverse();
+    const streakHtml = last10.map(a =>
+      `<div class="mcq-streak-dot streak-${a.is_correct ? 'correct' : 'wrong'}"></div>`
+    ).join('');
+
+    const byUnit = new Map();
+    for (const a of attempts) {
+      const unit = a.question_bank?.unit || '(Unknown)';
+      const cur = byUnit.get(unit) || { total: 0, correct: 0 };
+      cur.total++;
+      if (a.is_correct) cur.correct++;
+      byUnit.set(unit, cur);
+    }
+    const unitRows = [...byUnit.entries()]
+      .map(([unit, s]) => ({ unit, total: s.total, correct: s.correct, pct: s.total ? Math.round((s.correct / s.total) * 100) : 0 }))
+      .sort((a, b) => a.pct - b.pct);
+
+    const unitHtml = unitRows.map(r => {
+      const small = r.total < 3;
+      return `
+        <div class="mcq-unit-row ${small ? 'small-sample' : ''}">
+          <div class="mcq-unit-name">${escapeHtml(r.unit)}</div>
+          <div class="mcq-unit-bar"><div class="mcq-unit-bar-fill" style="width:${r.pct}%"></div></div>
+          <div class="mcq-unit-pct">${r.pct}%</div>
+          <div class="mcq-unit-count">${r.correct}/${r.total}</div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="mcq-progress-title">📊 Your MCQ Progress · lifetime</div>
+      <div class="mcq-progress-stats">
+        <div class="mcq-stat-card">
+          <div class="mcq-stat-val">${total}</div>
+          <div class="mcq-stat-label">Answered</div>
+        </div>
+        <div class="mcq-stat-card">
+          <div class="mcq-stat-val">${pct}%</div>
+          <div class="mcq-stat-label">Correct</div>
+        </div>
+      </div>
+      <div class="mcq-streak-label">Last ${last10.length}</div>
+      <div class="mcq-streak">${streakHtml}</div>
+      <div class="mcq-unit-rows">${unitHtml}</div>`;
   }
 
   wireGenerateButtons();
