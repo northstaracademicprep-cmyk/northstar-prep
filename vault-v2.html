@@ -409,6 +409,26 @@ code {
 .mcq-unit-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
 .mcq-unit-pct { font-weight: 700; min-width: 3.5em; text-align: right; }
 .mcq-unit-count { color: var(--muted); font-size: .72rem; min-width: 4em; text-align: right; }
+
+/* ── Chooser landing ───────────────────────────────────── */
+.chooser-greeting { margin-bottom: 1.25rem; font-size: 1.05rem; color: var(--text); font-weight: 600; }
+.chooser-greeting .chooser-sub { display: block; font-size: .82rem; font-weight: 400; color: var(--muted); margin-top: .25rem; }
+.chooser-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.chooser-card { display: flex; flex-direction: column; gap: .55rem; padding: 1.25rem 1.1rem; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 12px; cursor: pointer; transition: border-color .15s, transform .15s; text-decoration: none; color: inherit; text-align: left; }
+.chooser-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.chooser-card-icon { font-size: 1.6rem; line-height: 1; }
+.chooser-card-title { font-family: 'Josefin Sans', sans-serif; font-size: 1.05rem; font-weight: 700; color: var(--text); letter-spacing: .02em; }
+.chooser-card-sub { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+.chooser-card-stat { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-top: .15rem; }
+
+/* ── Practice toolbar (was mcq-toolbar, generalized) ──── */
+.practice-typetag { font-family: 'Josefin Sans', sans-serif; font-size: .85rem; font-weight: 700; letter-spacing: .04em; color: var(--accent); }
+.practice-session-controls { display: flex; gap: .65rem; justify-content: space-between; align-items: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.practice-session-left { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+
+/* Gold "Return to portal" — the welcoming exit, not a hide-away link. */
+.btn-portal { background: var(--accent); color: var(--bg); padding: .7rem 1.4rem; font-size: .92rem; font-weight: 700; border: none; border-radius: 8px; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: .4rem; transition: background .15s ease; }
+.btn-portal:hover { background: var(--accent-hover); }
 </style>
 </head>
 <body>
@@ -459,17 +479,36 @@ code {
     </div>
   </div>
 
-  <div id="mcq-view" hidden>
+  <div id="chooser-view" hidden>
+    <div class="chooser-greeting" id="chooser-greeting"></div>
+    <div id="chooser-progress-panel" class="card mcq-progress-panel" hidden></div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:.75rem">
+      <button id="chooser-progress-btn" class="btn btn-ghost">📊 Your progress</button>
+    </div>
+    <div class="chooser-grid" id="chooser-grid"></div>
+    <div class="practice-session-controls" style="border-top:none;justify-content:flex-end;padding-top:0;margin-top:.5rem">
+      <a href="portal.html" class="btn-portal">← Return to portal</a>
+    </div>
+  </div>
+
+  <div id="practice-view" hidden>
     <div class="mcq-toolbar">
       <div class="mcq-toolbar-row">
-        <label for="mcq-unit-select" class="mcq-toolbar-label">Unit / Period</label>
-        <select id="mcq-unit-select" class="mcq-select"></select>
-        <button id="mcq-progress-btn" class="btn btn-ghost">📊 Progress</button>
+        <span id="practice-typetag" class="practice-typetag"></span>
+        <label for="mcq-unit-select" id="mcq-unit-label" class="mcq-toolbar-label" hidden>Unit / Period</label>
+        <select id="mcq-unit-select" class="mcq-select" hidden></select>
+        <button id="practice-progress-btn" class="btn btn-ghost">📊 Progress</button>
       </div>
     </div>
-    <div id="mcq-progress-panel" class="card mcq-progress-panel" hidden></div>
-    <div id="mcq-status" class="muted" style="margin-bottom:.75rem" hidden></div>
-    <div id="mcq-card" class="card"></div>
+    <div id="practice-progress-panel" class="card mcq-progress-panel" hidden></div>
+    <div id="practice-status" class="muted" style="margin-bottom:.75rem" hidden></div>
+    <div id="practice-card" class="card"></div>
+    <div class="practice-session-controls">
+      <div class="practice-session-left">
+        <a id="practice-menu-link" class="btn btn-ghost" href="#">← Practice menu</a>
+      </div>
+      <a href="portal.html" class="btn-portal">← Return to portal</a>
+    </div>
   </div>
 </div>
 
@@ -489,8 +528,23 @@ code {
   const subjectKey  = (new URLSearchParams(location.search).get('subject') || 'apush').toLowerCase();
   const subjectCfg  = SUBJECT_MAP[subjectKey] || SUBJECT_MAP['apush'];
   const SUBJECT     = subjectCfg.dbSubject;
-  const MODE        = (new URLSearchParams(location.search).get('mode') || 'frq').toLowerCase();
-  const MCQ_PREFETCH_TARGET = 1;
+  // Mode dispatch: 'chooser' (default) shows the landing menu; 'mcq'/'saq'/
+  // 'leq' run an endless single-type practice flow; 'frq' is the legacy
+  // curated linear flow still wired up for any old deep links.
+  const RAW_MODE = (new URLSearchParams(location.search).get('mode') || 'chooser').toLowerCase();
+  const VALID_MODES = new Set(['chooser', 'mcq', 'saq', 'leq', 'frq']);
+  const MODE = VALID_MODES.has(RAW_MODE) ? RAW_MODE : 'chooser';
+  const PRACTICE_PREFETCH_TARGET = 1;
+  const PRACTICE_TYPES = ['mcq', 'saq', 'leq']; // types the chooser can launch
+
+  // Display strings per practice type. DBQ intentionally omitted — no AI
+  // generation yet and only one curated DBQ per subject; an endless practice
+  // loop would loop the same question. Add when DBQ gen / seeding lands.
+  const PRACTICE_TYPE_META = {
+    mcq: { label: 'MCQ', icon: '🎯', tag: '🎯 MCQ Practice', desc: 'Multiple choice. Pick A–D, instant feedback, infinite supply.' },
+    saq: { label: 'SAQ', icon: '📝', tag: '📝 SAQ Practice', desc: 'Short-answer questions in 3 parts. AI reader grades on the College Board rubric.' },
+    leq: { label: 'LEQ', icon: '📜', tag: '📜 LEQ Practice', desc: 'Long-essay prompts. Write the response, AI reader scores against the 6-point rubric.' },
+  };
 
   // AP World units (College Board CED). MCQ unit picker reads from here.
   // APUSH list is a trivial follow-up once MCQ ships.
@@ -508,13 +562,18 @@ code {
     ],
   };
 
-  // Update page chrome to reflect subject + mode
-  const modeLabel = MODE === 'mcq' ? 'MCQ' : 'FRQs';
-  document.getElementById('page-title').textContent  = `Practice Vault v2 — ${subjectCfg.label.replace('FRQs', modeLabel)}`;
-  document.getElementById('vault-title').textContent  = `Practice Vault v2 · ${subjectCfg.label.replace('FRQs', modeLabel)}`;
-  document.getElementById('vault-subtitle').textContent = MODE === 'mcq'
-    ? `AI-generated College Board–style multiple-choice · pick a unit and go`
-    : `College Board ${subjectCfg.year} · Real free-response questions, rubric reveal after each attempt`;
+  // Update page chrome to reflect subject + mode. The chooser is the default
+  // landing; practice-type modes show the type tag; mode=frq keeps the legacy
+  // "FRQ vault" framing for any old deep links.
+  const modeChromeLabel = PRACTICE_TYPE_META[MODE]?.label || (MODE === 'frq' ? 'FRQs' : 'Practice');
+  document.getElementById('page-title').textContent  = `Practice Vault v2 — ${subjectCfg.label.replace('FRQs', modeChromeLabel)}`;
+  document.getElementById('vault-title').textContent  = `Practice Vault v2 · ${subjectCfg.label.replace('FRQs', modeChromeLabel)}`;
+  document.getElementById('vault-subtitle').textContent =
+    MODE === 'chooser' ? `Pick what you want to drill. AI-generated College Board–style questions, on demand.` :
+    MODE === 'mcq'     ? `AI-generated multiple-choice · pick a unit and go` :
+    MODE === 'saq'     ? `AI-generated short-answer questions · 3 parts each, rubric reveal + AI grading` :
+    MODE === 'leq'     ? `AI-generated long-essay prompts · rubric reveal + AI grading` :
+    `College Board ${subjectCfg.year} · Real free-response questions, rubric reveal after each attempt`;
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -524,14 +583,16 @@ code {
     questionStartTime: 0,
     studentId: null,
     studentName: null,
-    mcq: {
-      unitId: null,
-      currentRow: null,
-      picked: null,
+    practice: {
+      type: null,             // 'mcq' | 'saq' | 'leq' — set on practiceInit
+      unitId: null,           // MCQ unit picker selection (null for non-MCQ types)
+      currentItem: null,      // current practice item (saq-group or single)
+      currentRow: null,       // MCQ-only: alias for currentItem.row, kept for compat with renderMcq
+      picked: null,           // MCQ-only: which letter was picked
       questionStartTime: 0,
-      inFlight: false,
-      buffer: [],
-      prefetchInFlight: false,
+      inFlight: false,        // user-facing on-demand fetch in progress
+      buffer: [],             // pre-fetched items, target PRACTICE_PREFETCH_TARGET deep
+      prefetchInFlight: false, // background prefetch in progress
     },
   };
 
@@ -541,32 +602,39 @@ code {
     })[c]);
   }
 
-  // Turn the /api/generate error envelope into a human-readable Error.
-  // Sets isQuota=true on 429 / RESOURCE_EXHAUSTED so callers can suppress
-  // the Retry button (retrying inside the same day won't help on free tier).
-  function friendlyGenerateError(errObj, httpStatus) {
+  // Turn an /api/generate or /api/grade error envelope into a human-readable
+  // Error. Sets isQuota=true on 429 / RESOURCE_EXHAUSTED so callers can
+  // suppress retry buttons (retrying inside the same day won't help on free
+  // tier). Pass {kind:'grading'} to use grading-specific quota copy.
+  function friendlyGenerateError(errObj, httpStatus, opts) {
     const detail = String(errObj?.detail || '');
     const isQuota = httpStatus === 429 || /\b429\b|RESOURCE_EXHAUSTED|quota/i.test(detail);
+    const kind = opts?.kind === 'grading' ? 'grading' : 'practice-question';
     const msg = isQuota
-      ? "You've hit today's practice-question limit — try again tomorrow."
+      ? `You've hit today's ${kind} limit — try again tomorrow.`
       : (errObj?.detail || errObj?.error || `HTTP ${httpStatus}`);
     const e = new Error(msg);
     e.isQuota = isQuota;
     return e;
   }
 
-  function wireModeSwap() {
-    const link = document.getElementById('mode-swap');
-    if (!link) return;
-    const otherMode = MODE === 'mcq' ? 'frq' : 'mcq';
+  // Returns a URL that flips the page into ?mode=<target>&subject=<current>.
+  // Used by the chooser cards and the in-session "← Practice menu" link.
+  function modeUrl(target) {
     const params = new URLSearchParams(location.search);
-    params.set('mode', otherMode);
-    link.href = `${location.pathname}?${params.toString()}`;
-    link.textContent = otherMode === 'mcq' ? '🎯 Try MCQ →' : '📝 Back to FRQs →';
+    params.set('mode', target);
+    return `${location.pathname}?${params.toString()}`;
+  }
+
+  // Chrome cleanup: the old "🎯 Try MCQ → / 📝 Back to FRQs →" mode-swap link
+  // is replaced by the chooser landing + the in-session Practice menu button.
+  function hideLegacyModeSwap() {
+    const link = document.getElementById('mode-swap');
+    if (link) link.hidden = true;
   }
 
   async function init() {
-    wireModeSwap();
+    hideLegacyModeSwap();
     try {
       const auth = await resolveStudent();
       if (!auth.ok) { showAuthError(auth.reason); return; }
@@ -576,11 +644,21 @@ code {
       banner.textContent = `Signed in as ${auth.name}`;
       banner.hidden = false;
 
-      if (MODE === 'mcq') {
-        mcqInit();
+      // Wire the in-session "← Practice menu" link to point at the chooser.
+      const menuLink = document.getElementById('practice-menu-link');
+      if (menuLink) menuLink.href = modeUrl('chooser');
+
+      if (MODE === 'chooser') {
+        chooserInit();
+        return;
+      }
+      if (PRACTICE_TYPES.includes(MODE)) {
+        practiceInit(MODE);
         return;
       }
 
+      // Legacy FRQ linear flow (mode=frq). Kept for any old deep links;
+      // the new endless single-type flow under mode=saq/leq is preferred.
       const rows = await fetchQuestions();
       if (!rows.length) {
         showError(`No rows in question_bank with subject="${SUBJECT}". Run the seed script first.`);
@@ -724,9 +802,19 @@ code {
     `;
   }
 
+  // Returns the currently-displayed group, branching by mode. The linear FRQ
+  // flow stores it in state.groups[state.currentIndex]; the endless practice
+  // flow stores it in state.practice.currentItem.
+  function currentGroup() {
+    return state.practice.type ? state.practice.currentItem : state.groups[state.currentIndex];
+  }
+  function currentStartedAt() {
+    return state.practice.type ? state.practice.questionStartTime : state.questionStartTime;
+  }
+
   async function onSubmitSaq() {
-    const group = state.groups[state.currentIndex];
-    const seconds = Math.round((Date.now() - state.questionStartTime) / 1000);
+    const group = currentGroup();
+    const seconds = Math.round((Date.now() - currentStartedAt()) / 1000);
     const responses = group.parts.map((_, i) =>
       document.getElementById(`saq-textarea-${i}`).value);
     group._responses = responses.slice();
@@ -754,9 +842,9 @@ code {
   }
 
   async function onSubmitSingle() {
-    const group = state.groups[state.currentIndex];
+    const group = currentGroup();
     const row = group.row;
-    const seconds = Math.round((Date.now() - state.questionStartTime) / 1000);
+    const seconds = Math.round((Date.now() - currentStartedAt()) / 1000);
     const response = document.getElementById('single-textarea').value;
     group.row._studentResponse = response;
 
@@ -785,7 +873,9 @@ code {
   }
 
   function revealRubric(sections, group) {
-    const isLast = state.currentIndex >= state.groups.length - 1;
+    // In endless practice mode, Next always continues; isLast only applies
+    // to the legacy linear FRQ flow.
+    const isLast = state.practice.type ? false : (state.currentIndex >= state.groups.length - 1);
     const html = `
       <div class="rubric">
         <h3>Scoring rubric</h3>
@@ -814,6 +904,12 @@ code {
   }
 
   function onNext() {
+    // Endless practice: generate / pop the next item instead of advancing
+    // through the linear FRQ list.
+    if (state.practice.type) {
+      nextPracticeItem();
+      return;
+    }
     state.currentIndex++;
     if (state.currentIndex >= state.groups.length) {
       document.getElementById('question-view').hidden = true;
@@ -896,14 +992,14 @@ code {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        throw friendlyGenerateError(err, res.status, { kind: 'grading' });
       }
       const data = await res.json();
       showGradeResult(data, questionType);
       btn.hidden = true;
     } catch (err) {
-      container.innerHTML = `<div class="grade-error">Grading failed: ${escapeHtml(err.message)}</div>`;
-      btn.disabled = false;
+      container.innerHTML = `<div class="grade-error">${escapeHtml(err.message)}</div>`;
+      btn.disabled = !!err.isQuota;
       btn.textContent = 'Grade my answer';
     }
   }
@@ -1028,23 +1124,108 @@ code {
     if (leqBtn) leqBtn.addEventListener('click', () => generateQuestion('leq'));
   }
 
-  /* ────────────────────────────────────────────────────────────
-     MCQ MODE — endless, one-at-a-time, unit-picker driven.
-     Stores attempts in student_attempts (FK → question_bank.id);
-     unit/correctness derived from question_bank on the read path.
-  ──────────────────────────────────────────────────────────── */
-  function mcqInit() {
-    const units = UNITS_BY_SUBJECT[SUBJECT];
-    if (!units) {
-      showError(`MCQ mode is not configured for "${SUBJECT}" yet.`);
-      return;
+  /* ════════════════════════════════════════════════════════════
+     CHOOSER LANDING
+  ════════════════════════════════════════════════════════════ */
+  async function chooserInit() {
+    document.getElementById('loading-view').hidden = true;
+    document.getElementById('chooser-view').hidden = false;
+
+    const first = (state.studentName || '').split(' ')[0] || 'there';
+    document.getElementById('chooser-greeting').innerHTML =
+      `What do you want to practice today, ${escapeHtml(first)}?
+       <span class="chooser-sub">${escapeHtml(SUBJECT)} · pick a type and go. Stop anytime — every attempt is saved.</span>`;
+
+    // Cards per practice type. DBQ deliberately omitted (no AI gen + 1 curated).
+    const grid = document.getElementById('chooser-grid');
+    grid.innerHTML = PRACTICE_TYPES.map(t => {
+      const m = PRACTICE_TYPE_META[t];
+      return `
+        <a class="chooser-card" data-type="${t}" href="${escapeHtml(modeUrl(t))}">
+          <div class="chooser-card-icon">${m.icon}</div>
+          <div class="chooser-card-title">${m.label}</div>
+          <div class="chooser-card-sub">${escapeHtml(m.desc)}</div>
+          <div class="chooser-card-stat" id="chooser-stat-${t}">&nbsp;</div>
+        </a>`;
+    }).join('');
+
+    document.getElementById('chooser-progress-btn').addEventListener('click', toggleChooserProgress);
+
+    // Async-fill per-card stats + the progress-panel cache.
+    try {
+      const attempts = await loadAttemptsForStudent();
+      const grouped  = dedupeByParent(attempts);
+      const byType   = groupByType(grouped);
+      PRACTICE_TYPES.forEach(t => {
+        const slot = document.getElementById(`chooser-stat-${t}`);
+        if (!slot) return;
+        const bucket = byType[t];
+        slot.innerHTML = bucket && bucket.count
+          ? `${bucket.count} done${bucket.pct != null ? ` · ${bucket.pct}% correct` : ''}`
+          : 'Not started yet';
+      });
+    } catch (err) {
+      console.warn('Chooser stats query failed:', err.message);
     }
+  }
+
+  async function toggleChooserProgress() {
+    const panel = document.getElementById('chooser-progress-panel');
+    if (!panel.hidden) { panel.hidden = true; return; }
+    panel.hidden = false;
+    panel.innerHTML = '<div class="muted">Loading your progress…</div>';
+    try {
+      const attempts = await loadAttemptsForStudent();
+      const grouped  = dedupeByParent(attempts);
+      panel.innerHTML = renderProgressPanel(grouped, { title: '📊 Your Practice Progress · all types', showPerType: true, showStreak: true });
+    } catch (err) {
+      panel.innerHTML = `<div class="muted">Couldn't load progress: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     PRACTICE FLOW — endless, one-at-a-time, prefetched 1 ahead.
+     Handles MCQ / SAQ / LEQ. Each "item" in the buffer is either
+     {kind:'mcq', row} | {kind:'saq-group', stimulus, parts} |
+     {kind:'leq', row}. Dispatch happens in showItem().
+  ════════════════════════════════════════════════════════════ */
+  function practiceInit(type) {
+    state.practice.type = type;
+    state.practice.unitId = null;
+    state.practice.currentItem = null;
+    state.practice.currentRow = null;
+    state.practice.picked = null;
+    state.practice.buffer.length = 0;
+    state.practice.prefetchInFlight = false;
+    state.practice.inFlight = false;
 
     document.getElementById('loading-view').hidden = true;
-    document.getElementById('mcq-view').hidden = false;
+    document.getElementById('practice-view').hidden = false;
 
-    // Populate unit picker (sessionStorage remembers the last selection)
-    const select = document.getElementById('mcq-unit-select');
+    // Type-tag in toolbar
+    document.getElementById('practice-typetag').textContent = PRACTICE_TYPE_META[type].tag;
+
+    // Unit picker is MCQ-only.
+    const unitLabel  = document.getElementById('mcq-unit-label');
+    const unitSelect = document.getElementById('mcq-unit-select');
+    if (type === 'mcq') {
+      unitLabel.hidden  = false;
+      unitSelect.hidden = false;
+      populateUnitPicker(unitSelect);
+    } else {
+      unitLabel.hidden  = true;
+      unitSelect.hidden = true;
+    }
+
+    document.getElementById('practice-progress-btn').addEventListener('click', togglePracticeProgress);
+
+    renderStartCta(type);
+  }
+
+  function populateUnitPicker(select) {
+    const units = UNITS_BY_SUBJECT[SUBJECT];
+    if (!units) return;
+    if (select.options.length) return; // idempotent — chooser→mcq→chooser→mcq
     const stored = sessionStorage.getItem('mcq_unit') || 'mix';
     units.forEach(u => {
       const opt = document.createElement('option');
@@ -1056,158 +1237,192 @@ code {
     mixOpt.value = 'mix';
     mixOpt.textContent = 'Mix — random unit each question';
     select.appendChild(mixOpt);
-    // Apply stored selection (if it's still a valid option)
     if ([...select.options].some(o => o.value === stored)) select.value = stored;
-    state.mcq.unitId = select.value;
+    state.practice.unitId = select.value;
     select.addEventListener('change', () => {
-      state.mcq.unitId = select.value;
+      state.practice.unitId = select.value;
       sessionStorage.setItem('mcq_unit', select.value);
-      clearMcqBuffer();
-      // Only kick prefetches if the user has already started a session —
-      // the very first question should still take the on-demand loading path.
-      if (state.mcq.currentRow) refillMcqBuffer();
+      clearPracticeBuffer();
+      if (state.practice.currentItem) refillPracticeBuffer();
     });
-
-    document.getElementById('mcq-progress-btn').addEventListener('click', toggleMcqProgress);
-
-    renderMcqStartCta();
   }
 
-  function renderMcqStartCta() {
-    document.getElementById('mcq-card').innerHTML = `
+  function renderStartCta(type) {
+    const meta = PRACTICE_TYPE_META[type];
+    const hint = type === 'mcq'
+      ? 'Pick a unit above, then click Start. Each question is freshly generated.'
+      : 'Click Start. Each question is freshly generated; stop whenever you like.';
+    document.getElementById('practice-card').innerHTML = `
       <div class="mcq-start-cta">
-        <div class="mcq-start-cta-title">Ready when you are</div>
-        <div class="mcq-start-cta-sub">Pick a unit above, then click Start. Each question is freshly generated.</div>
-        <button id="mcq-start-btn" class="btn btn-primary">Start →</button>
+        <div class="mcq-start-cta-title">${escapeHtml(meta.tag)} — ready when you are</div>
+        <div class="mcq-start-cta-sub">${escapeHtml(hint)}</div>
+        <button id="practice-start-btn" class="btn btn-primary">Start →</button>
       </div>`;
-    document.getElementById('mcq-start-btn').addEventListener('click', generateMcq);
+    document.getElementById('practice-start-btn').addEventListener('click', nextPracticeItem);
   }
 
   function pickConcreteUnit() {
     const units = UNITS_BY_SUBJECT[SUBJECT];
-    if (state.mcq.unitId === 'mix') {
+    if (!units) return { label: 'Unassigned', period: '' };
+    if (state.practice.unitId === 'mix') {
       return units[Math.floor(Math.random() * units.length)];
     }
-    return units.find(u => u.id === state.mcq.unitId) || units[0];
+    return units.find(u => u.id === state.practice.unitId) || units[0];
   }
 
-  // Network call only. Returns { row }. Throws on HTTP error.
-  // Accepts an optional pre-picked unitObj so the on-demand path can show
-  // a loading message that names the same unit it ends up fetching for.
-  async function fetchMcq(unitObj) {
-    const u = unitObj || pickConcreteUnit();
-    const unitPayload = `${u.label} (${u.period})`;
+  // Network call only. Returns one practice item shape per type. Throws on
+  // HTTP error. Accepts an optional pre-picked unitObj for MCQ so the
+  // on-demand loading message can name the same unit the fetch targets.
+  async function fetchPracticeItem(unitObj) {
+    const type = state.practice.type;
+    const payload = { subject: SUBJECT, questionType: type };
+    if (type === 'mcq') {
+      const u = unitObj || pickConcreteUnit();
+      payload.unit = `${u.label} (${u.period})`;
+    }
     const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject: SUBJECT, questionType: 'mcq', unit: unitPayload }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw friendlyGenerateError(err, res.status);
     }
     const data = await res.json();
-    return { row: data.row };
+    if (type === 'mcq') return { kind: 'mcq',       row: data.row };
+    if (type === 'leq') return { kind: 'leq',       row: data.row };
+    // saq
+    return {
+      kind: 'saq-group',
+      ai_generated: true,
+      stimulus: data.stimulus || null,
+      stimulus_image_url: null,
+      parts: data.parts.map(p => ({
+        id: p.id,
+        question_type: 'saq',
+        sub_index: p.sub_index,
+        question_text: p.question_text,
+        correct_answer: p.correct_answer,
+        official_explanation: p.official_explanation,
+        ai_generated: true,
+      })),
+    };
   }
 
-  function showMcqRow(row) {
-    state.mcq.currentRow = row;
-    state.mcq.picked = null;
-    state.mcq.questionStartTime = Date.now();
-    document.getElementById('mcq-status').hidden = true;
-    renderMcq(row);
+  function showItem(item) {
+    state.practice.currentItem = item;
+    state.practice.currentRow = item.row || null; // for MCQ submit handler
+    state.practice.picked = null;
+    state.practice.questionStartTime = Date.now();
+    document.getElementById('practice-status').hidden = true;
+
+    const card = document.getElementById('practice-card');
+    if (item.kind === 'mcq') {
+      renderMcq(item.row);
+    } else if (item.kind === 'saq-group') {
+      card.innerHTML = renderSaqGroup(item);
+      document.getElementById('submit-btn').addEventListener('click', onSubmitSaq);
+    } else {
+      // leq (or dbq if later wired)
+      card.innerHTML = renderSingle(item.row);
+      document.getElementById('submit-btn').addEventListener('click', onSubmitSingle);
+    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  function clearMcqBuffer() {
-    state.mcq.buffer.length = 0;
+  function clearPracticeBuffer() {
+    state.practice.buffer.length = 0;
     // Any in-flight prefetch is left to land; its result is dropped by the
-    // staleness check inside refillMcqBuffer().
+    // staleness check inside refillPracticeBuffer().
   }
 
-  // Background fill toward MCQ_PREFETCH_TARGET. Self-chaining: on each
+  // Background fill toward PRACTICE_PREFETCH_TARGET. Self-chaining: on each
   // settled prefetch, kicks itself again until the target is reached.
   // Single-flight: a second concurrent call no-ops until the first lands.
-  function refillMcqBuffer() {
-    if (state.mcq.prefetchInFlight) return;
-    if (state.mcq.buffer.length >= MCQ_PREFETCH_TARGET) return;
+  // Errors break the chain — next user-driven Next falls through to the
+  // on-demand path with a real error UI.
+  function refillPracticeBuffer() {
+    if (state.practice.prefetchInFlight) return;
+    if (state.practice.buffer.length >= PRACTICE_PREFETCH_TARGET) return;
 
-    state.mcq.prefetchInFlight = true;
-    const targetUnit = state.mcq.unitId;
+    state.practice.prefetchInFlight = true;
+    const targetType = state.practice.type;
+    const targetUnit = state.practice.unitId;
     let didError = false;
 
-    fetchMcq()
-      .then(({ row }) => {
-        // Drop the result if the user switched unit during this fetch.
-        if (state.mcq.unitId !== targetUnit) return;
-        state.mcq.buffer.push(row);
+    fetchPracticeItem()
+      .then(item => {
+        // Drop on type or MCQ-unit change during fetch.
+        if (state.practice.type !== targetType) return;
+        if (targetType === 'mcq' && state.practice.unitId !== targetUnit) return;
+        state.practice.buffer.push(item);
       })
       .catch(err => {
-        console.warn('MCQ prefetch failed:', err.message);
+        console.warn('Practice prefetch failed:', err.message);
         didError = true;
       })
       .finally(() => {
-        state.mcq.prefetchInFlight = false;
-        // Re-evaluate against current state — the guards above decide.
-        // Skip on error so we don't tight-loop against a failing API; the
-        // next user-driven Next will retry through the on-demand path
-        // (which shows a real error UI if it also fails).
-        if (!didError) refillMcqBuffer();
+        state.practice.prefetchInFlight = false;
+        if (!didError) refillPracticeBuffer();
       });
   }
 
-  async function generateMcq() {
-    if (state.mcq.inFlight) return;
+  async function nextPracticeItem() {
+    if (state.practice.inFlight) return;
 
-    // Fast path: pop instantly from the buffer, then top it off in the background.
-    if (state.mcq.buffer.length > 0) {
-      showMcqRow(state.mcq.buffer.shift());
-      refillMcqBuffer();
+    // Fast path: pop from buffer, top off in the background.
+    if (state.practice.buffer.length > 0) {
+      showItem(state.practice.buffer.shift());
+      refillPracticeBuffer();
       return;
     }
 
-    // Buffer empty — first question of a session, or just cleared after a
-    // unit change. Fall back to an on-demand fetch with a loading state.
-    state.mcq.inFlight = true;
-    const targetUnit = state.mcq.unitId;
-    const statusEl = document.getElementById('mcq-status');
-    const card = document.getElementById('mcq-card');
-    const unitObj = pickConcreteUnit();
+    // Buffer empty — first question, or just cleared. On-demand fetch with
+    // a loading state.
+    state.practice.inFlight = true;
+    const targetType = state.practice.type;
+    const targetUnit = state.practice.unitId;
+    const statusEl = document.getElementById('practice-status');
+    const card = document.getElementById('practice-card');
+    const unitObj = targetType === 'mcq' ? pickConcreteUnit() : null;
     statusEl.hidden = false;
-    statusEl.textContent = `Generating a fresh ${SUBJECT} MCQ for ${unitObj.label}…`;
+    statusEl.textContent = targetType === 'mcq'
+      ? `Generating a fresh ${SUBJECT} MCQ for ${unitObj.label}…`
+      : `Generating a fresh ${SUBJECT} ${targetType.toUpperCase()}…`;
     card.innerHTML = `<div class="muted" style="padding:1.5rem;text-align:center">Loading…</div>`;
 
-    let row;
+    let item;
     try {
-      row = (await fetchMcq(unitObj)).row;
+      item = await fetchPracticeItem(unitObj);
     } catch (err) {
-      state.mcq.inFlight = false;
+      state.practice.inFlight = false;
       statusEl.hidden = true;
-      // Suppress the Retry button on quota errors — retrying inside the
-      // same day won't help on the free tier.
       card.innerHTML = `
         <div class="mcq-start-cta">
           <div class="mcq-start-cta-title">${err.isQuota ? 'Daily limit reached' : "Couldn't generate"}</div>
           <div class="mcq-start-cta-sub">${escapeHtml(err.message)}</div>
-          ${err.isQuota ? '' : '<button id="mcq-retry-btn" class="btn btn-primary">Try again</button>'}
+          ${err.isQuota ? '' : '<button id="practice-retry-btn" class="btn btn-primary">Try again</button>'}
         </div>`;
-      const retryBtn = document.getElementById('mcq-retry-btn');
-      if (retryBtn) retryBtn.addEventListener('click', generateMcq);
+      const retryBtn = document.getElementById('practice-retry-btn');
+      if (retryBtn) retryBtn.addEventListener('click', nextPracticeItem);
       return;
     }
-    state.mcq.inFlight = false;
+    state.practice.inFlight = false;
 
-    // Staleness: unit changed mid-fetch — discard and restart on the new unit.
-    if (state.mcq.unitId !== targetUnit) {
-      generateMcq();
+    // Staleness: type or unit changed mid-fetch — discard and restart.
+    if (state.practice.type !== targetType) return;
+    if (targetType === 'mcq' && state.practice.unitId !== targetUnit) {
+      nextPracticeItem();
       return;
     }
 
-    showMcqRow(row);
-    refillMcqBuffer();
+    showItem(item);
+    refillPracticeBuffer();
   }
 
   function renderMcq(row) {
-    const card = document.getElementById('mcq-card');
+    const card = document.getElementById('practice-card');
     const choicesHtml = (row.choices || []).map(c => `
       <label class="mcq-choice" data-letter="${escapeHtml(c.letter)}">
         <input type="radio" name="mcq-choice" value="${escapeHtml(c.letter)}">
@@ -1231,21 +1446,18 @@ code {
       });
     });
     document.getElementById('mcq-submit-btn').addEventListener('click', onMcqSubmit);
-
-    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
   function onMcqSubmit() {
     const picked = document.querySelector('input[name="mcq-choice"]:checked')?.value;
     if (!picked) return;
-    const row = state.mcq.currentRow;
+    const row = state.practice.currentRow;
     const correct = row.correct_answer;
     const isCorrect = picked === correct;
-    const seconds = Math.round((Date.now() - state.mcq.questionStartTime) / 1000);
+    const seconds = Math.round((Date.now() - state.practice.questionStartTime) / 1000);
 
-    state.mcq.picked = picked;
+    state.practice.picked = picked;
 
-    // Lock and color the choices
     document.querySelectorAll('#mcq-choices .mcq-choice').forEach(label => {
       label.classList.add('mcq-locked');
       const input = label.querySelector('input');
@@ -1258,7 +1470,6 @@ code {
       if (correctLabel) correctLabel.classList.add('mcq-correct');
     }
 
-    // Feedback panel
     const wrongExp = row.wrong_answer_explanations || {};
     const distractorFeedback = !isCorrect && wrongExp[picked] ? wrongExp[picked] : null;
     document.getElementById('mcq-feedback-container').innerHTML = `
@@ -1279,10 +1490,11 @@ code {
         </div>
       </div>`;
     document.getElementById('mcq-submit-btn').hidden = true;
-    document.getElementById('mcq-next-btn').addEventListener('click', generateMcq);
+    document.getElementById('mcq-next-btn').addEventListener('click', nextPracticeItem);
     document.getElementById('mcq-feedback-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Save attempt — fire-and-forget; warn on error.
+    // Save attempt — fire-and-forget; warn on error. Item 7 will switch to
+    // .insert().select() and also write score_percent (100/0 for MCQ).
     sb.from('student_attempts').insert([{
       student_id: state.studentId,
       question_id: row.id,
@@ -1295,85 +1507,184 @@ code {
     });
   }
 
-  async function toggleMcqProgress() {
-    const panel = document.getElementById('mcq-progress-panel');
+  /* ════════════════════════════════════════════════════════════
+     PROGRESS PANEL — used by both the chooser and the in-session
+     toolbar. Reads student_attempts joined to question_bank, then
+     dedupes by parent_question_number (so a 3-part SAQ counts as
+     one logical attempt, not three).
+  ════════════════════════════════════════════════════════════ */
+  async function togglePracticeProgress() {
+    const panel = document.getElementById('practice-progress-panel');
     if (!panel.hidden) { panel.hidden = true; return; }
     panel.hidden = false;
-    panel.innerHTML = '<div class="muted">Loading your MCQ progress…</div>';
+    panel.innerHTML = '<div class="muted">Loading your progress…</div>';
     try {
-      const attempts = await loadMcqProgress();
-      panel.innerHTML = renderMcqProgress(attempts);
+      const attempts = await loadAttemptsForStudent();
+      const grouped  = dedupeByParent(attempts);
+      // In-session panel: per-unit breakdown is most useful for MCQ; for
+      // SAQ/LEQ we just show the overall stats + per-type breakdown.
+      const opts = state.practice.type === 'mcq'
+        ? { title: '📊 Your MCQ Progress · lifetime', showStreak: true, showPerUnit: true,  showPerType: false, filterType: 'mcq' }
+        : { title: '📊 Your Practice Progress · all types', showStreak: true, showPerType: true };
+      panel.innerHTML = renderProgressPanel(grouped, opts);
     } catch (err) {
       panel.innerHTML = `<div class="muted">Couldn't load progress: ${escapeHtml(err.message)}</div>`;
     }
   }
 
-  async function loadMcqProgress() {
+  async function loadAttemptsForStudent() {
     const { data, error } = await sb
       .from('student_attempts')
-      .select('is_correct, attempted_at, question_bank!inner(unit, question_type)')
+      .select('id, is_correct, attempted_at, question_id, question_bank!inner(parent_question_number, question_type, unit)')
       .eq('student_id', state.studentId)
-      .eq('question_bank.question_type', 'mcq')
       .order('attempted_at', { ascending: false })
-      .limit(500);
+      .limit(1000);
     if (error) throw new Error(error.message);
     return data || [];
   }
 
-  function renderMcqProgress(attempts) {
-    if (!attempts.length) {
-      return `
-        <div class="mcq-progress-title">📊 Your MCQ Progress</div>
-        <div class="muted" style="text-align:center;padding:1rem 0">No MCQs answered yet. Start practicing — your stats will appear here.</div>`;
-    }
-
-    const total = attempts.length;
-    const correct = attempts.filter(a => a.is_correct === true).length;
-    const pct = Math.round((correct / total) * 100);
-
-    const last10 = attempts.slice(0, 10).reverse();
-    const streakHtml = last10.map(a =>
-      `<div class="mcq-streak-dot streak-${a.is_correct ? 'correct' : 'wrong'}"></div>`
-    ).join('');
-
-    const byUnit = new Map();
+  // Collapse rows sharing the same parent_question_number into one logical
+  // attempt. SAQ parts share a parent; MCQ/LEQ each have their own parent
+  // (or null, in which case we treat the row id as the parent key).
+  function dedupeByParent(attempts) {
+    const groups = new Map();
     for (const a of attempts) {
-      const unit = a.question_bank?.unit || '(Unknown)';
-      const cur = byUnit.get(unit) || { total: 0, correct: 0 };
-      cur.total++;
-      if (a.is_correct) cur.correct++;
-      byUnit.set(unit, cur);
+      const pq = a.question_bank?.parent_question_number;
+      const key = pq != null ? `p:${pq}` : `r:${a.id}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(a);
     }
-    const unitRows = [...byUnit.entries()]
-      .map(([unit, s]) => ({ unit, total: s.total, correct: s.correct, pct: s.total ? Math.round((s.correct / s.total) * 100) : 0 }))
-      .sort((a, b) => a.pct - b.pct);
+    return [...groups.values()].map(rows => {
+      const correctSignals = rows
+        .map(r => r.is_correct)
+        .filter(v => v === true || v === false);
+      const allCorrect = correctSignals.length > 0 && correctSignals.every(v => v === true);
+      const anySignal  = correctSignals.length > 0;
+      return {
+        question_type:   rows[0].question_bank?.question_type,
+        unit:            rows[0].question_bank?.unit,
+        attempted_at:    rows.reduce((acc, r) => r.attempted_at > acc ? r.attempted_at : acc, rows[0].attempted_at),
+        is_correct:      anySignal ? allCorrect : null,
+        parts:           rows.length,
+        // Item 7 will fold score_percent in here once the migration is live.
+      };
+    });
+  }
 
-    const unitHtml = unitRows.map(r => {
-      const small = r.total < 3;
+  function groupByType(grouped) {
+    const out = {};
+    for (const g of grouped) {
+      const t = g.question_type || 'unknown';
+      if (!out[t]) out[t] = { count: 0, correct: 0, hasSignal: 0 };
+      out[t].count++;
+      if (g.is_correct === true) out[t].correct++;
+      if (g.is_correct === true || g.is_correct === false) out[t].hasSignal++;
+    }
+    for (const t of Object.keys(out)) {
+      out[t].pct = out[t].hasSignal ? Math.round((out[t].correct / out[t].hasSignal) * 100) : null;
+    }
+    return out;
+  }
+
+  function renderProgressPanel(grouped, opts) {
+    opts = opts || {};
+    const filtered = opts.filterType
+      ? grouped.filter(g => g.question_type === opts.filterType)
+      : grouped;
+
+    if (!filtered.length) {
       return `
-        <div class="mcq-unit-row ${small ? 'small-sample' : ''}">
-          <div class="mcq-unit-name">${escapeHtml(r.unit)}</div>
-          <div class="mcq-unit-bar"><div class="mcq-unit-bar-fill" style="width:${r.pct}%"></div></div>
-          <div class="mcq-unit-pct">${r.pct}%</div>
-          <div class="mcq-unit-count">${r.correct}/${r.total}</div>
-        </div>`;
-    }).join('');
+        <div class="mcq-progress-title">${escapeHtml(opts.title || '📊 Your progress')}</div>
+        <div class="muted" style="text-align:center;padding:1rem 0">No attempts yet. Start practicing — your stats will appear here.</div>`;
+    }
 
-    return `
-      <div class="mcq-progress-title">📊 Your MCQ Progress · lifetime</div>
+    const total = filtered.length;
+    const correct = filtered.filter(g => g.is_correct === true).length;
+    const hasSignal = filtered.filter(g => g.is_correct === true || g.is_correct === false).length;
+    const pct = hasSignal ? Math.round((correct / hasSignal) * 100) : null;
+
+    let html = `
+      <div class="mcq-progress-title">${escapeHtml(opts.title || '📊 Your progress')}</div>
       <div class="mcq-progress-stats">
         <div class="mcq-stat-card">
           <div class="mcq-stat-val">${total}</div>
           <div class="mcq-stat-label">Answered</div>
         </div>
         <div class="mcq-stat-card">
-          <div class="mcq-stat-val">${pct}%</div>
-          <div class="mcq-stat-label">Correct</div>
+          <div class="mcq-stat-val">${pct != null ? pct + '%' : '—'}</div>
+          <div class="mcq-stat-label">${pct != null ? 'Correct' : 'Awaiting grades'}</div>
         </div>
-      </div>
-      <div class="mcq-streak-label">Last ${last10.length}</div>
-      <div class="mcq-streak">${streakHtml}</div>
-      <div class="mcq-unit-rows">${unitHtml}</div>`;
+      </div>`;
+
+    if (opts.showStreak) {
+      // Last 10 with a definite correctness signal (skip ungraded FRQ).
+      const last10 = filtered
+        .filter(g => g.is_correct === true || g.is_correct === false)
+        .slice()
+        .sort((a, b) => a.attempted_at < b.attempted_at ? -1 : 1)
+        .slice(-10);
+      if (last10.length) {
+        const dots = last10.map(a => `<div class="mcq-streak-dot streak-${a.is_correct ? 'correct' : 'wrong'}"></div>`).join('');
+        html += `
+          <div class="mcq-streak-label">Last ${last10.length}</div>
+          <div class="mcq-streak">${dots}</div>`;
+      }
+    }
+
+    if (opts.showPerType) {
+      const byType = groupByType(filtered);
+      const order = ['mcq', 'saq', 'leq', 'dbq'];
+      const rows = order
+        .filter(t => byType[t])
+        .map(t => {
+          const b = byType[t];
+          const lbl = PRACTICE_TYPE_META[t]?.label || t.toUpperCase();
+          return `
+            <div class="mcq-unit-row">
+              <div class="mcq-unit-name">${escapeHtml(lbl)}</div>
+              ${b.pct != null
+                ? `<div class="mcq-unit-bar"><div class="mcq-unit-bar-fill" style="width:${b.pct}%"></div></div>
+                   <div class="mcq-unit-pct">${b.pct}%</div>`
+                : `<div class="mcq-unit-bar"></div><div class="mcq-unit-pct">—</div>`}
+              <div class="mcq-unit-count">${b.count}</div>
+            </div>`;
+        }).join('');
+      if (rows) html += `<div class="mcq-unit-rows">${rows}</div>`;
+    }
+
+    if (opts.showPerUnit) {
+      const byUnit = new Map();
+      for (const g of filtered) {
+        const unit = g.unit || '(Unknown)';
+        const cur = byUnit.get(unit) || { total: 0, correct: 0, hasSignal: 0 };
+        cur.total++;
+        if (g.is_correct === true) cur.correct++;
+        if (g.is_correct === true || g.is_correct === false) cur.hasSignal++;
+        byUnit.set(unit, cur);
+      }
+      const unitRows = [...byUnit.entries()]
+        .map(([unit, s]) => ({
+          unit, total: s.total, correct: s.correct, hasSignal: s.hasSignal,
+          pct: s.hasSignal ? Math.round((s.correct / s.hasSignal) * 100) : null,
+        }))
+        .sort((a, b) => (a.pct ?? 999) - (b.pct ?? 999));
+
+      const unitHtml = unitRows.map(r => {
+        const small = r.hasSignal > 0 && r.hasSignal < 3;
+        return `
+          <div class="mcq-unit-row ${small ? 'small-sample' : ''}">
+            <div class="mcq-unit-name">${escapeHtml(r.unit)}</div>
+            ${r.pct != null
+              ? `<div class="mcq-unit-bar"><div class="mcq-unit-bar-fill" style="width:${r.pct}%"></div></div>
+                 <div class="mcq-unit-pct">${r.pct}%</div>`
+              : `<div class="mcq-unit-bar"></div><div class="mcq-unit-pct">—</div>`}
+            <div class="mcq-unit-count">${r.correct}/${r.hasSignal || r.total}</div>
+          </div>`;
+      }).join('');
+      if (unitHtml) html += `<div class="mcq-unit-rows" style="margin-top:.75rem">${unitHtml}</div>`;
+    }
+
+    return html;
   }
 
   wireGenerateButtons();
