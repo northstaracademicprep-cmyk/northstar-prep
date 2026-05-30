@@ -1842,6 +1842,30 @@ function buildDashCC() {
 }
 
 /* ── PROGRESS (AP) ── */
+// Collapse student_attempts rows sharing a parent_question_number into one
+// logical attempt. SAQ parts share a parent; MCQ/LEQ each have their own
+// parent (or null — treat row id as the key). score_percent is averaged
+// across parts; null if no part has a graded score.
+function _dedupeStudentAttemptsByParent(rows) {
+  const groups = new Map();
+  for (const a of rows) {
+    const pq = a.question_bank?.parent_question_number;
+    const key = pq != null ? `p:${pq}` : `r:${a.id}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(a);
+  }
+  return [...groups.values()].map(parts => {
+    const scoreVals = parts.map(p => p.score_percent).filter(v => typeof v === 'number');
+    return {
+      question_type: parts[0].question_bank?.question_type,
+      unit:          parts[0].question_bank?.unit,
+      attempted_at:  parts.reduce((acc, r) => r.attempted_at > acc ? r.attempted_at : acc, parts[0].attempted_at),
+      score_percent: scoreVals.length ? Math.round(scoreVals.reduce((a, b) => a + b, 0) / scoreVals.length) : null,
+      parts:         parts.length,
+    };
+  });
+}
+
 /* ══════════════════════════════════════
    MY PROGRESS (enhanced)
 ══════════════════════════════════════ */
@@ -1853,18 +1877,42 @@ async function buildProgressPage(student, targetEl) {
   // Destroy any existing Chart.js instances to avoid canvas-reuse errors
   ['_pvBarChart','_pvLineChart'].forEach(k => { if(window[k]){try{window[k].destroy();}catch(e){}window[k]=null;} });
 
-  // Load practice attempts
+  // Load practice attempts from BOTH sources and merge.
+  //   practice_attempts  — legacy in-portal Gemini MCQ vault, one row per session
+  //   student_attempts   — vault-v2, one row per question (SAQ parts share parent_question_number)
+  // Merging here is the single source of truth for Practice Avg / Total Completed /
+  // Practice History across the student My Progress page and (via the tutor-side
+  // shim) the tutor Progress tab.
   let attempts = [];
+  let vaultGrouped = [];
   if (s.studentId) {
-    const { data } = await db.from('practice_attempts').select('*').eq('student_id', s.studentId).order('attempted_at', {ascending: false});
-    attempts = data || [];
+    const [legacyRes, vaultRes] = await Promise.all([
+      db.from('practice_attempts').select('*').eq('student_id', s.studentId).order('attempted_at', {ascending: false}),
+      db.from('student_attempts')
+        .select('id, is_correct, score_percent, attempted_at, question_id, question_bank!inner(parent_question_number, question_type, unit)')
+        .eq('student_id', s.studentId)
+        .order('attempted_at', { ascending: false })
+        .limit(1000),
+    ]);
+    attempts = legacyRes.data || [];
+    vaultGrouped = _dedupeStudentAttemptsByParent(vaultRes.data || []);
   }
 
   const graded    = (s.assignments||[]).filter(a => a.status==='graded' && a.score!=null);
   const submitted = (s.assignments||[]).filter(a => a.status==='submitted');
   const pending   = (s.assignments||[]).filter(a => a.status==='pending');
   const hwAvg  = graded.length   ? Math.round(graded.reduce((sum,a)=>sum+Number(a.score),0)/graded.length) : null;
-  const pvAvg  = attempts.length ? Math.round(attempts.reduce((sum,a)=>sum+Math.round((a.score/a.total)*100),0)/attempts.length) : null;
+
+  // Practice Avg blends BOTH sources. Each legacy session contributes its
+  // session %; each vault logical attempt contributes its score_percent
+  // (MCQ: 100/0 written on submit; FRQ: graded rubric % written after
+  // /api/grade returns). Ungraded FRQ rows (score_percent=null) excluded.
+  const legacyScores = attempts.map(a => Math.round((a.score / Math.max(a.total, 1)) * 100));
+  const vaultScores  = vaultGrouped.map(g => g.score_percent).filter(v => typeof v === 'number');
+  const allScores    = [...legacyScores, ...vaultScores];
+  const pvAvg  = allScores.length ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : null;
+  // Total Completed counts each session and each logical vault attempt as 1.
+  const totalPractice = attempts.length + vaultGrouped.length;
   const scoreColor  = pct => pct>=85?'#10b981':pct>=70?'#f59e0b':'#ef4444';
   const scoreLetter = pct => pct>=90?'A':pct>=80?'B':pct>=70?'C':pct>=60?'D':'F';
   const tutorFirst  = s.tutors?.name?.split(' ')[0] || 'your tutor';
@@ -1883,7 +1931,7 @@ async function buildProgressPage(student, targetEl) {
       <div class="prog-overview-label">Practice Avg</div>
     </div>${s._tutorView ? '' : `
     <div class="prog-overview-card">
-      <div class="prog-overview-val">${graded.length+attempts.length}</div>
+      <div class="prog-overview-val">${graded.length+totalPractice}</div>
       <div class="prog-overview-label">Total Completed</div>
     </div>`}
   </div>`;
@@ -2087,22 +2135,49 @@ async function buildProgressPage(student, targetEl) {
   </div>`;
 
   // ── Practice History ────────────────────────────────────────────────────────
+  // Merge legacy practice_attempts (sessions) + vault student_attempts
+  // (logical attempts), sort by attempted_at desc, show top 10.
+  const _historyItems = [
+    ...attempts.map(a => {
+      const pct = Math.round((a.score / Math.max(a.total, 1)) * 100);
+      const sec = findBankSection(a.period_key);
+      return {
+        source: 'legacy',
+        attempted_at: a.attempted_at,
+        icon: sec?.icon || '📚',
+        name: (sec?.label || a.period_key) + ' · session',
+        scoreLine: `${a.score}/${a.total} · ${pct}%`,
+        color: scoreColor(pct),
+      };
+    }),
+    ...vaultGrouped.map(g => {
+      const qt = g.question_type || '';
+      const icon = qt === 'mcq' ? '🎯' : qt === 'saq' ? '📝' : qt === 'leq' ? '📜' : qt === 'dbq' ? '📄' : '📚';
+      const pct = typeof g.score_percent === 'number' ? Math.round(g.score_percent) : null;
+      return {
+        source: 'vault',
+        attempted_at: g.attempted_at,
+        icon,
+        name: `${qt.toUpperCase() || 'Practice'}${g.unit ? ' · ' + g.unit : ''}`,
+        scoreLine: pct != null ? `${pct}%` : 'awaiting grade',
+        color: pct != null ? scoreColor(pct) : '#94a3b8',
+      };
+    }),
+  ].sort((a, b) => a.attempted_at < b.attempted_at ? 1 : -1);
+
   if (!s._tutorView) html += `<div class="card"${s.progress?` style="margin-bottom:1.5rem"`:''}>`+
     `<div class="card-header">
       <div class="card-title">🎯 Practice History</div>
       <button onclick="showSection('practice',document.getElementById('nav-practice'))" style="font-size:.78rem;font-weight:700;color:var(--navy-light);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px">Go to Practice Vault →</button>
     </div>
     <div class="card-body">
-      ${attempts.length?`<div class="prog-practice-list">${attempts.slice(0,10).map(a=>{
-        const pct=Math.round((a.score/a.total)*100);
-        const col=scoreColor(pct);
-        const sec=findBankSection(a.period_key);
-        return `<div class="prog-practice-item">
-          <div class="prog-practice-period">${sec?.icon||'📚'}</div>
-          <div class="prog-practice-name">${sec?.label||a.period_key}</div>
-          <div class="prog-practice-date">${fmtDateShort(a.attempted_at)}</div>
-          <div class="prog-practice-score" style="color:${col}">${a.score}/${a.total} · ${pct}%</div>
-        </div>`;}).join('')}</div>`:`<div class="empty-state"><div class="empty-icon">🎯</div><p>No practice attempts yet. Visit the Practice Vault to start!</p></div>`}
+      ${_historyItems.length?`<div class="prog-practice-list">${_historyItems.slice(0,10).map(it=>`
+        <div class="prog-practice-item">
+          <div class="prog-practice-period">${it.icon}</div>
+          <div class="prog-practice-name">${it.name}</div>
+          <div class="prog-practice-date">${fmtDateShort(it.attempted_at)}</div>
+          <div class="prog-practice-score" style="color:${it.color}">${it.scoreLine}</div>
+        </div>`).join('')}</div>`:`<div class="empty-state"><div class="empty-icon">🎯</div><p>No practice attempts yet. Visit the Practice Vault to start!</p></div>`}
     </div>
   </div>`;
 
@@ -4701,17 +4776,36 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemi
 /* ── Pull student's weak areas from practice history + homework ── */
 async function _getStudentWeakAreas(studentId) {
   try {
-    // Recent practice attempt scores per section
-    const { data: attempts } = await db.from('practice_attempts')
-      .select('period_key, score, total')
-      .eq('student_id', studentId)
-      .order('created_at', { ascending: false })
-      .limit(100);
+    // Recent practice from BOTH sources:
+    //   practice_attempts — legacy in-portal vault sessions, keyed by period_key
+    //   student_attempts  — vault-v2 attempts, keyed by question_bank.unit
+    // Vault attempts use score_percent (MCQ: 100/0; FRQ: graded %); ungraded rows
+    // are excluded so they don't drag the weak-area heuristic.
+    const [legacyRes, vaultRes] = await Promise.all([
+      db.from('practice_attempts')
+        .select('period_key, score, total')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false })
+        .limit(100),
+      db.from('student_attempts')
+        .select('score_percent, question_bank!inner(unit)')
+        .eq('student_id', studentId)
+        .order('attempted_at', { ascending: false })
+        .limit(300),
+    ]);
 
     const sectionScores = {};
-    (attempts || []).forEach(a => {
-      if (!sectionScores[a.period_key]) sectionScores[a.period_key] = [];
-      sectionScores[a.period_key].push(Math.round((a.score / (a.total || 1)) * 100));
+    (legacyRes.data || []).forEach(a => {
+      const key = a.period_key;
+      if (!sectionScores[key]) sectionScores[key] = [];
+      sectionScores[key].push(Math.round((a.score / (a.total || 1)) * 100));
+    });
+    (vaultRes.data || []).forEach(a => {
+      if (typeof a.score_percent !== 'number') return;
+      const unit = a.question_bank?.unit;
+      if (!unit) return;
+      if (!sectionScores[unit]) sectionScores[unit] = [];
+      sectionScores[unit].push(Math.round(a.score_percent));
     });
     const weakSections = Object.entries(sectionScores)
       .filter(([, scores]) => (scores.reduce((a,b)=>a+b,0)/scores.length) < 70)
@@ -6813,18 +6907,33 @@ async function buildTutorProgressPanel(studentId) {
   const panel = document.getElementById('ttab-panel-progress');
   if (!panel) return;
 
-  // The tutor Progress tab renders ONLY three sections from the student's
-  // roadmap: Performance by Unit, Weakness Analysis, Personalized Program
-  // Roadmap. Everything else (HW stats, Hell/Heaven cards, Trajectory chart,
-  // HW Grades list, Practice History, Recommendations, Practice by Section)
-  // is suppressed by the _tutorView flag inside buildProgressPage.
+  // The tutor Progress tab renders ONLY three roadmap sections (Performance
+  // by Unit, Weakness Analysis, Personalized Program Roadmap) PLUS the HW
+  // Avg + Practice Avg overview row. The roadmap is suppressed-or-shown by
+  // the _tutorView flag inside buildProgressPage; HW Avg needs homework
+  // assignments and Practice Avg pulls from both legacy practice_attempts
+  // and vault student_attempts (via buildProgressPage).
   panel.innerHTML = `<div id="t-stu-progress-mount"></div>`;
+
+  // Load homework so HW Avg reflects the student's real graded work.
+  let homework = [];
+  try {
+    const { data } = await db.from('homework').select('*').eq('student_id', studentId);
+    homework = data || [];
+  } catch (e) { /* HW Avg falls back to '—' */ }
 
   buildProgressPage({
     studentId,
     name:            selectedStudent?.name || '',
     progress_config: selectedStudent?.progress_config || null,
-    _tutorView:      true
+    assignments: homework.map(h => ({
+      title:    h.title || '',
+      status:   h.status || 'pending',
+      score:    h.score,
+      feedback: h.feedback || '',
+      maxScore: h.max_score || 100,
+    })),
+    _tutorView: true,
   }, document.getElementById('t-stu-progress-mount'));
 }
 

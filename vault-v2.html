@@ -829,10 +829,17 @@ code {
       question_id: p.id,
       selected_answer: responses[i] || null,
       is_correct: null,
+      score_percent: null,    // set by gradeWithAI once /api/grade returns
       time_spent_seconds: seconds,
       session_id: SESSION_ID,
     }));
-    await saveAttempts(inserts);
+    const inserted = await saveAttempts(inserts);
+
+    // Stash question_id → attempt_row_id mapping on the group so gradeWithAI
+    // can UPDATE the right rows. SAQ parts share parent_question_number but
+    // each is its own student_attempts row.
+    group._attemptIdByQuestionId = {};
+    inserted.forEach(r => { group._attemptIdByQuestionId[r.question_id] = r.id; });
 
     revealRubric(group.parts.map(p => ({
       label: `Part ${p.sub_index || ''}`,
@@ -851,14 +858,19 @@ code {
     document.getElementById('single-textarea').disabled = true;
     document.getElementById('submit-btn').disabled = true;
 
-    await saveAttempts([{
+    const inserted = await saveAttempts([{
       student_id: state.studentId,
       question_id: row.id,
       selected_answer: response || null,
       is_correct: null,
+      score_percent: null,    // set by gradeWithAI once /api/grade returns
       time_spent_seconds: seconds,
       session_id: SESSION_ID,
     }]);
+
+    // One row for LEQ/DBQ; stash the mapping for gradeWithAI.
+    group._attemptIdByQuestionId = {};
+    inserted.forEach(r => { group._attemptIdByQuestionId[r.question_id] = r.id; });
 
     revealRubric([{
       label: null,
@@ -867,9 +879,16 @@ code {
     }], group);
   }
 
+  // Inserts the attempt rows and returns the inserted records (with their
+  // server-assigned ids). The ids are needed so the grader can UPDATE
+  // score_percent on the right rows once /api/grade returns.
   async function saveAttempts(inserts) {
-    const { error } = await sb.from('student_attempts').insert(inserts);
-    if (error) console.warn('saveAttempts error:', error.message, error);
+    const { data, error } = await sb.from('student_attempts').insert(inserts).select();
+    if (error) {
+      console.warn('saveAttempts error:', error.message, error);
+      return [];
+    }
+    return data || [];
   }
 
   function revealRubric(sections, group) {
@@ -996,12 +1015,47 @@ code {
       }
       const data = await res.json();
       showGradeResult(data, questionType);
+      persistGradesToAttempts(data, questionType, group);
       btn.hidden = true;
     } catch (err) {
       container.innerHTML = `<div class="grade-error">${escapeHtml(err.message)}</div>`;
       btn.disabled = !!err.isQuota;
       btn.textContent = 'Grade my answer';
     }
+  }
+
+  // Write score_percent back onto each student_attempts row touched by this
+  // grading pass. For SAQ, each grader part maps via partLabel→sub_index to
+  // one attempt row. For LEQ/DBQ, one row with the overall earned/total.
+  // Fire-and-forget — UI already showed the score; a failed UPDATE just
+  // means Practice Avg won't reflect this attempt (logged to console).
+  function persistGradesToAttempts(data, questionType, group) {
+    const map = group?._attemptIdByQuestionId;
+    if (!map) return;
+
+    if (questionType === 'saq' && Array.isArray(data.parts)) {
+      data.parts.forEach(gp => {
+        const part = group.parts.find(p => (p.sub_index || '') === (gp.partLabel || ''));
+        const attemptId = part && map[part.id];
+        if (!attemptId) return;
+        const possible = Number(gp.possible) || 0;
+        const pct = possible > 0 ? Math.round((Number(gp.earned) / possible) * 100) : null;
+        if (pct == null) return;
+        sb.from('student_attempts').update({ score_percent: pct }).eq('id', attemptId)
+          .then(({ error }) => { if (error) console.warn('SAQ grade persist error:', error.message); });
+      });
+      return;
+    }
+
+    // leq / dbq — one attempt row, overall percent from data.earnedPoints/totalPoints.
+    const row = group?.row;
+    const attemptId = row && map[row.id];
+    const total = Number(data.totalPoints) || 0;
+    const earned = Number(data.earnedPoints) || 0;
+    const pct = total > 0 ? Math.round((earned / total) * 100) : null;
+    if (!attemptId || pct == null) return;
+    sb.from('student_attempts').update({ score_percent: pct }).eq('id', attemptId)
+      .then(({ error }) => { if (error) console.warn('FRQ grade persist error:', error.message); });
   }
 
   function showGradeResult(data, questionType) {
@@ -1161,7 +1215,7 @@ code {
         if (!slot) return;
         const bucket = byType[t];
         slot.innerHTML = bucket && bucket.count
-          ? `${bucket.count} done${bucket.pct != null ? ` · ${bucket.pct}% correct` : ''}`
+          ? `${bucket.count} done${bucket.pct != null ? ` · ${bucket.pct}% avg` : ''}`
           : 'Not started yet';
       });
     } catch (err) {
@@ -1493,13 +1547,14 @@ code {
     document.getElementById('mcq-next-btn').addEventListener('click', nextPracticeItem);
     document.getElementById('mcq-feedback-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Save attempt — fire-and-forget; warn on error. Item 7 will switch to
-    // .insert().select() and also write score_percent (100/0 for MCQ).
+    // Save attempt — fire-and-forget; warn on error. score_percent is set
+    // from is_correct so MCQ + graded FRQ blend into one Practice Avg.
     sb.from('student_attempts').insert([{
       student_id: state.studentId,
       question_id: row.id,
       selected_answer: picked,
       is_correct: isCorrect,
+      score_percent: isCorrect ? 100 : 0,
       time_spent_seconds: seconds,
       session_id: SESSION_ID,
     }]).then(({ error }) => {
@@ -1535,7 +1590,7 @@ code {
   async function loadAttemptsForStudent() {
     const { data, error } = await sb
       .from('student_attempts')
-      .select('id, is_correct, attempted_at, question_id, question_bank!inner(parent_question_number, question_type, unit)')
+      .select('id, is_correct, score_percent, attempted_at, question_id, question_bank!inner(parent_question_number, question_type, unit)')
       .eq('student_id', state.studentId)
       .order('attempted_at', { ascending: false })
       .limit(1000);
@@ -1560,13 +1615,15 @@ code {
         .filter(v => v === true || v === false);
       const allCorrect = correctSignals.length > 0 && correctSignals.every(v => v === true);
       const anySignal  = correctSignals.length > 0;
+      const scoreVals  = rows.map(r => r.score_percent).filter(v => typeof v === 'number');
+      const scorePct   = scoreVals.length ? Math.round(scoreVals.reduce((a, b) => a + b, 0) / scoreVals.length) : null;
       return {
         question_type:   rows[0].question_bank?.question_type,
         unit:            rows[0].question_bank?.unit,
         attempted_at:    rows.reduce((acc, r) => r.attempted_at > acc ? r.attempted_at : acc, rows[0].attempted_at),
         is_correct:      anySignal ? allCorrect : null,
+        score_percent:   scorePct,           // mean of part score_percent (MCQ: 100/0; FRQ: graded %)
         parts:           rows.length,
-        // Item 7 will fold score_percent in here once the migration is live.
       };
     });
   }
@@ -1575,13 +1632,15 @@ code {
     const out = {};
     for (const g of grouped) {
       const t = g.question_type || 'unknown';
-      if (!out[t]) out[t] = { count: 0, correct: 0, hasSignal: 0 };
+      if (!out[t]) out[t] = { count: 0, scoreSum: 0, scored: 0 };
       out[t].count++;
-      if (g.is_correct === true) out[t].correct++;
-      if (g.is_correct === true || g.is_correct === false) out[t].hasSignal++;
+      if (typeof g.score_percent === 'number') {
+        out[t].scoreSum += g.score_percent;
+        out[t].scored++;
+      }
     }
     for (const t of Object.keys(out)) {
-      out[t].pct = out[t].hasSignal ? Math.round((out[t].correct / out[t].hasSignal) * 100) : null;
+      out[t].pct = out[t].scored ? Math.round(out[t].scoreSum / out[t].scored) : null;
     }
     return out;
   }
@@ -1599,9 +1658,8 @@ code {
     }
 
     const total = filtered.length;
-    const correct = filtered.filter(g => g.is_correct === true).length;
-    const hasSignal = filtered.filter(g => g.is_correct === true || g.is_correct === false).length;
-    const pct = hasSignal ? Math.round((correct / hasSignal) * 100) : null;
+    const scoreVals = filtered.map(g => g.score_percent).filter(v => typeof v === 'number');
+    const pct = scoreVals.length ? Math.round(scoreVals.reduce((a, b) => a + b, 0) / scoreVals.length) : null;
 
     let html = `
       <div class="mcq-progress-title">${escapeHtml(opts.title || '📊 Your progress')}</div>
@@ -1612,7 +1670,7 @@ code {
         </div>
         <div class="mcq-stat-card">
           <div class="mcq-stat-val">${pct != null ? pct + '%' : '—'}</div>
-          <div class="mcq-stat-label">${pct != null ? 'Correct' : 'Awaiting grades'}</div>
+          <div class="mcq-stat-label">${pct != null ? 'Avg score' : 'Awaiting grades'}</div>
         </div>
       </div>`;
 
@@ -1656,21 +1714,23 @@ code {
       const byUnit = new Map();
       for (const g of filtered) {
         const unit = g.unit || '(Unknown)';
-        const cur = byUnit.get(unit) || { total: 0, correct: 0, hasSignal: 0 };
+        const cur = byUnit.get(unit) || { total: 0, scoreSum: 0, scored: 0 };
         cur.total++;
-        if (g.is_correct === true) cur.correct++;
-        if (g.is_correct === true || g.is_correct === false) cur.hasSignal++;
+        if (typeof g.score_percent === 'number') {
+          cur.scoreSum += g.score_percent;
+          cur.scored++;
+        }
         byUnit.set(unit, cur);
       }
       const unitRows = [...byUnit.entries()]
         .map(([unit, s]) => ({
-          unit, total: s.total, correct: s.correct, hasSignal: s.hasSignal,
-          pct: s.hasSignal ? Math.round((s.correct / s.hasSignal) * 100) : null,
+          unit, total: s.total, scored: s.scored,
+          pct: s.scored ? Math.round(s.scoreSum / s.scored) : null,
         }))
         .sort((a, b) => (a.pct ?? 999) - (b.pct ?? 999));
 
       const unitHtml = unitRows.map(r => {
-        const small = r.hasSignal > 0 && r.hasSignal < 3;
+        const small = r.scored > 0 && r.scored < 3;
         return `
           <div class="mcq-unit-row ${small ? 'small-sample' : ''}">
             <div class="mcq-unit-name">${escapeHtml(r.unit)}</div>
@@ -1678,7 +1738,7 @@ code {
               ? `<div class="mcq-unit-bar"><div class="mcq-unit-bar-fill" style="width:${r.pct}%"></div></div>
                  <div class="mcq-unit-pct">${r.pct}%</div>`
               : `<div class="mcq-unit-bar"></div><div class="mcq-unit-pct">—</div>`}
-            <div class="mcq-unit-count">${r.correct}/${r.hasSignal || r.total}</div>
+            <div class="mcq-unit-count">${r.scored}/${r.total}</div>
           </div>`;
       }).join('');
       if (unitHtml) html += `<div class="mcq-unit-rows" style="margin-top:.75rem">${unitHtml}</div>`;
