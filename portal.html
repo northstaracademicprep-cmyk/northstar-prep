@@ -7624,22 +7624,77 @@ async function saveAdminEditStudent() {
   buildAdminStudents();
 }
 async function adminResetPractice(studentId, name) {
-  if (!confirm(`Reset ALL practice vault data for ${name}?\n\nThis will:\n• Clear all practice scores\n• Reset seen-question tracking (fresh questions again)\n\nThis cannot be undone.`)) return;
+  // Pre-flight counts (anon key, read-only) so the confirm dialog can show
+  // exactly what will be deleted before the admin commits.
+  let vaultCount = 0, legacyCount = 0;
+  try {
+    const [vRes, lRes] = await Promise.all([
+      db.from('student_attempts').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
+      db.from('practice_attempts').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
+    ]);
+    vaultCount  = vRes.count  || 0;
+    legacyCount = lRes.count  || 0;
+  } catch (e) { /* counts are advisory — proceed without them */ }
 
-  // 1. Delete practice_attempts from Supabase
-  const { error } = await db.from('practice_attempts').delete().eq('student_id', studentId);
-  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  const total = vaultCount + legacyCount;
+  if (total === 0 && !confirm(`No practice attempts found for ${name}. Reset anyway? (Will still bump practice_reset_at to flush seen-question caches.)`)) return;
+  if (total > 0 && !confirm(
+    `Delete ${vaultCount} vault attempt${vaultCount===1?'':'s'} and ${legacyCount} legacy session${legacyCount===1?'':'s'} for ${name}?\n\n` +
+    `Account, login code, sessions, homework, and messages will NOT be touched. Cannot be undone.`
+  )) return;
 
-  // 2. Write a reset timestamp into the student record so ANY device
-  //    the student logs in on will clear their local seen-question cache
-  await db.from('students').update({ practice_reset_at: new Date().toISOString() }).eq('id', studentId);
+  // The admin secret is held in sessionStorage so the prompt only happens
+  // once per admin session. Clearing it on 401 forces a re-prompt next time.
+  let adminSecret = sessionStorage.getItem('adminResetSecret');
+  if (!adminSecret) {
+    adminSecret = prompt('Admin secret (set as ADMIN_RESET_SECRET in Vercel env):');
+    if (!adminSecret) return;
+  }
 
-  // 3. Also wipe localStorage on THIS device immediately (if admin is testing on same browser)
+  let res;
+  try {
+    res = await fetch('/api/reset-practice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId, adminSecret }),
+    });
+  } catch (err) {
+    showToast(`Network error: ${err.message}`, 'error');
+    return;
+  }
+
+  if (res.status === 401) {
+    sessionStorage.removeItem('adminResetSecret');
+    showToast('Wrong admin secret — try again.', 'error');
+    return;
+  }
+  if (res.status === 503) {
+    const body = await res.json().catch(() => ({}));
+    showToast(body.error || 'Server not configured (ADMIN_RESET_SECRET missing in Vercel env)', 'error');
+    return;
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    showToast(`Error: ${body.detail || body.error || `HTTP ${res.status}`}`, 'error');
+    return;
+  }
+
+  // Cache the secret on first successful use so subsequent resets don't prompt.
+  sessionStorage.setItem('adminResetSecret', adminSecret);
+
+  const data = await res.json();
+
+  // Wipe localStorage on THIS device immediately (the server already bumped
+  // practice_reset_at so other browsers will flush on the student's next login).
   Object.keys(localStorage)
     .filter(k => k.startsWith('pv_seen_' + studentId))
     .forEach(k => localStorage.removeItem(k));
 
-  showToast(`✅ Full practice reset for ${name} — scores cleared, questions fresh!`, 'success');
+  showToast(
+    `✅ Reset ${name} — ${data.vaultDeleted} vault + ${data.legacyDeleted} legacy attempts cleared.`,
+    'success'
+  );
+  buildAdminStudents();
 }
 
 async function adminClearMessages(studentId, name) {
