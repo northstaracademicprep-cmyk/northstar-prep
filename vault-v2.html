@@ -490,7 +490,7 @@ code {
   const subjectCfg  = SUBJECT_MAP[subjectKey] || SUBJECT_MAP['apush'];
   const SUBJECT     = subjectCfg.dbSubject;
   const MODE        = (new URLSearchParams(location.search).get('mode') || 'frq').toLowerCase();
-  const MCQ_PREFETCH_TARGET = 2;
+  const MCQ_PREFETCH_TARGET = 1;
 
   // AP World units (College Board CED). MCQ unit picker reads from here.
   // APUSH list is a trivial follow-up once MCQ ships.
@@ -539,6 +539,20 @@ code {
     return String(s ?? '').replace(/[&<>"']/g, c => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     })[c]);
+  }
+
+  // Turn the /api/generate error envelope into a human-readable Error.
+  // Sets isQuota=true on 429 / RESOURCE_EXHAUSTED so callers can suppress
+  // the Retry button (retrying inside the same day won't help on free tier).
+  function friendlyGenerateError(errObj, httpStatus) {
+    const detail = String(errObj?.detail || '');
+    const isQuota = httpStatus === 429 || /\b429\b|RESOURCE_EXHAUSTED|quota/i.test(detail);
+    const msg = isQuota
+      ? "You've hit today's practice-question limit — try again tomorrow."
+      : (errObj?.detail || errObj?.error || `HTTP ${httpStatus}`);
+    const e = new Error(msg);
+    e.isQuota = isQuota;
+    return e;
   }
 
   function wireModeSwap() {
@@ -954,7 +968,7 @@ code {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        throw friendlyGenerateError(err, res.status);
       }
       const data = await res.json();
       const group = buildGroupFromGenerated(data);
@@ -966,7 +980,7 @@ code {
       renderCurrent();
     } catch (err) {
       statusEl.hidden = false;
-      statusEl.textContent = `Generation failed: ${err.message}`;
+      statusEl.textContent = err.message;
     } finally {
       saqBtn.disabled = false;
       leqBtn.disabled = false;
@@ -1090,7 +1104,7 @@ code {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      throw friendlyGenerateError(err, res.status);
     }
     const data = await res.json();
     return { row: data.row };
@@ -1168,13 +1182,16 @@ code {
     } catch (err) {
       state.mcq.inFlight = false;
       statusEl.hidden = true;
+      // Suppress the Retry button on quota errors — retrying inside the
+      // same day won't help on the free tier.
       card.innerHTML = `
         <div class="mcq-start-cta">
-          <div class="mcq-start-cta-title">Couldn't generate</div>
+          <div class="mcq-start-cta-title">${err.isQuota ? 'Daily limit reached' : "Couldn't generate"}</div>
           <div class="mcq-start-cta-sub">${escapeHtml(err.message)}</div>
-          <button id="mcq-retry-btn" class="btn btn-primary">Try again</button>
+          ${err.isQuota ? '' : '<button id="mcq-retry-btn" class="btn btn-primary">Try again</button>'}
         </div>`;
-      document.getElementById('mcq-retry-btn').addEventListener('click', generateMcq);
+      const retryBtn = document.getElementById('mcq-retry-btn');
+      if (retryBtn) retryBtn.addEventListener('click', generateMcq);
       return;
     }
     state.mcq.inFlight = false;

@@ -304,7 +304,7 @@ async function insertRows(sbUrl, sbKey, rows) {
 // ── Gemini call + validation (one attempt; caller retries once) ──
 async function generateValidated(apiKey, prompt, questionType, wantStimulus) {
   const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
