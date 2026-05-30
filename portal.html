@@ -7049,7 +7049,7 @@ function showAdminSection(id) {
   if (id !== 'adm-messages' && _activeMsgCtx) _unsubscribeMessages();
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
-    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', 'seed-bank':'Seed Bank', 'adm-messages':'Messages'}[id] || id;
+    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', review:'Review Queue', 'seed-bank':'Seed Bank', 'adm-messages':'Messages'}[id] || id;
   // Full-bleed layout for messages, restore padding for other sections
   const admContent = document.querySelector('.adm-content');
   if (admContent) admContent.style.padding = id === 'adm-messages' ? '0' : '';
@@ -7062,6 +7062,7 @@ function showAdminSection(id) {
   else if (id === 'tutors')       buildAdminTutors();
   else if (id === 'billing')      buildAdminBilling();
   else if (id === 'tutor-mgmt')   buildAdminTutorMgmt();
+  else if (id === 'review')       buildAdminReviewQueue();
   else if (id === 'seed-bank')    buildAdminSeedBank();
   else if (id === 'adm-messages') buildAdminMessages();
 }
@@ -7897,6 +7898,224 @@ async function _seedCall(subject, type, unit, count, secret) {
   if (!res.ok) {
     let detail = '';
     try { const j = await res.json(); detail = j.detail || j.error || ''; } catch {}
+    throw new Error(`HTTP ${res.status}${detail ? ' · ' + detail.slice(0, 200) : ''}`);
+  }
+  return res.json();
+}
+
+/* ── REVIEW QUEUE ─────────────────────────────────────────────────────────────
+   Phase 1b: in-portal approval/rejection of AI-seeded questions. Reads and
+   writes go through /api/review-queue (gated by ADMIN_RESET_SECRET +
+   service-role key). SAQ's 3 parts arrive as one item so the admin reviews
+   them as a single unit.
+─────────────────────────────────────────────────────────────────────────────── */
+let _rqQueue = [];
+let _rqIdx = 0;
+let _rqByType = {};
+
+async function buildAdminReviewQueue() {
+  const body = document.getElementById('admBody');
+  body.innerHTML = `
+    <div style="max-width:900px;margin:0 auto">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.5rem;margin-bottom:1.25rem">
+        <h2 style="margin:0 0 .5rem;font-size:1.05rem;color:#0f2044">🔍 Review Queue</h2>
+        <p style="margin:0;color:#64748b;font-size:.88rem;line-height:1.5">
+          Approve AI-seeded questions one at a time. Approve flips
+          <code style="background:#f1f5f9;padding:.1rem .35rem;border-radius:4px;font-size:.78rem">approved=true</code>
+          (servable). Reject permanently deletes the question — and all 3 parts if it's an SAQ.
+        </p>
+      </div>
+      <div id="rqHost"><div style="text-align:center;color:#94a3b8;padding:2rem">Loading…</div></div>
+    </div>
+  `;
+
+  const secret = _seedSecretPrompt();
+  if (!secret) {
+    document.getElementById('rqHost').innerHTML =
+      `<div style="text-align:center;color:#94a3b8;padding:1rem">Cancelled — admin secret required.</div>`;
+    return;
+  }
+
+  try {
+    const data = await _rqCall({ action: 'list', adminSecret: secret });
+    _rqQueue = Array.isArray(data.items) ? data.items : [];
+    _rqByType = data.byType || {};
+    _rqIdx = 0;
+    _renderReviewItem();
+  } catch (err) {
+    document.getElementById('rqHost').innerHTML =
+      `<div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:1rem;font-size:.85rem">Failed to load queue: ${escapeHtmlPortal(err.message)}</div>`;
+  }
+}
+
+function _renderReviewItem() {
+  const host = document.getElementById('rqHost');
+  if (!host) return;
+
+  if (!_rqQueue.length) {
+    host.innerHTML = `
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2rem;text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:.5rem">✨</div>
+        <div style="font-size:1.05rem;font-weight:700;color:#0f2044;margin-bottom:.35rem">All caught up!</div>
+        <div style="color:#64748b;font-size:.88rem">No AI-generated questions waiting for review.</div>
+        <button onclick="buildAdminReviewQueue()" style="margin-top:1rem;padding:.5rem 1rem;background:#0f2044;color:#fff;border:none;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer">↻ Refresh</button>
+      </div>`;
+    return;
+  }
+
+  if (_rqIdx >= _rqQueue.length) _rqIdx = 0;
+  const item = _rqQueue[_rqIdx];
+
+  const typeLabel = { mcq: 'Multiple Choice', saq: 'Short Answer (3 parts)', leq: 'Long Essay' }[item.questionType] || item.questionType;
+  const breakdown = ['mcq','saq','leq']
+    .filter(t => _rqByType[t])
+    .map(t => `${_rqByType[t]} ${t.toUpperCase()}`)
+    .join(' · ');
+
+  host.innerHTML = `
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.1rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div>
+        <div style="font-size:.92rem;font-weight:700;color:#0f2044">${_rqQueue.length} remaining</div>
+        <div style="font-size:.72rem;color:#64748b;margin-top:.15rem">${breakdown || ''}</div>
+      </div>
+      <div style="font-size:.72rem;color:#64748b;display:flex;align-items:center;gap:.45rem;flex-wrap:wrap">
+        <span style="background:#f1f5f9;padding:.2rem .55rem;border-radius:6px;font-weight:700;color:#0f2044">#${item.parentNumber}</span>
+        <span>${escapeHtmlPortal(item.subject)}</span>
+        <span style="color:#cbd5e1">·</span>
+        <span>${escapeHtmlPortal(item.unit || '—')}</span>
+        <span style="color:#cbd5e1">·</span>
+        <span style="font-weight:600;color:#0f2044">${typeLabel}</span>
+      </div>
+    </div>
+
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.5rem;margin-bottom:1rem">
+      ${_rqRenderBody(item)}
+    </div>
+
+    <div style="display:flex;gap:.65rem;flex-wrap:wrap">
+      <button onclick="rqApproveCurrent()" style="flex:2;min-width:170px;padding:.85rem;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:9px;font-size:.95rem;font-weight:700;cursor:pointer">✓ Approve</button>
+      <button onclick="rqRejectCurrent()" style="flex:1;min-width:140px;padding:.85rem;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:9px;font-size:.92rem;font-weight:700;cursor:pointer">✗ Reject</button>
+      <button onclick="rqSkipCurrent()" style="flex:1;min-width:120px;padding:.85rem;background:#f1f5f9;color:#0f2044;border:1px solid #cbd5e1;border-radius:9px;font-size:.92rem;font-weight:600;cursor:pointer">⏭ Skip</button>
+    </div>
+  `;
+}
+
+function _rqRenderBody(item) {
+  if (item.questionType === 'mcq') return _rqRenderMcq(item);
+  if (item.questionType === 'saq') return _rqRenderSaq(item);
+  if (item.questionType === 'leq') return _rqRenderLeq(item);
+  return `<pre style="white-space:pre-wrap;font-size:.78rem;color:#475569">${escapeHtmlPortal(JSON.stringify(item, null, 2))}</pre>`;
+}
+
+function _rqRenderMcq(item) {
+  const correct = item.correct_answer;
+  const wrong = item.wrong_answer_explanations || {};
+  const choices = Array.isArray(item.choices) ? item.choices : [];
+  const stimHtml = item.stimulus
+    ? `<div style="background:#f8fafc;border-left:3px solid #cbd5e1;padding:.85rem 1rem;border-radius:0 8px 8px 0;font-size:.9rem;line-height:1.65;color:#334155;margin-bottom:1rem;font-style:italic;white-space:pre-wrap">${escapeHtmlPortal(item.stimulus)}</div>`
+    : '';
+  const wrongKeys = Object.keys(wrong);
+  return `
+    ${stimHtml}
+    <div style="font-size:.95rem;font-weight:600;color:#0f2044;line-height:1.55;margin-bottom:1rem">${escapeHtmlPortal(item.question_text)}</div>
+    <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.25rem">
+      ${choices.map(c => {
+        const isCorrect = c.letter === correct;
+        return `
+          <div style="display:flex;gap:.65rem;padding:.7rem .85rem;border-radius:8px;border:1px solid ${isCorrect?'#86efac':'#e5e7eb'};background:${isCorrect?'#ecfdf5':'#fff'}">
+            <div style="font-weight:800;color:${isCorrect?'#065f46':'#94a3b8'};min-width:1.4rem">${escapeHtmlPortal(c.letter)}${isCorrect?' ✓':''}</div>
+            <div style="font-size:.88rem;color:#0f2044;line-height:1.55;flex:1">${escapeHtmlPortal(c.text)}</div>
+          </div>`;
+      }).join('')}
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.85rem 1rem;margin-bottom:.85rem">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#065f46;margin-bottom:.35rem">Why ${escapeHtmlPortal(correct)} is correct</div>
+      <div style="font-size:.85rem;color:#14532d;line-height:1.6;white-space:pre-wrap">${escapeHtmlPortal(item.official_explanation)}</div>
+    </div>
+    ${wrongKeys.length ? `
+      <details style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.85rem 1rem">
+        <summary style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9a3412;cursor:pointer">Distractor explanations</summary>
+        <div style="margin-top:.6rem;display:flex;flex-direction:column;gap:.5rem">
+          ${wrongKeys.map(L =>
+            `<div style="font-size:.83rem;color:#7c2d12;line-height:1.55"><strong>${escapeHtmlPortal(L)}.</strong> ${escapeHtmlPortal(wrong[L])}</div>`
+          ).join('')}
+        </div>
+      </details>` : ''}
+  `;
+}
+
+function _rqRenderSaq(item) {
+  return (item.parts || []).map(p => `
+    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:1rem 1.15rem;margin-bottom:.85rem">
+      <div style="font-size:.72rem;font-weight:800;color:#9333ea;letter-spacing:.05em;margin-bottom:.4rem">PART ${escapeHtmlPortal(p.sub_index || '')}</div>
+      <div style="font-size:.92rem;font-weight:600;color:#0f2044;line-height:1.55;margin-bottom:.65rem">${escapeHtmlPortal(p.question_text)}</div>
+      <div style="font-size:.78rem;color:#475569;line-height:1.55;margin-bottom:.45rem"><strong style="color:#0f2044">Scoring criterion:</strong> ${escapeHtmlPortal(p.correct_answer)}</div>
+      <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:7px;padding:.65rem .85rem;font-size:.82rem;color:#4c1d95;line-height:1.6;white-space:pre-wrap">${escapeHtmlPortal(p.official_explanation)}</div>
+    </div>
+  `).join('');
+}
+
+function _rqRenderLeq(item) {
+  return `
+    <div style="font-size:.95rem;font-weight:600;color:#0f2044;line-height:1.6;margin-bottom:1rem;padding:1rem 1.15rem;background:#f8fafc;border-left:3px solid #0f2044;border-radius:0 8px 8px 0;white-space:pre-wrap">${escapeHtmlPortal(item.question_text)}</div>
+    <div style="font-size:.82rem;color:#475569;line-height:1.6;margin-bottom:.85rem"><strong style="color:#0f2044">What a high-scoring response must do:</strong> ${escapeHtmlPortal(item.correct_answer)}</div>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:.85rem 1rem">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#1e40af;margin-bottom:.35rem">Rubric</div>
+      <div style="font-size:.85rem;color:#1e3a8a;line-height:1.65;white-space:pre-wrap">${escapeHtmlPortal(item.official_explanation)}</div>
+    </div>
+  `;
+}
+
+async function rqApproveCurrent() {
+  const item = _rqQueue[_rqIdx];
+  if (!item) return;
+  const secret = sessionStorage.getItem('adminResetSecret');
+  if (!secret) { showToast('Admin secret missing — reopen Review Queue.', 'error'); return; }
+  try {
+    await _rqCall({ action: 'approve', adminSecret: secret, parentNumber: item.parentNumber, subject: item.subject });
+    _rqByType[item.questionType] = Math.max(0, (_rqByType[item.questionType] || 1) - 1);
+    _rqQueue.splice(_rqIdx, 1);
+    _renderReviewItem();
+    showToast('✓ Approved', 'success');
+  } catch (err) {
+    showToast(`Approve failed: ${err.message}`, 'error');
+  }
+}
+
+async function rqRejectCurrent() {
+  const item = _rqQueue[_rqIdx];
+  if (!item) return;
+  const label = item.questionType === 'saq' ? 'SAQ (all 3 parts)' : item.questionType.toUpperCase();
+  if (!confirm(`Permanently delete this ${label}? This cannot be undone.`)) return;
+  const secret = sessionStorage.getItem('adminResetSecret');
+  if (!secret) { showToast('Admin secret missing — reopen Review Queue.', 'error'); return; }
+  try {
+    await _rqCall({ action: 'reject', adminSecret: secret, parentNumber: item.parentNumber, subject: item.subject });
+    _rqByType[item.questionType] = Math.max(0, (_rqByType[item.questionType] || 1) - 1);
+    _rqQueue.splice(_rqIdx, 1);
+    _renderReviewItem();
+    showToast('✗ Rejected', 'success');
+  } catch (err) {
+    showToast(`Reject failed: ${err.message}`, 'error');
+  }
+}
+
+function rqSkipCurrent() {
+  if (!_rqQueue.length) return;
+  _rqIdx = (_rqIdx + 1) % _rqQueue.length;
+  _renderReviewItem();
+}
+
+async function _rqCall(payload) {
+  const res = await fetch('/api/review-queue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { const j = await res.json(); detail = j.detail || j.error || ''; } catch {}
+    if (res.status === 401) sessionStorage.removeItem('adminResetSecret');
     throw new Error(`HTTP ${res.status}${detail ? ' · ' + detail.slice(0, 200) : ''}`);
   }
   return res.json();
@@ -8799,6 +9018,7 @@ async function loadAdminConvo(studentId, studentName) {
         <div class="adm-nav-item" data-id="billing" onclick="showAdminSection('billing')"><span class="adm-nav-icon">💰</span> Hours &amp; Billing</div>
         <div class="adm-nav-label">Tools</div>
         <div class="adm-nav-item" data-id="tutor-mgmt" onclick="showAdminSection('tutor-mgmt')"><span class="adm-nav-icon">🎓</span> Tutor Management</div>
+        <div class="adm-nav-item" data-id="review" onclick="showAdminSection('review')"><span class="adm-nav-icon">🔍</span> Review Queue</div>
         <div class="adm-nav-item" data-id="seed-bank" onclick="showAdminSection('seed-bank')"><span class="adm-nav-icon">🌱</span> Seed Bank</div>
         <div class="adm-nav-item" data-id="adm-messages" onclick="showAdminSection('adm-messages')">
           <span class="adm-nav-icon">💬</span>
