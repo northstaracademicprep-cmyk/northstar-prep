@@ -485,13 +485,13 @@
     .weekly-sum-text{font-size:.88rem;line-height:1.65;color:#3f3722}
 
     /* ── NORTHSTAR 5-STEP SYSTEM (Gameplan tab) ── */
-    .np-step-deck{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:1rem}
-    .np-step-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.2rem;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s;border-left:3px solid var(--gold)}
+    .np-step-deck{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.65rem;margin-top:1rem}
+    .np-step-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:.9rem .85rem;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s;border-left:3px solid var(--gold)}
     .np-step-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,32,68,.12)}
-    .np-step-num{font-family:var(--font-arch);font-size:.7rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem}
-    .np-step-icon{font-size:1.8rem;line-height:1;margin-bottom:.5rem}
-    .np-step-title{font-size:.92rem;font-weight:800;color:var(--navy);letter-spacing:.04em;margin-bottom:.45rem;text-transform:uppercase}
-    .np-step-body{font-size:.78rem;color:#475569;line-height:1.6}
+    .np-step-num{font-family:var(--font-arch);font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:.3rem}
+    .np-step-icon{font-size:1.55rem;line-height:1;margin-bottom:.4rem}
+    .np-step-title{font-size:.82rem;font-weight:800;color:var(--navy);letter-spacing:.03em;margin-bottom:.4rem;text-transform:uppercase}
+    .np-step-body{font-size:.7rem;color:#475569;line-height:1.5}
 
     /* ── WEAKNESS CARDS ── */
     .weak-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.85rem;margin-top:.75rem}
@@ -2020,7 +2020,7 @@ async function buildProgressPage(student, targetEl) {
     // ══ CLIMB GRAPH — the "you are here" version of the start→target arc.
     //    The static hell→bridge→heaven framing lives on Game Plan.
     const weekly = cfg.weeklyProgress || [];
-    html += _renderClimbCard(s, cfg, weekly);
+    html += _renderClimbCard(s, cfg, weekly, recentSessions);
   }
 
   // ── Session Feed (right after Weakness so movement reads like a story:
@@ -2069,28 +2069,6 @@ async function buildProgressPage(student, targetEl) {
       <div class="weekly-sum-eyebrow">📬 This Week's Update</div>
       <div class="weekly-sum-range">${wkRange}</div>
       <div class="weekly-sum-text">${escapeHtmlPortal(latestWeekly.summary || '').replace(/\n+/g,'<br><br>')}</div>
-    </div>`;
-  }
-
-  // ── Performance by Unit (bar chart) — current diagnostic view of where the
-  //    student stands per unit. The static "where started → where going"
-  //    framing and the Weakness Analysis cards live on the Game Plan tab.
-  if (cfg && (cfg.units||[]).length) {
-    const units = cfg.units;
-    html += `<div class="card" style="margin-bottom:1.5rem">
-      <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
-        <div class="card-title">📊 Performance by Unit — ${cfg.subject||''}</div>
-        <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
-          <span style="color:#ef4444">■ Weak &lt;70%</span>
-          <span style="color:#f59e0b">■ Moderate 70–84%</span>
-          <span style="color:#10b981">■ Strong 85%+</span>
-        </div>
-      </div>
-      <div class="card-body" style="padding-bottom:1rem">
-        <div style="position:relative;height:${Math.max(220,units.length*46)}px">
-          <canvas id="pvBarChart"></canvas>
-        </div>
-      </div>
     </div>`;
   }
 
@@ -2171,9 +2149,6 @@ async function buildProgressPage(student, targetEl) {
 
   progEl.innerHTML = html;
 
-  // Render Chart.js charts after DOM update
-  if (cfg?.units?.length) setTimeout(() => _renderProgressCharts(cfg), 80);
-
   // Legacy score timeline builder
   if (s.progress) {
     const subjects=Object.keys(s.progress);
@@ -2243,8 +2218,33 @@ function _renderProgressCharts(cfg) {
     });
   }
 
-  // Trajectory line chart removed — climb graph at top of Progress now
-  // carries the start→now→target visual.
+  // Line chart — projected trajectory across program weeks vs target.
+  const lineCanvas = document.getElementById('pvLineChart');
+  if (lineCanvas && weekly.length) {
+    const labels    = weekly.map(p=>p.label);
+    const actuals   = weekly.map(p=>p.grade);
+    const targetPts = weekly.map(()=>target);
+    const yMin = Math.max(0, Math.min(...actuals) - 12);
+    const yMax = Math.min(100, target + 12);
+    window._pvLineChart = new Chart(lineCanvas, {
+      type:'line',
+      data:{ labels, datasets:[
+        {label:'Actual Grade', data:actuals, borderColor:'#0c1b38', backgroundColor:'rgba(12,27,56,.08)', borderWidth:2.5, pointBackgroundColor:'#0c1b38', pointRadius:5, fill:true, tension:0.35},
+        {label:`Target (${cfg.targetGrade||target+'%'})`, data:targetPts, borderColor:'#d4af55', borderWidth:2, borderDash:[7,4], pointRadius:0, fill:false, tension:0}
+      ]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{display:true, position:'top', labels:{font:{size:11}, boxWidth:18, padding:14}},
+          tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}%`}}
+        },
+        scales:{
+          y:{min:yMin, max:yMax, grid:{color:'rgba(0,0,0,.06)'}, ticks:{callback:v=>v+'%', font:{size:11}}},
+          x:{grid:{display:false}, ticks:{font:{size:11}}}
+        }
+      }
+    });
+  }
 }
 
 /* ── CLIMB GRAPH renderer ─────────────────────────────────────────────────────
@@ -2253,23 +2253,50 @@ function _renderProgressCharts(cfg) {
    cfg.weeklyProgress, pulsing "you are here" marker at the current climb
    fraction. Replaces the Hell/Heaven/Trajectory trio with one focused image.
 ─────────────────────────────────────────────────────────────────────────────── */
-function _renderClimbCard(s, cfg, weekly) {
+function _renderClimbCard(s, cfg, weekly, recentSessions) {
   const gradeStart  = typeof cfg.startingGrade  === 'number' ? cfg.startingGrade  : null;
   const gradeTarget = typeof cfg.targetGradeNum === 'number' ? cfg.targetGradeNum : null;
-  const lastGrade   = weekly.length ? Number(weekly[weekly.length-1].grade)
-                    : (typeof cfg.startingGrade === 'number' ? cfg.startingGrade : null);
+  // weeklyProgress entries are AI-generated *projections* end-to-end
+  // (start → target). Never read "current" off them — use cfg.currentGrade
+  // if explicitly set, else assume the student hasn't moved off the start line.
+  const currentGrade = typeof cfg.currentGrade === 'number'
+                     ? cfg.currentGrade
+                     : (typeof cfg.startingGrade === 'number' ? cfg.startingGrade : null);
   const programWeeks = typeof cfg.programWeeks === 'number' && cfg.programWeeks > 0 ? cfg.programWeeks : null;
   const currentPhaseNum = cfg.currentPhase || 1;
-  // weekIndex estimate: in absence of a real program-start date, use the
-  // weeklyProgress count as the closest proxy.
-  const weekIdx = Math.max(1, weekly.length || 1);
+
+  // Real weeks elapsed. Prefer cfg.programStartDate; fall back to count of
+  // distinct ISO calendar-weeks containing an approved session.
+  const _isoWeekKey = (dStr) => {
+    const d = new Date(dStr + 'T00:00:00Z');
+    const tmp = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const day = tmp.getUTCDay() || 7;
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(),0,1));
+    return tmp.getUTCFullYear() + '-W' + Math.ceil((((tmp - yearStart)/86400000) + 1)/7);
+  };
+  let weekIdx;
+  if (cfg.programStartDate) {
+    const startMs = new Date(cfg.programStartDate + 'T00:00:00Z').getTime();
+    const elapsed = Math.floor((Date.now() - startMs) / (7*24*60*60*1000)) + 1;
+    weekIdx = Math.max(1, programWeeks ? Math.min(elapsed, programWeeks) : elapsed);
+  } else {
+    const distinct = new Set((recentSessions || []).map(r => _isoWeekKey(r.session_date))).size;
+    weekIdx = Math.max(1, distinct || 1);
+    if (programWeeks) weekIdx = Math.min(weekIdx, programWeeks);
+  }
 
   if (gradeStart == null || gradeTarget == null) {
     // Climb depends on configured start + target; skip the card if missing.
     return '';
   }
 
-  const climbFrac = Math.max(0, Math.min(1, (lastGrade - gradeStart) / Math.max(1, gradeTarget - gradeStart)));
+  // % climbed = (currentGrade − startingGrade) / (targetGrade − startingGrade),
+  // clamped 0–1. Guard against gradeTarget ≤ gradeStart so we can never show
+  // 100% when current ≤ start.
+  const climbFrac = (gradeTarget > gradeStart && currentGrade != null)
+    ? Math.max(0, Math.min(1, (currentGrade - gradeStart) / (gradeTarget - gradeStart)))
+    : 0;
   const weekFrac  = programWeeks ? Math.max(0, Math.min(1, weekIdx / programWeeks)) : climbFrac;
 
   // SVG canvas — viewBox-scaled so it stays crisp on every width.
@@ -2335,7 +2362,7 @@ function _renderClimbCard(s, cfg, weekly) {
         <circle class="climb-here-dot" cx="${hereX}" cy="${hereY}"/>
         <text x="${PAD_L}" y="${yOf(0) + 22}" class="climb-base-label" fill="#fca5a5">⚑ START · ${escapeHtmlPortal(startLabel)}</text>
         <text x="${W - PAD_R}" y="${yOf(1) - 10}" class="climb-flag-label" text-anchor="end" fill="#fde68a">🏁 GOAL · ${escapeHtmlPortal(targetLabel)}</text>
-        <text x="${hereX + 12}" y="${hereY - 10}" class="climb-axis-label" fill="#fff" font-size="12" font-weight="700">YOU · ${escapeHtmlPortal(lastGrade)}%</text>
+        <text x="${Math.max(PAD_L + 80, Math.min(W - PAD_R - 80, hereX))}" y="${hereY > 40 ? hereY - 14 : hereY + 26}" text-anchor="middle" class="climb-axis-label" fill="#fff" font-size="12" font-weight="700">YOU · ${escapeHtmlPortal(currentGrade)}%</text>
       </svg>
     </div>
     <div class="climb-foot">
@@ -2415,6 +2442,10 @@ async function buildGameplanPage(student, targetEl) {
   if (!s || !el) return;
   const cfg = s.progress_config;
 
+  // Tear down any Chart.js instances from a prior render of this tab
+  // before re-creating the canvases.
+  ['_pvBarChart','_pvLineChart'].forEach(k => { if(window[k]){try{window[k].destroy();}catch(e){}window[k]=null;} });
+
   // Without a configured plan the whole tab is empty — short-circuit so we
   // don't run derivations that all read off cfg.
   if (!cfg) {
@@ -2444,7 +2475,7 @@ async function buildGameplanPage(student, targetEl) {
 
   let html = '';
 
-  // ══ HELL CARD (Where We Started) ═════════════════════════════════════════
+  // ══ 1. HELL CARD (Where We Started) ══════════════════════════════════════
   if (!s._tutorView) html += `<div class="hell-card">
     <div style="position:relative;z-index:1">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
@@ -2465,20 +2496,82 @@ async function buildGameplanPage(student, targetEl) {
     </div>
   </div>`;
 
-  // ══ BRIDGE SEPARATOR ═════════════════════════════════════════════════════
-  if (!s._tutorView) html += `<div class="bridge-sep">
-    <div style="font-size:2.2rem;flex-shrink:0;position:relative;z-index:1">🌉</div>
-    <div style="position:relative;z-index:1;flex:1">
-      <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(201,160,58,.9);margin-bottom:.2rem">The Northstar Bridge</div>
-      <div style="font-size:.95rem;font-weight:800;color:#fff;margin-bottom:.3rem">A personalized roadmap built exclusively for ${firstName}</div>
-      <div style="font-size:.75rem;color:rgba(255,255,255,.65);line-height:1.55">
-        No generic tutoring. No one-size-fits-all curriculum. Every session, every phase, and every practice problem below was designed specifically around <b style="color:rgba(255,255,255,.85)">${firstName}'s</b> exact weaknesses, exam format, and timeline.
-        This is what separates Northstar from every other option.
+  // ══ 2. WEAKNESS ANALYSIS ═════════════════════════════════════════════════
+  const displayWeaknesses = weaknesses.length ? weaknesses : weakUnits.map(u=>({area:u.name,score:u.score,issue:'Score below mastery threshold — needs focused review and targeted practice.',impact:'high'}));
+  if (displayWeaknesses.length) {
+    html += `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header">
+        <div class="card-title">🔍 Weakness Analysis</div>
+        <div style="font-size:.7rem;color:var(--muted);font-weight:600">${displayWeaknesses.length} area${displayWeaknesses.length>1?'s':''} flagged for focused work</div>
+      </div>
+      <div class="card-body" style="padding-top:.5rem">
+        <div style="font-size:.78rem;color:#374151;margin-bottom:.85rem;line-height:1.55">
+          These are the specific gaps holding ${firstName} back. Each one has been identified through grade reports,
+          practice performance, and detailed diagnostic assessment — not guesswork.
+        </div>
+        <div class="weak-grid">
+          ${displayWeaknesses.map(w=>`
+          <div class="weak-card${w.impact==='medium'?' medium':''}">
+            <div class="weak-card-score">${w.score!=null?w.score+'%':''}</div>
+            <div class="weak-card-area">${w.area}</div>
+            <div class="weak-card-issue">${w.issue}</div>
+            <span class="weak-card-impact ${w.impact||'high'}">${w.impact==='medium'?'⚠️ Moderate Impact':'🚨 High Impact'}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ══ 3. PERFORMANCE BY UNIT (bar chart) ═══════════════════════════════════
+  if (units.length) {
+    html += `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
+        <div class="card-title">📊 Performance by Unit — ${cfg.subject||''}</div>
+        <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
+          <span style="color:#ef4444">■ Weak &lt;70%</span>
+          <span style="color:#f59e0b">■ Moderate 70–84%</span>
+          <span style="color:#10b981">■ Strong 85%+</span>
+        </div>
+      </div>
+      <div class="card-body" style="padding-bottom:1rem">
+        <div style="position:relative;height:${Math.max(220, units.length*46)}px">
+          <canvas id="pvBarChart"></canvas>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ══ 4. PERSONALIZED ROADMAP (phases) ═════════════════════════════════════
+  if (phases.length) html += `<div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header">
+      <div class="card-title">🗺️ Personalized Program Roadmap</div>
+      <div style="font-size:.7rem;color:var(--muted);font-weight:600">${cfg.programWeeks||'—'}-Week Plan · ${cfg.subject||''}</div>
+    </div>
+    <div class="card-body" style="padding-top:.75rem;padding-bottom:.5rem">
+      <div class="roadmap-v">
+        ${phases.map(ph=>{
+          const statusIcon = ph.status==='complete'?'✅':ph.status==='active'?'🔄':'⏳';
+          const topics = ph.topics || [];
+          const detail = ph.details || ph.description || '';
+          const topicColors = ['','red','green','gold'];
+          return `
+          <div class="roadmap-v-item">
+            <div class="roadmap-v-dot ${ph.status||'upcoming'}"></div>
+            <div class="roadmap-v-card ${ph.status||'upcoming'}">
+              <div class="roadmap-v-num">Phase ${ph.num} · ${ph.weeks||''} ${statusIcon}</div>
+              <div class="roadmap-v-name">${ph.name}</div>
+              ${topics.length ? `<div class="topic-pills">${topics.map((t,i)=>`<span class="topic-pill ${topicColors[i%4]}">${t}</span>`).join('')}</div>` : ''}
+              ${detail ? `<div class="roadmap-v-detail">${detail}</div>` : ''}
+              ${ph.description && ph.details ? `<div class="roadmap-v-desc">${ph.description}</div>` : ''}
+              <span class="roadmap-v-milestone ${ph.status||'upcoming'}">${statusIcon} ${ph.milestone||''}</span>
+            </div>
+          </div>`;
+        }).join('')}
       </div>
     </div>
   </div>`;
 
-  // ══ HEAVEN CARD (Where We're Going) ══════════════════════════════════════
+  // ══ 5. HEAVEN CARD (Where We're Going) ═══════════════════════════════════
   if (!s._tutorView) html += `<div class="heaven-card">
     <div style="position:relative;z-index:1">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
@@ -2515,63 +2608,21 @@ async function buildGameplanPage(student, targetEl) {
     </div>
   </div>`;
 
-  // ══ ROADMAP PHASES ═══════════════════════════════════════════════════════
-  if (phases.length) html += `<div class="card" style="margin-bottom:1.5rem">
-    <div class="card-header">
-      <div class="card-title">🗺️ Personalized Program Roadmap</div>
-      <div style="font-size:.7rem;color:var(--muted);font-weight:600">${cfg.programWeeks||'—'}-Week Plan · ${cfg.subject||''}</div>
-    </div>
-    <div class="card-body" style="padding-top:.75rem;padding-bottom:.5rem">
-      <div class="roadmap-v">
-        ${phases.map(ph=>{
-          const statusIcon = ph.status==='complete'?'✅':ph.status==='active'?'🔄':'⏳';
-          const topics = ph.topics || [];
-          const detail = ph.details || ph.description || '';
-          const topicColors = ['','red','green','gold'];
-          return `
-          <div class="roadmap-v-item">
-            <div class="roadmap-v-dot ${ph.status||'upcoming'}"></div>
-            <div class="roadmap-v-card ${ph.status||'upcoming'}">
-              <div class="roadmap-v-num">Phase ${ph.num} · ${ph.weeks||''} ${statusIcon}</div>
-              <div class="roadmap-v-name">${ph.name}</div>
-              ${topics.length ? `<div class="topic-pills">${topics.map((t,i)=>`<span class="topic-pill ${topicColors[i%4]}">${t}</span>`).join('')}</div>` : ''}
-              ${detail ? `<div class="roadmap-v-detail">${detail}</div>` : ''}
-              ${ph.description && ph.details ? `<div class="roadmap-v-desc">${ph.description}</div>` : ''}
-              <span class="roadmap-v-milestone ${ph.status||'upcoming'}">${statusIcon} ${ph.milestone||''}</span>
-            </div>
-          </div>`;
-        }).join('')}
+  // ══ 6. GRADE TRAJECTORY ══════════════════════════════════════════════════
+  if (!s._tutorView && weekly.length) html += `<div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
+      <div class="card-title">📈 Grade Trajectory</div>
+      <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
+        <span style="color:#0c1b38">— Actual Progress</span>
+        <span style="color:#d4af55">- - Target: ${cfg.targetGrade||''}</span>
       </div>
+    </div>
+    <div class="card-body">
+      <div style="position:relative;height:230px"><canvas id="pvLineChart"></canvas></div>
     </div>
   </div>`;
 
-  // ══ WEAKNESS ANALYSIS ════════════════════════════════════════════════════
-  const displayWeaknesses = weaknesses.length ? weaknesses : weakUnits.map(u=>({area:u.name,score:u.score,issue:'Score below mastery threshold — needs focused review and targeted practice.',impact:'high'}));
-  if (displayWeaknesses.length) {
-    html += `<div class="card" style="margin-bottom:1.5rem">
-      <div class="card-header">
-        <div class="card-title">🔍 Weakness Analysis</div>
-        <div style="font-size:.7rem;color:var(--muted);font-weight:600">${displayWeaknesses.length} area${displayWeaknesses.length>1?'s':''} flagged for focused work</div>
-      </div>
-      <div class="card-body" style="padding-top:.5rem">
-        <div style="font-size:.78rem;color:#374151;margin-bottom:.85rem;line-height:1.55">
-          These are the specific gaps holding ${firstName} back. Each one has been identified through grade reports,
-          practice performance, and detailed diagnostic assessment — not guesswork.
-        </div>
-        <div class="weak-grid">
-          ${displayWeaknesses.map(w=>`
-          <div class="weak-card${w.impact==='medium'?' medium':''}">
-            <div class="weak-card-score">${w.score!=null?w.score+'%':''}</div>
-            <div class="weak-card-area">${w.area}</div>
-            <div class="weak-card-issue">${w.issue}</div>
-            <span class="weak-card-impact ${w.impact||'high'}">${w.impact==='medium'?'⚠️ Moderate Impact':'🚨 High Impact'}</span>
-          </div>`).join('')}
-        </div>
-      </div>
-    </div>`;
-  }
-
-  // ══ NORTHSTAR 5-STEP SYSTEM ══════════════════════════════════════════════
+  // ══ 7. NORTHSTAR 5-STEP SYSTEM ═══════════════════════════════════════════
   html += `<div class="card" style="margin-bottom:1.5rem">
     <div class="card-header" style="flex-direction:column;align-items:flex-start;gap:.25rem">
       <div class="card-title">⭐ The Northstar 5-Step System</div>
@@ -2614,6 +2665,12 @@ async function buildGameplanPage(student, targetEl) {
   </div>`;
 
   el.innerHTML = html;
+
+  // Render Chart.js bar (Performance by Unit) + line (Grade Trajectory) after
+  // DOM update. Same renderer used to live in buildProgressPage.
+  if (units.length || weekly.length) {
+    setTimeout(() => _renderProgressCharts(cfg), 80);
+  }
 }
 
 
