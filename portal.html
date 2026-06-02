@@ -1995,8 +1995,6 @@ async function buildProgressPage(student, targetEl) {
   const vaultScores  = vaultGrouped.map(g => g.score_percent).filter(v => typeof v === 'number');
   const allScores    = [...legacyScores, ...vaultScores];
   const pvAvg  = allScores.length ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : null;
-  // Total Completed counts each session and each logical vault attempt as 1.
-  const totalPractice = attempts.length + vaultGrouped.length;
   const scoreColor  = pct => pct>=85?'#10b981':pct>=70?'#f59e0b':'#ef4444';
   const scoreLetter = pct => pct>=90?'A':pct>=80?'B':pct>=70?'C':pct>=60?'D':'F';
   const tutorFirst  = s.tutors?.name?.split(' ')[0] || 'your tutor';
@@ -2004,8 +2002,10 @@ async function buildProgressPage(student, targetEl) {
 
   let html = '';
 
-  // ── Overview Stats ──────────────────────────────────────────────────────────
-  html += `<div class="prog-overview-grid" style="margin-bottom:1.5rem${s._tutorView ? ';grid-template-columns:repeat(2,1fr)' : ''}">
+  // ── Overview Stats (Grade avg + Practice avg only — the "where she IS
+  //    now" headline numbers). Total Completed and the unit bars / weakness
+  //    cards / pitch framing belong on the Game Plan tab. ──────────────────
+  html += `<div class="prog-overview-grid" style="margin-bottom:1.5rem;grid-template-columns:repeat(2,1fr)">
     <div class="prog-overview-card">
       <div class="prog-overview-val${hwAvg!=null?(hwAvg>=80?' green':hwAvg>=65?' gold':' red'):''}">${hwAvg!=null?hwAvg+'%':'—'}</div>
       <div class="prog-overview-label">Homework Avg</div>
@@ -2013,68 +2013,14 @@ async function buildProgressPage(student, targetEl) {
     <div class="prog-overview-card">
       <div class="prog-overview-val${pvAvg!=null?(pvAvg>=80?' green':pvAvg>=65?' gold':' red'):''}">${pvAvg!=null?pvAvg+'%':'—'}</div>
       <div class="prog-overview-label">Practice Avg</div>
-    </div>${s._tutorView ? '' : `
-    <div class="prog-overview-card">
-      <div class="prog-overview-val">${graded.length+totalPractice}</div>
-      <div class="prog-overview-label">Total Completed</div>
-    </div>`}
+    </div>
   </div>`;
 
   if (cfg) {
-    const units        = cfg.units || [];
-    const weekly       = cfg.weeklyProgress || [];
-    const weaknesses   = cfg.weaknesses || [];
-    const weakUnits    = units.filter(u=>u.score<70).sort((a,b)=>a.score-b.score);
-
-    // ══ CLIMB GRAPH (replaces Hell/Heaven + Trajectory chart) ════════════════
+    // ══ CLIMB GRAPH — the "you are here" version of the start→target arc.
+    //    The static hell→bridge→heaven framing lives on Game Plan.
+    const weekly = cfg.weeklyProgress || [];
     html += _renderClimbCard(s, cfg, weekly);
-
-    // ══ UNIT PERFORMANCE BAR CHART ═══════════════════════════════════════════
-    html += `<div class="card" style="margin-bottom:1.5rem">
-      <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
-        <div class="card-title">📊 Performance by Unit — ${cfg.subject||''}</div>
-        <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
-          <span style="color:#ef4444">■ Weak &lt;70%</span>
-          <span style="color:#f59e0b">■ Moderate 70–84%</span>
-          <span style="color:#10b981">■ Strong 85%+</span>
-        </div>
-      </div>
-      <div class="card-body" style="padding-bottom:1rem">
-        <div style="position:relative;height:${Math.max(220,units.length*46)}px">
-          <canvas id="pvBarChart"></canvas>
-        </div>
-      </div>
-    </div>`;
-
-    // ══ WEAKNESS ANALYSIS ════════════════════════════════════════════════════
-    const displayWeaknesses = weaknesses.length ? weaknesses : weakUnits.map(u=>({area:u.name,score:u.score,issue:'Score below mastery threshold — needs focused review and targeted practice.',impact:'high'}));
-    if (displayWeaknesses.length) {
-      html += `<div class="card" style="margin-bottom:1.5rem">
-        <div class="card-header">
-          <div class="card-title">🔍 Weakness Analysis</div>
-          <div style="font-size:.7rem;color:var(--muted);font-weight:600">${displayWeaknesses.length} area${displayWeaknesses.length>1?'s':''} flagged for focused work</div>
-        </div>
-        <div class="card-body" style="padding-top:.5rem">
-          <div style="font-size:.78rem;color:#374151;margin-bottom:.85rem;line-height:1.55">
-            These are the specific gaps holding ${s.name?.split(' ')[0]||'the student'} back. Each one has been identified through grade reports,
-            practice performance, and detailed diagnostic assessment — not guesswork.
-          </div>
-          <div class="weak-grid">
-            ${displayWeaknesses.map(w=>`
-            <div class="weak-card${w.impact==='medium'?' medium':''}">
-              <div class="weak-card-score">${w.score!=null?w.score+'%':''}</div>
-              <div class="weak-card-area">${w.area}</div>
-              <div class="weak-card-issue">${w.issue}</div>
-              <span class="weak-card-impact ${w.impact||'high'}">${w.impact==='medium'?'⚠️ Moderate Impact':'🚨 High Impact'}</span>
-            </div>`).join('')}
-          </div>
-        </div>
-      </div>`;
-    }
-
-    // Bridge separator, Roadmap, Heaven card, and Grade-Trajectory line
-    // chart all moved to the Game Plan tab — the climb above absorbs the
-    // start/now/target framing those four panels were sharing.
   }
 
   // ── Session Feed (right after Weakness so movement reads like a story:
@@ -2123,6 +2069,28 @@ async function buildProgressPage(student, targetEl) {
       <div class="weekly-sum-eyebrow">📬 This Week's Update</div>
       <div class="weekly-sum-range">${wkRange}</div>
       <div class="weekly-sum-text">${escapeHtmlPortal(latestWeekly.summary || '').replace(/\n+/g,'<br><br>')}</div>
+    </div>`;
+  }
+
+  // ── Performance by Unit (bar chart) — current diagnostic view of where the
+  //    student stands per unit. The static "where started → where going"
+  //    framing and the Weakness Analysis cards live on the Game Plan tab.
+  if (cfg && (cfg.units||[]).length) {
+    const units = cfg.units;
+    html += `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
+        <div class="card-title">📊 Performance by Unit — ${cfg.subject||''}</div>
+        <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
+          <span style="color:#ef4444">■ Weak &lt;70%</span>
+          <span style="color:#f59e0b">■ Moderate 70–84%</span>
+          <span style="color:#10b981">■ Strong 85%+</span>
+        </div>
+      </div>
+      <div class="card-body" style="padding-bottom:1rem">
+        <div style="position:relative;height:${Math.max(220,units.length*46)}px">
+          <canvas id="pvBarChart"></canvas>
+        </div>
+      </div>
     </div>`;
   }
 
@@ -2446,46 +2414,130 @@ async function buildGameplanPage(student, targetEl) {
   const el = targetEl || document.getElementById('sec-gameplan');
   if (!s || !el) return;
   const cfg = s.progress_config;
-  const firstName = s.name?.split(' ')[0] || 'this student';
-  const phases = cfg?.phases || [];
+
+  // Without a configured plan the whole tab is empty — short-circuit so we
+  // don't run derivations that all read off cfg.
+  if (!cfg) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🗺️</div><p>Your game plan will appear once your tutor finalizes your program.</p></div>`;
+    return;
+  }
+
+  // Derivations the Hell / Heaven / Roadmap / Weakness blocks need. These
+  // used to live in buildProgressPage before the split — same expressions,
+  // moved here so the static plan view is self-contained.
+  const firstName    = s.name?.split(' ')[0] || 'this student';
+  const units        = cfg.units || [];
+  const phases       = cfg.phases || [];
+  const weekly       = cfg.weeklyProgress || [];
+  const weaknesses   = cfg.weaknesses || [];
+  const weakUnits    = units.filter(u => u.score < 70).sort((a,b) => a.score - b.score);
+  const threshold    = cfg.masteryThreshold || 90;
+  const masteredCount= units.filter(u => u.score >= threshold).length;
+  const out          = cfg.outcomes || {};
+  const lastGrade    = weekly.length ? weekly[weekly.length-1].grade : cfg.startingGrade;
+  const startLabel   = cfg.startingGradeLabel || (cfg.startingGrade ? cfg.startingGrade+'%' : '—');
+  const isAPSubject  = /^AP\b/i.test(cfg.subject || '');
+  const hellConsequences = isAPSubject
+    ? `failing the AP exam, losing GPA points that impact college applications, and falling further behind each week`
+    : `a permanent GPA hit on the 9th-grade transcript college admissions officers see four years later, foundation cracks that compound into Pre-Calc and Calc, and a midterm collapse around Chapter 2 that's nearly impossible to recover from`;
+  const gainPts = cfg.targetGradeNum && cfg.startingGrade ? (cfg.targetGradeNum - cfg.startingGrade) : null;
 
   let html = '';
 
-  // ── Bridge headline ─────────────────────────────────────────────────────────
-  if (cfg && !s._tutorView) html += `<div class="bridge-sep">
+  // ══ HELL CARD (Where We Started) ═════════════════════════════════════════
+  if (!s._tutorView) html += `<div class="hell-card">
+    <div style="position:relative;z-index:1">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div>
+          <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(255,100,100,.85);margin-bottom:.4rem">⚠️ Where We Started</div>
+          <div style="font-size:2.4rem;font-weight:900;line-height:1;color:#ff6b6b;margin-bottom:.3rem">${startLabel}</div>
+          <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:.85rem">${cfg.subject||'Your Subject'} — Before Northstar</div>
+          <div style="font-size:.8rem;color:rgba(255,255,255,.65);line-height:1.6;max-width:480px">
+            Without targeted intervention, a grade in this range means ${hellConsequences}.
+            Struggling students who don't get the <em>right</em> help often repeat the same mistakes without knowing why — making it nearly impossible to catch up on their own.
+          </div>
+        </div>
+        <div style="text-align:center;flex-shrink:0;opacity:.35;font-size:4rem;line-height:1">📉</div>
+      </div>
+      ${weakUnits.length ? `<div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:.35rem">
+        ${weakUnits.slice(0,5).map(u=>`<span style="font-size:.63rem;font-weight:700;padding:.18rem .55rem;border-radius:99px;background:rgba(239,68,68,.25);color:#fca5a5;border:1px solid rgba(239,68,68,.3)">${u.name}: ${u.score}%</span>`).join('')}
+      </div>` : ''}
+    </div>
+  </div>`;
+
+  // ══ BRIDGE SEPARATOR ═════════════════════════════════════════════════════
+  if (!s._tutorView) html += `<div class="bridge-sep">
     <div style="font-size:2.2rem;flex-shrink:0;position:relative;z-index:1">🌉</div>
     <div style="position:relative;z-index:1;flex:1">
       <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(201,160,58,.9);margin-bottom:.2rem">The Northstar Bridge</div>
-      <div style="font-size:.95rem;font-weight:800;color:#fff;margin-bottom:.3rem">A personalized roadmap built exclusively for ${escapeHtmlPortal(firstName)}</div>
+      <div style="font-size:.95rem;font-weight:800;color:#fff;margin-bottom:.3rem">A personalized roadmap built exclusively for ${firstName}</div>
       <div style="font-size:.75rem;color:rgba(255,255,255,.65);line-height:1.55">
-        No generic tutoring. No one-size-fits-all curriculum. Every session, every phase, and every practice problem below was designed specifically around <b style="color:rgba(255,255,255,.85)">${escapeHtmlPortal(firstName)}'s</b> exact weaknesses, exam format, and timeline.
+        No generic tutoring. No one-size-fits-all curriculum. Every session, every phase, and every practice problem below was designed specifically around <b style="color:rgba(255,255,255,.85)">${firstName}'s</b> exact weaknesses, exam format, and timeline.
         This is what separates Northstar from every other option.
       </div>
     </div>
   </div>`;
 
-  // ── Roadmap phases ──────────────────────────────────────────────────────────
-  if (cfg && phases.length) html += `<div class="card" style="margin-bottom:1.5rem">
+  // ══ HEAVEN CARD (Where We're Going) ══════════════════════════════════════
+  if (!s._tutorView) html += `<div class="heaven-card">
+    <div style="position:relative;z-index:1">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div>
+          <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(52,211,153,.85);margin-bottom:.4rem">🌟 Where We're Going</div>
+          <div style="font-size:2.4rem;font-weight:900;line-height:1;color:#34d399;margin-bottom:.3rem">${cfg.targetGrade||'—'}</div>
+          <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:.85rem">${out.targetDate?'Target by '+out.targetDate:'Program Goal'}</div>
+          <div style="font-size:.8rem;color:rgba(255,255,255,.65);line-height:1.6;max-width:480px">
+            With Northstar's structured program, ${firstName} is on track to ${cfg.targetGrade||'achieve the target goal'}.
+            ${gainPts && gainPts>0 ? `That's a <b style="color:#34d399">+${gainPts} point improvement</b> built on consistent, personalized sessions — not cramming. ` : ''}
+            Every phase of this roadmap has been designed to get here efficiently and permanently.
+          </div>
+        </div>
+        <div style="text-align:center;flex-shrink:0;opacity:.35;font-size:4rem;line-height:1">🏆</div>
+      </div>
+      <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:.6rem">
+        <div style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
+          <div style="font-size:.85rem;font-weight:800;color:#34d399">${out.sessionsCompleted||0} / ${out.sessionsTotal||'—'}</div>
+          <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Sessions</div>
+        </div>
+        <div style="background:rgba(201,160,58,.15);border:1px solid rgba(201,160,58,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
+          <div style="font-size:.85rem;font-weight:800;color:#c9a03a">${masteredCount} / ${units.length}</div>
+          <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Units Mastered</div>
+        </div>
+        <div style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
+          <div style="font-size:.85rem;font-weight:800;color:#a78bfa">${out.practiceProblems||'—'}</div>
+          <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Practice Problems</div>
+        </div>
+        ${lastGrade && cfg.startingGrade ? `<div style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
+          <div style="font-size:.85rem;font-weight:800;color:#34d399">${cfg.startingGrade}% → ${lastGrade}%</div>
+          <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Grade Progress</div>
+        </div>` : ''}
+      </div>
+    </div>
+  </div>`;
+
+  // ══ ROADMAP PHASES ═══════════════════════════════════════════════════════
+  if (phases.length) html += `<div class="card" style="margin-bottom:1.5rem">
     <div class="card-header">
       <div class="card-title">🗺️ Personalized Program Roadmap</div>
-      <div style="font-size:.7rem;color:var(--muted);font-weight:600">${cfg.programWeeks||'—'}-Week Plan · ${escapeHtmlPortal(cfg.subject||'')}</div>
+      <div style="font-size:.7rem;color:var(--muted);font-weight:600">${cfg.programWeeks||'—'}-Week Plan · ${cfg.subject||''}</div>
     </div>
     <div class="card-body" style="padding-top:.75rem;padding-bottom:.5rem">
       <div class="roadmap-v">
-        ${phases.map(ph => {
+        ${phases.map(ph=>{
           const statusIcon = ph.status==='complete'?'✅':ph.status==='active'?'🔄':'⏳';
           const topics = ph.topics || [];
           const detail = ph.details || ph.description || '';
           const topicColors = ['','red','green','gold'];
-          return `<div class="roadmap-v-item">
+          return `
+          <div class="roadmap-v-item">
             <div class="roadmap-v-dot ${ph.status||'upcoming'}"></div>
             <div class="roadmap-v-card ${ph.status||'upcoming'}">
-              <div class="roadmap-v-num">Phase ${ph.num} · ${escapeHtmlPortal(ph.weeks||'')} ${statusIcon}</div>
-              <div class="roadmap-v-name">${escapeHtmlPortal(ph.name||'')}</div>
-              ${topics.length ? `<div class="topic-pills">${topics.map((t,i)=>`<span class="topic-pill ${topicColors[i%4]}">${escapeHtmlPortal(t)}</span>`).join('')}</div>` : ''}
-              ${detail ? `<div class="roadmap-v-detail">${escapeHtmlPortal(detail)}</div>` : ''}
-              ${ph.description && ph.details ? `<div class="roadmap-v-desc">${escapeHtmlPortal(ph.description)}</div>` : ''}
-              <span class="roadmap-v-milestone ${ph.status||'upcoming'}">${statusIcon} ${escapeHtmlPortal(ph.milestone||'')}</span>
+              <div class="roadmap-v-num">Phase ${ph.num} · ${ph.weeks||''} ${statusIcon}</div>
+              <div class="roadmap-v-name">${ph.name}</div>
+              ${topics.length ? `<div class="topic-pills">${topics.map((t,i)=>`<span class="topic-pill ${topicColors[i%4]}">${t}</span>`).join('')}</div>` : ''}
+              ${detail ? `<div class="roadmap-v-detail">${detail}</div>` : ''}
+              ${ph.description && ph.details ? `<div class="roadmap-v-desc">${ph.description}</div>` : ''}
+              <span class="roadmap-v-milestone ${ph.status||'upcoming'}">${statusIcon} ${ph.milestone||''}</span>
             </div>
           </div>`;
         }).join('')}
@@ -2493,11 +2545,37 @@ async function buildGameplanPage(student, targetEl) {
     </div>
   </div>`;
 
-  // ── Northstar 5-Step System (static method explainer) ──────────────────────
+  // ══ WEAKNESS ANALYSIS ════════════════════════════════════════════════════
+  const displayWeaknesses = weaknesses.length ? weaknesses : weakUnits.map(u=>({area:u.name,score:u.score,issue:'Score below mastery threshold — needs focused review and targeted practice.',impact:'high'}));
+  if (displayWeaknesses.length) {
+    html += `<div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header">
+        <div class="card-title">🔍 Weakness Analysis</div>
+        <div style="font-size:.7rem;color:var(--muted);font-weight:600">${displayWeaknesses.length} area${displayWeaknesses.length>1?'s':''} flagged for focused work</div>
+      </div>
+      <div class="card-body" style="padding-top:.5rem">
+        <div style="font-size:.78rem;color:#374151;margin-bottom:.85rem;line-height:1.55">
+          These are the specific gaps holding ${firstName} back. Each one has been identified through grade reports,
+          practice performance, and detailed diagnostic assessment — not guesswork.
+        </div>
+        <div class="weak-grid">
+          ${displayWeaknesses.map(w=>`
+          <div class="weak-card${w.impact==='medium'?' medium':''}">
+            <div class="weak-card-score">${w.score!=null?w.score+'%':''}</div>
+            <div class="weak-card-area">${w.area}</div>
+            <div class="weak-card-issue">${w.issue}</div>
+            <span class="weak-card-impact ${w.impact||'high'}">${w.impact==='medium'?'⚠️ Moderate Impact':'🚨 High Impact'}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ══ NORTHSTAR 5-STEP SYSTEM ══════════════════════════════════════════════
   html += `<div class="card" style="margin-bottom:1.5rem">
     <div class="card-header" style="flex-direction:column;align-items:flex-start;gap:.25rem">
       <div class="card-title">⭐ The Northstar 5-Step System</div>
-      <div style="font-size:.78rem;color:var(--muted);font-weight:500;line-height:1.5">How every session moves ${escapeHtmlPortal(firstName)} closer to the goal — the same method that has carried our students from below-average to top scorers.</div>
+      <div style="font-size:.78rem;color:var(--muted);font-weight:500;line-height:1.5">How every session moves ${firstName} closer to the goal — the same method that has carried our students from below-average to top scorers.</div>
     </div>
     <div class="card-body">
       <div class="np-step-deck">
@@ -2523,7 +2601,7 @@ async function buildGameplanPage(student, targetEl) {
           <div class="np-step-num">Step 04</div>
           <div class="np-step-icon">⏱️</div>
           <div class="np-step-title">Test</div>
-          <div class="np-step-body">Timed mini-assessments graded against the real AP rubric — so we know exactly where ${escapeHtmlPortal(firstName)} stands, in points, not vibes.</div>
+          <div class="np-step-body">Timed mini-assessments graded against the real AP rubric — so we know exactly where ${firstName} stands, in points, not vibes.</div>
         </div>
         <div class="np-step-card">
           <div class="np-step-num">Step 05</div>
@@ -2534,10 +2612,6 @@ async function buildGameplanPage(student, targetEl) {
       </div>
     </div>
   </div>`;
-
-  // Empty-state fallback: if the student has no progress_config at all,
-  // show a friendly note so the tab isn't blank.
-  if (!cfg) html = `<div class="empty-state"><div class="empty-icon">🗺️</div><p>Your game plan will appear once your tutor finalizes your program.</p></div>`;
 
   el.innerHTML = html;
 }
