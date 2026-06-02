@@ -1627,9 +1627,16 @@ function showNewItemsNotification() {
   if (newAssignments)   items.push(`✏️ ${newAssignments} new assignment${newAssignments>1?'s':''}`);
   if (newAnnouncements) items.push(`📣 ${newAnnouncements} new announcement${newAnnouncements>1?'s':''}`);
 
-  // Insert notification banner at top of dashboard
+  // Insert notification banner at top of dashboard. Tutor name is pulled
+  // from the same join the Next Session card uses (loadFromSupabase →
+  // student.tutors via select '*, tutors(name)') and styled as a first
+  // name to match "With Harsha" elsewhere. Any prior banner is removed
+  // first so this function is idempotent — bootPortal can re-fire (e.g.
+  // DOMContentLoaded auto-restore racing a login) without stacking.
   const dash = document.getElementById('sec-dashboard');
   if (!dash) return;
+  dash.querySelector('#newItemsBanner')?.remove();
+  const tutorFirst = s.tutors?.name?.split(' ')[0] || 'your tutor';
   const banner = document.createElement('div');
   banner.id = 'newItemsBanner';
   banner.style.cssText = 'background:linear-gradient(135deg,#0f2044,#1a3a6e);border-radius:14px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;animation:fadeInUp .5s cubic-bezier(.22,1,.36,1) both';
@@ -1637,7 +1644,7 @@ function showNewItemsNotification() {
     <div style="display:flex;align-items:center;gap:.85rem">
       <div style="font-size:1.5rem">🔔</div>
       <div>
-        <div style="color:#c9a03a;font-weight:700;font-size:.9rem;margin-bottom:.2rem">New from ${(s.tutors?.name || s.tutor_name) ? (s.tutors?.name || s.tutor_name) : 'your tutor'}!</div>
+        <div style="color:#c9a03a;font-weight:700;font-size:.9rem;margin-bottom:.2rem">New from ${tutorFirst}!</div>
         <div style="color:rgba(255,255,255,.8);font-size:.82rem">${items.join(' · ')}</div>
       </div>
     </div>
