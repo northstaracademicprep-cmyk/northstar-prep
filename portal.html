@@ -437,6 +437,62 @@
     .roadmap-v-milestone.complete{background:#dcfce7;color:#065f46}
     .roadmap-v-milestone.active{background:#fef3c7;color:#92400e}
     .roadmap-v-milestone.upcoming{background:#f1f5f9;color:#6b7280}
+
+    /* ── CLIMB GRAPH (Progress tab hero) ── */
+    .climb-card{background:linear-gradient(180deg,#0c1b38 0%,#172a55 60%,#2a4380 100%);border-radius:14px;padding:1.25rem 1.5rem 1.5rem;color:#fff;position:relative;overflow:hidden;margin-bottom:1.5rem;box-shadow:0 8px 28px rgba(12,27,56,.25)}
+    .climb-card::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% 8%,rgba(212,175,85,.18) 0%,transparent 45%);pointer-events:none}
+    .climb-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;position:relative;z-index:1}
+    .climb-eyebrow{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.18em;color:var(--gold);margin-bottom:.3rem}
+    .climb-title{font-size:1.1rem;font-weight:800;color:#fff;line-height:1.3}
+    .climb-meta{display:flex;gap:.5rem;flex-wrap:wrap}
+    .climb-chip{font-size:.7rem;font-weight:700;padding:.3rem .65rem;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.85)}
+    .climb-chip.gold{background:rgba(201,160,58,.18);border-color:rgba(201,160,58,.4);color:var(--gold)}
+    .climb-svg-wrap{position:relative;margin-top:1rem;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:1rem 1.1rem .75rem;z-index:1}
+    .climb-svg{display:block;width:100%;height:auto;overflow:visible}
+    .climb-axis-label{font-size:.62rem;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.1em}
+    .climb-flag-label{font-size:.65rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.1em}
+    .climb-base-label{font-size:.62rem;font-weight:700;color:#fca5a5;text-transform:uppercase;letter-spacing:.1em}
+    .climb-here-dot{r:7;fill:var(--gold);stroke:#fff;stroke-width:2}
+    .climb-here-pulse{r:7;fill:none;stroke:var(--gold);stroke-width:2;opacity:.6;transform-origin:center;animation:climbPulse 2.1s cubic-bezier(.4,0,.6,1) infinite}
+    @keyframes climbPulse{0%{r:7;opacity:.7}100%{r:18;opacity:0}}
+    .climb-milestone{r:4;fill:#fff;stroke:rgba(201,160,58,.6);stroke-width:1.5}
+    .climb-path{fill:none;stroke:url(#climbGrad);stroke-width:3;stroke-linecap:round}
+    .climb-progress-line{fill:none;stroke:var(--gold);stroke-width:2;stroke-dasharray:4 4;opacity:.55}
+    .climb-foot{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.85rem;font-size:.72rem;position:relative;z-index:1}
+    .climb-foot-label{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;margin-bottom:.2rem}
+    .climb-foot-val{font-size:1.15rem;font-weight:900;line-height:1}
+
+    /* ── SESSION FEED (Progress tab) ── */
+    .sess-feed{display:flex;flex-direction:column;gap:.55rem}
+    .sess-feed-row{display:flex;align-items:center;gap:.85rem;padding:.7rem .9rem;background:#fff;border:1px solid #e5e7eb;border-radius:10px;transition:border-color .15s}
+    .sess-feed-row:hover{border-color:var(--gold)}
+    .sess-feed-date{flex-shrink:0;background:var(--navy);color:#fff;border-radius:8px;padding:.4rem .55rem;text-align:center;min-width:54px}
+    .sess-feed-date-day{font-size:1.05rem;font-weight:800;line-height:1}
+    .sess-feed-date-mon{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-top:.1rem}
+    .sess-feed-body{flex:1;min-width:0}
+    .sess-feed-topic{font-size:.85rem;font-weight:700;color:var(--navy);line-height:1.35;margin-bottom:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sess-feed-sub{font-size:.7rem;color:#64748b;font-weight:500}
+    .sess-feed-chip{flex-shrink:0;font-size:.72rem;font-weight:800;padding:.3rem .65rem;border-radius:99px;white-space:nowrap}
+    .sess-feed-chip.up{background:rgba(16,185,129,.12);color:#047857;border:1px solid rgba(16,185,129,.3)}
+    .sess-feed-chip.down{background:rgba(239,68,68,.1);color:#b91c1c;border:1px solid rgba(239,68,68,.3)}
+    .sess-feed-chip.flat{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0}
+
+    /* ── WEEKLY SUMMARY CARD (Progress tab) ── */
+    .weekly-sum{background:linear-gradient(135deg,#fefce8 0%,#fff 100%);border:1px solid #fde68a;border-radius:14px;padding:1.2rem 1.4rem;margin-bottom:1.5rem;position:relative;overflow:hidden}
+    .weekly-sum::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:linear-gradient(180deg,var(--gold),#92400e)}
+    .weekly-sum-eyebrow{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:#92400e;margin-bottom:.25rem}
+    .weekly-sum-range{font-size:.7rem;color:#78716c;font-weight:600;margin-bottom:.65rem}
+    .weekly-sum-text{font-size:.88rem;line-height:1.65;color:#3f3722}
+
+    /* ── NORTHSTAR 5-STEP SYSTEM (Gameplan tab) ── */
+    .np-step-deck{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:1rem}
+    .np-step-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.2rem;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s;border-left:3px solid var(--gold)}
+    .np-step-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,32,68,.12)}
+    .np-step-num{font-family:var(--font-arch);font-size:.7rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem}
+    .np-step-icon{font-size:1.8rem;line-height:1;margin-bottom:.5rem}
+    .np-step-title{font-size:.92rem;font-weight:800;color:var(--navy);letter-spacing:.04em;margin-bottom:.45rem;text-transform:uppercase}
+    .np-step-body{font-size:.78rem;color:#475569;line-height:1.6}
+
     /* ── WEAKNESS CARDS ── */
     .weak-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.85rem;margin-top:.75rem}
     .weak-card{border-radius:12px;padding:1rem 1.1rem;border:1px solid #fecaca;background:#fef2f2;position:relative;overflow:hidden}
@@ -793,6 +849,9 @@
           <div id="subjectPanels"></div>
         </div>
       </section>
+
+      <!-- GAME PLAN — roadmap + Northstar method -->
+      <section class="page-section" id="sec-gameplan"></section>
 
       <!-- COLLEGE LIST — counseling students -->
       <section class="page-section" id="sec-colleges">
@@ -1591,6 +1650,7 @@ const NAV_AP = [
   {section:'main',items:[
     {id:'dashboard',icon:'🏠',label:'Dashboard'},
     {id:'progress',icon:'📈',label:'My Progress'},
+    {id:'gameplan',icon:'🗺️',label:'Game Plan'},
   ]},
   {section:'schedule',items:[
     {id:'sessions',icon:'📅',label:'Sessions',badge:'upcomingBadge'},
@@ -1664,9 +1724,10 @@ function showSection(id, navEl) {
     if (id === 'messages') sec.style.display = 'flex';
   }
   if (navEl) navEl.classList.add('active');
-  const titles = {dashboard:'Dashboard',progress:'My Progress',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault',messages:'Messages'};
+  const titles = {dashboard:'Dashboard',progress:'My Progress',gameplan:'Game Plan',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault',messages:'Messages'};
   document.getElementById('topbarTitle').textContent = titles[id]||id;
   if (id==='progress') { buildProgressPage(); setTimeout(animateAllBars,200); }
+  if (id==='gameplan') { buildGameplanPage(); }
   if (id==='practice') buildPracticeVault();
   if (id==='messages') buildStudentMessages();
   closeSidebar();
@@ -1885,17 +1946,33 @@ async function buildProgressPage(student, targetEl) {
   // shim) the tutor Progress tab.
   let attempts = [];
   let vaultGrouped = [];
+  let recentSessions = [];
+  let latestWeekly = null;
   if (s.studentId) {
-    const [legacyRes, vaultRes] = await Promise.all([
+    const [legacyRes, vaultRes, sessRes, wrRes] = await Promise.all([
       db.from('practice_attempts').select('*').eq('student_id', s.studentId).order('attempted_at', {ascending: false}),
       db.from('student_attempts')
         .select('id, is_correct, score_percent, attempted_at, question_id, question_bank!inner(parent_question_number, question_type, unit)')
         .eq('student_id', s.studentId)
         .order('attempted_at', { ascending: false })
         .limit(1000),
+      db.from('sessions')
+        .select('id, session_date, topic, duration_hours, approved')
+        .eq('student_id', s.studentId)
+        .eq('approved', true)
+        .order('session_date', { ascending: false })
+        .limit(20),
+      db.from('weekly_reports')
+        .select('week_start, week_end, summary, status')
+        .eq('student_id', s.studentId)
+        .eq('status', 'approved')
+        .order('week_start', { ascending: false })
+        .limit(1),
     ]);
     attempts = legacyRes.data || [];
     vaultGrouped = _dedupeStudentAttemptsByParent(vaultRes.data || []);
+    recentSessions = sessRes.data || [];
+    latestWeekly = (wrRes.data || [])[0] || null;
   }
 
   const graded    = (s.assignments||[]).filter(a => a.status==='graded' && a.score!=null);
@@ -1937,41 +2014,13 @@ async function buildProgressPage(student, targetEl) {
   </div>`;
 
   if (cfg) {
-    const threshold    = cfg.masteryThreshold || 90;
     const units        = cfg.units || [];
-    const masteredCount= units.filter(u=>u.score>=threshold).length;
-    const phases       = cfg.phases || [];
     const weekly       = cfg.weeklyProgress || [];
-    const out          = cfg.outcomes || {};
-    const lastGrade    = weekly.length ? weekly[weekly.length-1].grade : cfg.startingGrade;
     const weaknesses   = cfg.weaknesses || [];
     const weakUnits    = units.filter(u=>u.score<70).sort((a,b)=>a.score-b.score);
 
-    // ══ HELL CARD ════════════════════════════════════════════════════════════
-    const startLabel = cfg.startingGradeLabel || (cfg.startingGrade ? cfg.startingGrade+'%' : '—');
-    const isAPSubject = /^AP\b/i.test(cfg.subject || '');
-    const hellConsequences = isAPSubject
-      ? `failing the AP exam, losing GPA points that impact college applications, and falling further behind each week`
-      : `a permanent GPA hit on the 9th-grade transcript college admissions officers see four years later, foundation cracks that compound into Pre-Calc and Calc, and a midterm collapse around Chapter 2 that's nearly impossible to recover from`;
-    if (!s._tutorView) html += `<div class="hell-card">
-      <div style="position:relative;z-index:1">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-          <div>
-            <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(255,100,100,.85);margin-bottom:.4rem">⚠️ Where We Started</div>
-            <div style="font-size:2.4rem;font-weight:900;line-height:1;color:#ff6b6b;margin-bottom:.3rem">${startLabel}</div>
-            <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:.85rem">${cfg.subject||'Your Subject'} — Before Northstar</div>
-            <div style="font-size:.8rem;color:rgba(255,255,255,.65);line-height:1.6;max-width:480px">
-              Without targeted intervention, a grade in this range means ${hellConsequences}.
-              Struggling students who don't get the <em>right</em> help often repeat the same mistakes without knowing why — making it nearly impossible to catch up on their own.
-            </div>
-          </div>
-          <div style="text-align:center;flex-shrink:0;opacity:.35;font-size:4rem;line-height:1">📉</div>
-        </div>
-        ${weakUnits.length ? `<div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:.35rem">
-          ${weakUnits.slice(0,5).map(u=>`<span style="font-size:.63rem;font-weight:700;padding:.18rem .55rem;border-radius:99px;background:rgba(239,68,68,.25);color:#fca5a5;border:1px solid rgba(239,68,68,.3)">${u.name}: ${u.score}%</span>`).join('')}
-        </div>` : ''}
-      </div>
-    </div>`;
+    // ══ CLIMB GRAPH (replaces Hell/Heaven + Trajectory chart) ════════════════
+    html += _renderClimbCard(s, cfg, weekly);
 
     // ══ UNIT PERFORMANCE BAR CHART ═══════════════════════════════════════════
     html += `<div class="card" style="margin-bottom:1.5rem">
@@ -2016,99 +2065,57 @@ async function buildProgressPage(student, targetEl) {
       </div>`;
     }
 
-    // ══ BRIDGE SEPARATOR ═════════════════════════════════════════════════════
-    if (!s._tutorView) html += `<div class="bridge-sep">
-      <div style="font-size:2.2rem;flex-shrink:0;position:relative;z-index:1">🌉</div>
-      <div style="position:relative;z-index:1;flex:1">
-        <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(201,160,58,.9);margin-bottom:.2rem">The Northstar Bridge</div>
-        <div style="font-size:.95rem;font-weight:800;color:#fff;margin-bottom:.3rem">A personalized roadmap built exclusively for ${s.name?.split(' ')[0]||'this student'}</div>
-        <div style="font-size:.75rem;color:rgba(255,255,255,.65);line-height:1.55">
-          No generic tutoring. No one-size-fits-all curriculum. Every session, every phase, and every practice problem below was designed specifically around <b style="color:rgba(255,255,255,.85)">${s.name?.split(' ')[0]||'this student'}'s</b> exact weaknesses, exam format, and timeline.
-          This is what separates Northstar from every other option.
-        </div>
-      </div>
-    </div>`;
+    // Bridge separator, Roadmap, Heaven card, and Grade-Trajectory line
+    // chart all moved to the Game Plan tab — the climb above absorbs the
+    // start/now/target framing those four panels were sharing.
+  }
 
-    // ══ VERTICAL ROADMAP ═════════════════════════════════════════════════════
+  // ── Session Feed (right after Weakness so movement reads like a story:
+  //    "here's what's weak → here's what we did about it this week") ─────────
+  if (recentSessions.length && !s._tutorView) {
     html += `<div class="card" style="margin-bottom:1.5rem">
       <div class="card-header">
-        <div class="card-title">🗺️ Personalized Program Roadmap</div>
-        <div style="font-size:.7rem;color:var(--muted);font-weight:600">${cfg.programWeeks||'—'}-Week Plan · ${cfg.subject||''}</div>
+        <div class="card-title">📅 Recent Sessions &amp; Skill Movement</div>
+        <div style="font-size:.7rem;color:var(--muted);font-weight:600">Last ${Math.min(12, recentSessions.length)} session${recentSessions.length===1?'':'s'}</div>
       </div>
-      <div class="card-body" style="padding-top:.75rem;padding-bottom:.5rem">
-        <div class="roadmap-v">
-          ${phases.map(ph=>{
-            const statusIcon = ph.status==='complete'?'✅':ph.status==='active'?'🔄':'⏳';
-            const topics = ph.topics || [];
-            const detail = ph.details || ph.description || '';
-            const topicColors = ['','red','green','gold'];
-            return `
-            <div class="roadmap-v-item">
-              <div class="roadmap-v-dot ${ph.status||'upcoming'}"></div>
-              <div class="roadmap-v-card ${ph.status||'upcoming'}">
-                <div class="roadmap-v-num">Phase ${ph.num} · ${ph.weeks||''} ${statusIcon}</div>
-                <div class="roadmap-v-name">${ph.name}</div>
-                ${topics.length ? `<div class="topic-pills">${topics.map((t,i)=>`<span class="topic-pill ${topicColors[i%4]}">${t}</span>`).join('')}</div>` : ''}
-                ${detail ? `<div class="roadmap-v-detail">${detail}</div>` : ''}
-                ${ph.description && ph.details ? `<div class="roadmap-v-desc">${ph.description}</div>` : ''}
-                <span class="roadmap-v-milestone ${ph.status||'upcoming'}">${statusIcon} ${ph.milestone||''}</span>
+      <div class="card-body">
+        <div class="sess-feed">
+          ${recentSessions.slice(0,12).map(sess => {
+            const d = new Date(sess.session_date);
+            const day = d.getUTCDate();
+            const mon = d.toLocaleString('en-US',{month:'short',timeZone:'UTC'}).toUpperCase();
+            const delta = _computeSessionDelta(sess, attempts, vaultGrouped);
+            let chip = '';
+            if (delta) {
+              const sign = delta.delta > 0 ? '+' : delta.delta < 0 ? '' : '±';
+              const cls  = delta.delta > 0 ? 'up' : delta.delta < 0 ? 'down' : 'flat';
+              chip = `<span class="sess-feed-chip ${cls}">${escapeHtmlPortal(delta.label)} ${sign}${delta.delta}%</span>`;
+            }
+            const sub = sess.duration_hours ? `${sess.duration_hours} hr` : '';
+            return `<div class="sess-feed-row">
+              <div class="sess-feed-date">
+                <div class="sess-feed-date-day">${day}</div>
+                <div class="sess-feed-date-mon">${mon}</div>
               </div>
+              <div class="sess-feed-body">
+                <div class="sess-feed-topic">${escapeHtmlPortal(sess.topic || 'Tutoring session')}</div>
+                ${sub ? `<div class="sess-feed-sub">${sub}</div>` : ''}
+              </div>
+              ${chip}
             </div>`;
           }).join('')}
         </div>
       </div>
     </div>`;
+  }
 
-    // ══ HEAVEN CARD ══════════════════════════════════════════════════════════
-    const gainPts = cfg.targetGradeNum && cfg.startingGrade ? (cfg.targetGradeNum - cfg.startingGrade) : null;
-    if (!s._tutorView) html += `<div class="heaven-card">
-      <div style="position:relative;z-index:1">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-          <div>
-            <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(52,211,153,.85);margin-bottom:.4rem">🌟 Where We're Going</div>
-            <div style="font-size:2.4rem;font-weight:900;line-height:1;color:#34d399;margin-bottom:.3rem">${cfg.targetGrade||'—'}</div>
-            <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:.85rem">${out.targetDate?'Target by '+out.targetDate:'Program Goal'}</div>
-            <div style="font-size:.8rem;color:rgba(255,255,255,.65);line-height:1.6;max-width:480px">
-              With Northstar's structured program, ${s.name?.split(' ')[0]||'the student'} is on track to ${cfg.targetGrade||'achieve the target goal'}.
-              ${gainPts && gainPts>0 ? `That's a <b style="color:#34d399">+${gainPts} point improvement</b> built on consistent, personalized sessions — not cramming. ` : ''}
-              Every phase of this roadmap has been designed to get here efficiently and permanently.
-            </div>
-          </div>
-          <div style="text-align:center;flex-shrink:0;opacity:.35;font-size:4rem;line-height:1">🏆</div>
-        </div>
-        <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:.6rem">
-          <div style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
-            <div style="font-size:.85rem;font-weight:800;color:#34d399">${out.sessionsCompleted||0} / ${out.sessionsTotal||'—'}</div>
-            <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Sessions</div>
-          </div>
-          <div style="background:rgba(201,160,58,.15);border:1px solid rgba(201,160,58,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
-            <div style="font-size:.85rem;font-weight:800;color:#c9a03a">${masteredCount} / ${units.length}</div>
-            <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Units Mastered</div>
-          </div>
-          <div style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
-            <div style="font-size:.85rem;font-weight:800;color:#a78bfa">${out.practiceProblems||'—'}</div>
-            <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Practice Problems</div>
-          </div>
-          ${lastGrade && cfg.startingGrade ? `<div style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
-            <div style="font-size:.85rem;font-weight:800;color:#34d399">${cfg.startingGrade}% → ${lastGrade}%</div>
-            <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Grade Progress</div>
-          </div>` : ''}
-        </div>
-      </div>
-    </div>`;
-
-    // ══ PROGRESS TRAJECTORY LINE CHART ═══════════════════════════════════════
-    if (!s._tutorView) html += `<div class="card" style="margin-bottom:1.5rem">
-      <div class="card-header" style="flex-wrap:wrap;gap:.5rem">
-        <div class="card-title">📈 Grade Trajectory</div>
-        <div style="display:flex;gap:.75rem;font-size:.68rem;font-weight:700">
-          <span style="color:#0f2044">— Actual Progress</span>
-          <span style="color:#c9a03a">- - Target: ${cfg.targetGrade||''}</span>
-        </div>
-      </div>
-      <div class="card-body">
-        <div style="position:relative;height:230px"><canvas id="pvLineChart"></canvas></div>
-      </div>
+  // ── Weekly summary card (most recent approved weekly_reports) ──────────────
+  if (latestWeekly && !s._tutorView) {
+    const wkRange = `${fmtDateShort(latestWeekly.week_start)} – ${fmtDateShort(latestWeekly.week_end)}`;
+    html += `<div class="weekly-sum">
+      <div class="weekly-sum-eyebrow">📬 This Week's Update</div>
+      <div class="weekly-sum-range">${wkRange}</div>
+      <div class="weekly-sum-text">${escapeHtmlPortal(latestWeekly.summary || '').replace(/\n+/g,'<br><br>')}</div>
     </div>`;
   }
 
@@ -2261,37 +2268,274 @@ function _renderProgressCharts(cfg) {
     });
   }
 
-  // Line chart — progress trajectory
-  const lineCanvas = document.getElementById('pvLineChart');
-  if (lineCanvas && weekly.length) {
-    const labels   = weekly.map(p=>p.label);
-    const actuals  = weekly.map(p=>p.grade);
-    const targetPts= weekly.map(()=>target);
-    const yMin = Math.max(0,Math.min(...actuals)-12);
-    const yMax = Math.min(100,target+12);
-    window._pvLineChart = new Chart(lineCanvas, {
-      type:'line',
-      data:{
-        labels,
-        datasets:[
-          {label:'Actual Grade',data:actuals,borderColor:'#0f2044',backgroundColor:'rgba(15,32,68,.08)',borderWidth:2.5,pointBackgroundColor:'#0f2044',pointRadius:5,fill:true,tension:0.35},
-          {label:`Target (${cfg.targetGrade||target+'%'})`,data:targetPts,borderColor:'#c9a03a',borderWidth:2,borderDash:[7,4],pointRadius:0,fill:false,tension:0}
-        ]
-      },
-      options:{
-        responsive:true,maintainAspectRatio:false,
-        plugins:{
-          legend:{display:true,position:'top',labels:{font:{size:11},boxWidth:18,padding:14}},
-          tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}%`}}
-        },
-        scales:{
-          y:{min:yMin,max:yMax,grid:{color:'rgba(0,0,0,.06)'},ticks:{callback:v=>v+'%',font:{size:11}}},
-          x:{grid:{display:false},ticks:{font:{size:11}}}
-        }
-      }
-    });
-  }
+  // Trajectory line chart removed — climb graph at top of Progress now
+  // carries the start→now→target visual.
 }
+
+/* ── CLIMB GRAPH renderer ─────────────────────────────────────────────────────
+   Visual hero for the Progress tab. SVG mountain: base (startingGrade) at
+   bottom-left, summit (targetGradeNum) at top-right, milestone dots from
+   cfg.weeklyProgress, pulsing "you are here" marker at the current climb
+   fraction. Replaces the Hell/Heaven/Trajectory trio with one focused image.
+─────────────────────────────────────────────────────────────────────────────── */
+function _renderClimbCard(s, cfg, weekly) {
+  const gradeStart  = typeof cfg.startingGrade  === 'number' ? cfg.startingGrade  : null;
+  const gradeTarget = typeof cfg.targetGradeNum === 'number' ? cfg.targetGradeNum : null;
+  const lastGrade   = weekly.length ? Number(weekly[weekly.length-1].grade)
+                    : (typeof cfg.startingGrade === 'number' ? cfg.startingGrade : null);
+  const programWeeks = typeof cfg.programWeeks === 'number' && cfg.programWeeks > 0 ? cfg.programWeeks : null;
+  const currentPhaseNum = cfg.currentPhase || 1;
+  // weekIndex estimate: in absence of a real program-start date, use the
+  // weeklyProgress count as the closest proxy.
+  const weekIdx = Math.max(1, weekly.length || 1);
+
+  if (gradeStart == null || gradeTarget == null) {
+    // Climb depends on configured start + target; skip the card if missing.
+    return '';
+  }
+
+  const climbFrac = Math.max(0, Math.min(1, (lastGrade - gradeStart) / Math.max(1, gradeTarget - gradeStart)));
+  const weekFrac  = programWeeks ? Math.max(0, Math.min(1, weekIdx / programWeeks)) : climbFrac;
+
+  // SVG canvas — viewBox-scaled so it stays crisp on every width.
+  const W = 600, H = 220, PAD_L = 32, PAD_R = 24, PAD_T = 24, PAD_B = 36;
+  const innerW = W - PAD_L - PAD_R;
+  const innerH = H - PAD_T - PAD_B;
+
+  // Project (weekFrac, climbFrac) into svg coords.
+  const xOf = f => PAD_L + f * innerW;
+  const yOf = f => PAD_T + (1 - f) * innerH;
+
+  // Mountain trail: smooth curve from (0,0) to (1,1) — start at base
+  // (bottom-left) and arc to summit (top-right) with a gentle ease.
+  const pathD = `M ${xOf(0)} ${yOf(0)} C ${xOf(0.45)} ${yOf(0.15)}, ${xOf(0.55)} ${yOf(0.7)}, ${xOf(1)} ${yOf(1)}`;
+
+  // Milestone dots from weeklyProgress, mapped to (timeFrac, gradeFrac).
+  const milestones = weekly.map((p, i) => {
+    const tf = weekly.length > 1 ? i / (weekly.length - 1) : 0;
+    const grade = Number(p.grade);
+    const gf = Math.max(0, Math.min(1, (grade - gradeStart) / Math.max(1, gradeTarget - gradeStart)));
+    return { x: xOf(tf * weekFrac), y: yOf(gf), label: p.label, grade };
+  });
+
+  const hereX = xOf(weekFrac);
+  const hereY = yOf(climbFrac);
+
+  const startLabel = cfg.startingGradeLabel || `${gradeStart}%`;
+  const targetLabel = cfg.targetGrade || `${gradeTarget}%`;
+  const weekChip = programWeeks ? `Week ${weekIdx} of ${programWeeks}` : `Week ${weekIdx}`;
+  const climbPctText = Math.round(climbFrac * 100);
+  const firstName = s.name?.split(' ')[0] || 'Student';
+
+  return `<div class="climb-card">
+    <div class="climb-head">
+      <div>
+        <div class="climb-eyebrow">⛰️ The Climb</div>
+        <div class="climb-title">${escapeHtmlPortal(firstName)}'s path to ${escapeHtmlPortal(targetLabel)}</div>
+      </div>
+      <div class="climb-meta">
+        <span class="climb-chip">${escapeHtmlPortal(weekChip)}</span>
+        <span class="climb-chip gold">Phase ${currentPhaseNum}</span>
+        <span class="climb-chip">${climbPctText}% climbed</span>
+      </div>
+    </div>
+    <div class="climb-svg-wrap">
+      <svg class="climb-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="climbGrad" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stop-color="#fca5a5"/>
+            <stop offset="55%" stop-color="#fde68a"/>
+            <stop offset="100%" stop-color="#34d399"/>
+          </linearGradient>
+        </defs>
+        <line x1="${PAD_L}" y1="${yOf(0)}" x2="${W - PAD_R}" y2="${yOf(0)}" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+        <line x1="${PAD_L}" y1="${yOf(0.5)}" x2="${W - PAD_R}" y2="${yOf(0.5)}" stroke="rgba(255,255,255,.08)" stroke-dasharray="3 6"/>
+        <line x1="${PAD_L}" y1="${yOf(1)}" x2="${W - PAD_R}" y2="${yOf(1)}" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+        <path d="${pathD}" class="climb-path"/>
+        ${milestones.map(m =>
+          `<circle class="climb-milestone" cx="${m.x}" cy="${m.y}"/>`
+        ).join('')}
+        <line x1="${PAD_L}" y1="${hereY}" x2="${hereX}" y2="${hereY}" class="climb-progress-line"/>
+        <circle class="climb-here-pulse" cx="${hereX}" cy="${hereY}"/>
+        <circle class="climb-here-dot" cx="${hereX}" cy="${hereY}"/>
+        <text x="${PAD_L}" y="${yOf(0) + 22}" class="climb-base-label" fill="#fca5a5">⚑ START · ${escapeHtmlPortal(startLabel)}</text>
+        <text x="${W - PAD_R}" y="${yOf(1) - 10}" class="climb-flag-label" text-anchor="end" fill="#fde68a">🏁 GOAL · ${escapeHtmlPortal(targetLabel)}</text>
+        <text x="${hereX + 12}" y="${hereY - 10}" class="climb-axis-label" fill="#fff" font-size="12" font-weight="700">YOU · ${escapeHtmlPortal(lastGrade)}%</text>
+      </svg>
+    </div>
+    <div class="climb-foot">
+      <div style="background:rgba(252,165,165,.1);border:1px solid rgba(252,165,165,.2);border-radius:10px;padding:.65rem .85rem">
+        <div class="climb-foot-label" style="color:#fca5a5">Where ${escapeHtmlPortal(firstName)} Started</div>
+        <div class="climb-foot-val" style="color:#fca5a5">${escapeHtmlPortal(startLabel)}</div>
+      </div>
+      <div style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);border-radius:10px;padding:.65rem .85rem">
+        <div class="climb-foot-label" style="color:#6ee7b7">Where We're Going</div>
+        <div class="climb-foot-val" style="color:#34d399">${escapeHtmlPortal(targetLabel)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── SESSION DELTA ────────────────────────────────────────────────────────────
+   For one session, pick the most informative "skill movement" chip:
+   look at practice attempts in the 7-day window after the session, group by
+   period_key (legacy) or unit (vault), and compare to the same student's
+   prior avg in that group. Returns { label, delta } for the strongest move,
+   or null if no usable post-session attempts exist.
+─────────────────────────────────────────────────────────────────────────────── */
+function _computeSessionDelta(session, attempts, vaultGrouped) {
+  const sessTs = new Date(session.session_date + 'T00:00:00Z').getTime();
+  const windowEnd = sessTs + 7 * 24 * 60 * 60 * 1000;
+  const mean = arr => arr.length ? arr.reduce((a,b)=>a+b,0) / arr.length : null;
+
+  const before = new Map();
+  const after  = new Map();
+  const add = (m, key, val) => { if (!m.has(key)) m.set(key,[]); m.get(key).push(val); };
+
+  attempts.forEach(a => {
+    const t = new Date(a.attempted_at).getTime();
+    const pct = Math.round((a.score / Math.max(a.total, 1)) * 100);
+    const sec = typeof findBankSection === 'function' ? findBankSection(a.period_key) : null;
+    const key = `legacy::${sec?.label || a.period_key}`;
+    if (t < sessTs)              add(before, key, pct);
+    else if (t <= windowEnd)     add(after,  key, pct);
+  });
+  vaultGrouped.forEach(g => {
+    if (typeof g.score_percent !== 'number') return;
+    const t = new Date(g.attempted_at).getTime();
+    const qt = (g.question_type || '').toUpperCase();
+    const unit = g.unit ? g.unit.replace(/\s*\(.*$/, '') : '';
+    const labelBase = unit ? `${unit} ${qt}` : (qt || 'Practice');
+    const key = `vault::${labelBase}`;
+    if (t < sessTs)              add(before, key, g.score_percent);
+    else if (t <= windowEnd)     add(after,  key, g.score_percent);
+  });
+
+  let best = null;
+  for (const [key, afterScores] of after.entries()) {
+    if (!afterScores.length) continue;
+    const beforeScores = before.get(key) || [];
+    const afterAvg  = mean(afterScores);
+    if (afterAvg == null) continue;
+    if (!beforeScores.length) {
+      // No prior data — show a flat "introduced" chip at the post-session avg.
+      const cand = { label: key.split('::')[1], delta: 0, _flat: true, after: Math.round(afterAvg) };
+      if (!best) best = cand;
+      continue;
+    }
+    const delta = Math.round(afterAvg - mean(beforeScores));
+    const cand = { label: key.split('::')[1], delta, after: Math.round(afterAvg) };
+    if (!best || Math.abs(cand.delta) > Math.abs(best.delta)) best = cand;
+  }
+  return best;
+}
+
+/* ── GAME PLAN PAGE ───────────────────────────────────────────────────────────
+   Tab 2 of the student view. Contains the personalized roadmap (moved out
+   of Progress) and the static Northstar 5-Step System deck.
+─────────────────────────────────────────────────────────────────────────────── */
+async function buildGameplanPage(student, targetEl) {
+  const s = student || currentStudent;
+  const el = targetEl || document.getElementById('sec-gameplan');
+  if (!s || !el) return;
+  const cfg = s.progress_config;
+  const firstName = s.name?.split(' ')[0] || 'this student';
+  const phases = cfg?.phases || [];
+
+  let html = '';
+
+  // ── Bridge headline ─────────────────────────────────────────────────────────
+  if (cfg && !s._tutorView) html += `<div class="bridge-sep">
+    <div style="font-size:2.2rem;flex-shrink:0;position:relative;z-index:1">🌉</div>
+    <div style="position:relative;z-index:1;flex:1">
+      <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:rgba(201,160,58,.9);margin-bottom:.2rem">The Northstar Bridge</div>
+      <div style="font-size:.95rem;font-weight:800;color:#fff;margin-bottom:.3rem">A personalized roadmap built exclusively for ${escapeHtmlPortal(firstName)}</div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.65);line-height:1.55">
+        No generic tutoring. No one-size-fits-all curriculum. Every session, every phase, and every practice problem below was designed specifically around <b style="color:rgba(255,255,255,.85)">${escapeHtmlPortal(firstName)}'s</b> exact weaknesses, exam format, and timeline.
+        This is what separates Northstar from every other option.
+      </div>
+    </div>
+  </div>`;
+
+  // ── Roadmap phases ──────────────────────────────────────────────────────────
+  if (cfg && phases.length) html += `<div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header">
+      <div class="card-title">🗺️ Personalized Program Roadmap</div>
+      <div style="font-size:.7rem;color:var(--muted);font-weight:600">${cfg.programWeeks||'—'}-Week Plan · ${escapeHtmlPortal(cfg.subject||'')}</div>
+    </div>
+    <div class="card-body" style="padding-top:.75rem;padding-bottom:.5rem">
+      <div class="roadmap-v">
+        ${phases.map(ph => {
+          const statusIcon = ph.status==='complete'?'✅':ph.status==='active'?'🔄':'⏳';
+          const topics = ph.topics || [];
+          const detail = ph.details || ph.description || '';
+          const topicColors = ['','red','green','gold'];
+          return `<div class="roadmap-v-item">
+            <div class="roadmap-v-dot ${ph.status||'upcoming'}"></div>
+            <div class="roadmap-v-card ${ph.status||'upcoming'}">
+              <div class="roadmap-v-num">Phase ${ph.num} · ${escapeHtmlPortal(ph.weeks||'')} ${statusIcon}</div>
+              <div class="roadmap-v-name">${escapeHtmlPortal(ph.name||'')}</div>
+              ${topics.length ? `<div class="topic-pills">${topics.map((t,i)=>`<span class="topic-pill ${topicColors[i%4]}">${escapeHtmlPortal(t)}</span>`).join('')}</div>` : ''}
+              ${detail ? `<div class="roadmap-v-detail">${escapeHtmlPortal(detail)}</div>` : ''}
+              ${ph.description && ph.details ? `<div class="roadmap-v-desc">${escapeHtmlPortal(ph.description)}</div>` : ''}
+              <span class="roadmap-v-milestone ${ph.status||'upcoming'}">${statusIcon} ${escapeHtmlPortal(ph.milestone||'')}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // ── Northstar 5-Step System (static method explainer) ──────────────────────
+  html += `<div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header" style="flex-direction:column;align-items:flex-start;gap:.25rem">
+      <div class="card-title">⭐ The Northstar 5-Step System</div>
+      <div style="font-size:.78rem;color:var(--muted);font-weight:500;line-height:1.5">How every session moves ${escapeHtmlPortal(firstName)} closer to the goal — the same method that has carried our students from below-average to top scorers.</div>
+    </div>
+    <div class="card-body">
+      <div class="np-step-deck">
+        <div class="np-step-card">
+          <div class="np-step-num">Step 01</div>
+          <div class="np-step-icon">🧩</div>
+          <div class="np-step-title">Decode</div>
+          <div class="np-step-body">Break down dense AP concepts into clear, digestible models — so what looks intimidating on the page becomes obvious in the head.</div>
+        </div>
+        <div class="np-step-card">
+          <div class="np-step-num">Step 02</div>
+          <div class="np-step-icon">👁️</div>
+          <div class="np-step-title">Model</div>
+          <div class="np-step-body">Tutor demonstrates thinking out loud — how a 5-scorer actually approaches an FRQ, MCQ, or multi-step problem. No skipped reasoning.</div>
+        </div>
+        <div class="np-step-card">
+          <div class="np-step-num">Step 03</div>
+          <div class="np-step-icon">✏️</div>
+          <div class="np-step-title">Practice</div>
+          <div class="np-step-body">Student works real College Board AP problems live, with active coaching and instant feedback. Mistakes get fixed in the moment, not weeks later.</div>
+        </div>
+        <div class="np-step-card">
+          <div class="np-step-num">Step 04</div>
+          <div class="np-step-icon">⏱️</div>
+          <div class="np-step-title">Test</div>
+          <div class="np-step-body">Timed mini-assessments graded against the real AP rubric — so we know exactly where ${escapeHtmlPortal(firstName)} stands, in points, not vibes.</div>
+        </div>
+        <div class="np-step-card">
+          <div class="np-step-num">Step 05</div>
+          <div class="np-step-icon">🔁</div>
+          <div class="np-step-title">Reinforce</div>
+          <div class="np-step-body">Spaced review, targeted homework, and continuous gap-closing — so what's learned this week sticks all the way to exam day.</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // Empty-state fallback: if the student has no progress_config at all,
+  // show a friendly note so the tab isn't blank.
+  if (!cfg) html = `<div class="empty-state"><div class="empty-icon">🗺️</div><p>Your game plan will appear once your tutor finalizes your program.</p></div>`;
+
+  el.innerHTML = html;
+}
+
+
 function switchSubjectTab(subj) {
   document.querySelectorAll('.subject-tab').forEach(t=>t.classList.toggle('active',t.textContent===subj));
   document.querySelectorAll('.subject-panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+subj.replace(/\s+/g,'-')));
