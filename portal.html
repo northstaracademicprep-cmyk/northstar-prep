@@ -483,6 +483,17 @@
     .weekly-sum-eyebrow{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:#92400e;margin-bottom:.25rem}
     .weekly-sum-range{font-size:.7rem;color:#78716c;font-weight:600;margin-bottom:.65rem}
     .weekly-sum-text{font-size:.88rem;line-height:1.65;color:#3f3722}
+    .skill-boost{background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.2rem 1.4rem;margin-bottom:1.5rem;position:relative;overflow:hidden}
+    .skill-boost::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:linear-gradient(180deg,var(--navy),var(--navy-light))}
+    .skill-boost-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.85rem}
+    .skill-boost-title{font-size:.92rem;font-weight:800;color:var(--navy)}
+    .skill-boost-pill{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:#92400e;background:rgba(201,160,58,.18);border:1px solid rgba(201,160,58,.4);border-radius:999px;padding:.22rem .6rem}
+    .skill-boost-list{display:flex;flex-direction:column;gap:.55rem}
+    .skill-boost-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) 52px;gap:.85rem;align-items:center}
+    .skill-boost-topic{font-size:.78rem;font-weight:700;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .skill-boost-bar-wrap{height:8px;background:#f1f5f9;border-radius:999px;overflow:hidden}
+    .skill-boost-bar{height:100%;background:linear-gradient(90deg,var(--navy),var(--gold));border-radius:999px;transition:width .8s ease}
+    .skill-boost-delta{font-size:.8rem;font-weight:800;color:var(--navy-light);text-align:right}
 
     /* ── NORTHSTAR 5-STEP SYSTEM (Gameplan tab) ── */
     .np-step-deck{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.65rem;margin-top:1rem}
@@ -1970,7 +1981,7 @@ async function buildProgressPage(student, targetEl) {
         .order('session_date', { ascending: false })
         .limit(20),
       db.from('weekly_reports')
-        .select('week_start, week_end, summary, status')
+        .select('week_start, week_end, summary, status, snapshot')
         .eq('student_id', s.studentId)
         .eq('status', 'approved')
         .order('week_start', { ascending: false })
@@ -2069,6 +2080,32 @@ async function buildProgressPage(student, targetEl) {
       <div class="weekly-sum-eyebrow">📬 This Week's Update</div>
       <div class="weekly-sum-range">${wkRange}</div>
       <div class="weekly-sum-text">${escapeHtmlPortal(latestWeekly.summary || '').replace(/\n+/g,'<br><br>')}</div>
+    </div>`;
+  }
+
+  // ── Skill-Boost chart (projected weekly gains from snapshot.skillGains) ────
+  // Reads the same approved weekly_reports row used by the summary card above.
+  // Per-row bar width is delta / 25 (clamped) so the visual contrast between
+  // 5% and 22% gains is preserved without ever spanning the full card.
+  const _skillGains = (latestWeekly?.snapshot?.skillGains || [])
+    .filter(g => g && g.topic && typeof g.delta === 'number' && g.delta > 0);
+  if (_skillGains.length && !s._tutorView) {
+    html += `<div class="skill-boost">
+      <div class="skill-boost-head">
+        <div class="skill-boost-title">📈 Projected Skill Boost This Week</div>
+        <span class="skill-boost-pill">Projected</span>
+      </div>
+      <div class="skill-boost-list">
+        ${_skillGains.map(g => {
+          const pct = Math.max(0, Math.min(25, g.delta));
+          const widthPct = Math.round((pct / 25) * 100);
+          return `<div class="skill-boost-row">
+            <div class="skill-boost-topic">${escapeHtmlPortal(g.topic)}</div>
+            <div class="skill-boost-bar-wrap"><div class="skill-boost-bar" style="width:${widthPct}%"></div></div>
+            <div class="skill-boost-delta">+${pct}%</div>
+          </div>`;
+        }).join('')}
+      </div>
     </div>`;
   }
 
@@ -7431,7 +7468,7 @@ function showAdminSection(id) {
   if (id !== 'adm-messages' && _activeMsgCtx) _unsubscribeMessages();
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
-    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', review:'Review Queue', 'seed-bank':'Seed Bank', 'adm-messages':'Messages'}[id] || id;
+    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', review:'Review Queue', 'seed-bank':'Seed Bank', 'weekly-reports':'Weekly Reports', 'adm-messages':'Messages'}[id] || id;
   // Full-bleed layout for messages, restore padding for other sections
   const admContent = document.querySelector('.adm-content');
   if (admContent) admContent.style.padding = id === 'adm-messages' ? '0' : '';
@@ -7446,6 +7483,7 @@ function showAdminSection(id) {
   else if (id === 'tutor-mgmt')   buildAdminTutorMgmt();
   else if (id === 'review')       buildAdminReviewQueue();
   else if (id === 'seed-bank')    buildAdminSeedBank();
+  else if (id === 'weekly-reports') buildAdminWeeklyReports();
   else if (id === 'adm-messages') buildAdminMessages();
 }
 
@@ -8503,6 +8541,98 @@ async function _rqCall(payload) {
   return res.json();
 }
 
+/* ── ADMIN WEEKLY REPORTS ───────────────────────────────────────────────────
+   Lists each active student with their most-recent weekly_reports row.
+   "Generate this week" calls /api/weekly-report action=generate (writes a
+   draft + projection, syncs progress_config.currentGrade + weeklyProgress);
+   "Approve" promotes draft→approved so the row surfaces on the student's
+   Progress tab. Gated by ADMIN_RESET_SECRET, same as Review Queue and
+   Seed Bank.
+─────────────────────────────────────────────────────────────────────────────*/
+async function buildAdminWeeklyReports() {
+  const body = document.getElementById('admBody');
+  const { data: students, error } = await db
+    .from('students').select('id, name, status')
+    .neq('status', 'completed').order('name');
+  if (error) { body.innerHTML = `<div class="adm-error">${error.message}</div>`; return; }
+
+  const reports = await Promise.all((students || []).map(s =>
+    db.from('weekly_reports')
+      .select('id, week_start, week_end, status')
+      .eq('student_id', s.id)
+      .order('week_start', { ascending: false })
+      .limit(1)
+      .then(r => [s.id, (r.data || [])[0] || null])
+  ));
+  const byId = Object.fromEntries(reports);
+
+  body.innerHTML = `
+    <div class="adm-section-header">${(students||[]).length} active student${(students||[]).length===1?'':'s'}</div>
+    <p style="font-size:.82rem;color:#64748b;margin:-.5rem 0 1.1rem">
+      Generate creates a draft projection from this week's session notes. Approve surfaces it on the student's Progress tab.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:.6rem">
+    ${(students || []).map(s => {
+      const r = byId[s.id];
+      const status = r?.status || 'none';
+      const week = r ? `${fmtDateShort(r.week_start)} – ${fmtDateShort(r.week_end)}` : 'No report yet';
+      const col = status === 'approved' ? '#10b981' : status === 'draft' ? '#f59e0b' : '#94a3b8';
+      return `<div class="adm-card" style="display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:700;color:#0f2044;font-size:.92rem">${escapeHtmlPortal(s.name||'Student')}</div>
+          <div style="font-size:.74rem;color:#64748b">${week}</div>
+        </div>
+        <span style="font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:${col};background:${col}1a;border:1px solid ${col}55;border-radius:99px;padding:.2rem .6rem">${status}</span>
+        <button onclick="adminGenWR('${s.id}')" style="background:#0f2044;color:#fff;border:none;border-radius:7px;font-size:.74rem;font-weight:700;padding:.4rem .75rem;cursor:pointer">↻ Generate this week</button>
+        ${r && r.status === 'draft'
+          ? `<button onclick="adminApproveWR('${r.id}')" style="background:#10b981;color:#fff;border:none;border-radius:7px;font-size:.74rem;font-weight:700;padding:.4rem .75rem;cursor:pointer">✓ Approve</button>`
+          : ''}
+      </div>`;
+    }).join('') || '<div class="adm-empty">No active students.</div>'}
+    </div>
+  `;
+}
+
+async function _wrCall(payload) {
+  const res = await fetch('/api/weekly-report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = '';
+    try { const j = await res.json(); detail = j.detail || j.error || ''; } catch {}
+    if (res.status === 401) sessionStorage.removeItem('adminResetSecret');
+    throw new Error(`HTTP ${res.status}${detail ? ' · ' + detail.slice(0, 200) : ''}`);
+  }
+  return res.json();
+}
+
+async function adminGenWR(studentId) {
+  const secret = _seedSecretPrompt();
+  if (!secret) return;
+  showToast('Generating projection…', 'info');
+  try {
+    await _wrCall({ action: 'generate', adminSecret: secret, studentId });
+    showToast('Draft report ready. Approve to publish.', 'success');
+    buildAdminWeeklyReports();
+  } catch (e) {
+    showToast(`Generate failed: ${e.message}`, 'error');
+  }
+}
+
+async function adminApproveWR(reportId) {
+  const secret = sessionStorage.getItem('adminResetSecret') || _seedSecretPrompt();
+  if (!secret) return;
+  try {
+    await _wrCall({ action: 'approve', adminSecret: secret, reportId });
+    showToast('Approved. Now visible on student Progress.', 'success');
+    buildAdminWeeklyReports();
+  } catch (e) {
+    showToast(`Approve failed: ${e.message}`, 'error');
+  }
+}
+
 /* ── PROGRESS CONFIG ADMIN ──────────────────────────────────────────────────── */
 let _pcStuId = null;
 let _pcUnits = [];
@@ -9402,6 +9532,7 @@ async function loadAdminConvo(studentId, studentName) {
         <div class="adm-nav-item" data-id="tutor-mgmt" onclick="showAdminSection('tutor-mgmt')"><span class="adm-nav-icon">🎓</span> Tutor Management</div>
         <div class="adm-nav-item" data-id="review" onclick="showAdminSection('review')"><span class="adm-nav-icon">🔍</span> Review Queue</div>
         <div class="adm-nav-item" data-id="seed-bank" onclick="showAdminSection('seed-bank')"><span class="adm-nav-icon">🌱</span> Seed Bank</div>
+        <div class="adm-nav-item" data-id="weekly-reports" onclick="showAdminSection('weekly-reports')"><span class="adm-nav-icon">📬</span> Weekly Reports</div>
         <div class="adm-nav-item" data-id="adm-messages" onclick="showAdminSection('adm-messages')">
           <span class="adm-nav-icon">💬</span>
           <span style="flex:1;display:flex;flex-direction:column;gap:.04rem;min-width:0">

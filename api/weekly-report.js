@@ -78,6 +78,17 @@ async function sbGet(sbUrl, sbKey, path) {
   }
   return r.json();
 }
+async function sbPatch(sbUrl, sbKey, path, body) {
+  const r = await fetch(`${sbUrl}${path}`, {
+    method: 'PATCH',
+    headers: sbHeaders(sbKey),
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const detail = await r.text().catch(() => '');
+    throw new Error(`Supabase PATCH ${r.status}: ${detail.slice(0, 400)}`);
+  }
+}
 
 // ── Date helpers ─────────────────────────────────────────────────────
 function isIsoDate(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
@@ -196,11 +207,14 @@ async function generateReport(sbUrl, sbKey, apiKey, body) {
     : null;
 
   const programWeeks = typeof cfg.programWeeks === 'number' && cfg.programWeeks > 0 ? cfg.programWeeks : null;
-  // weekIndex: 1-based count of weekly_progress points + this week if any practice/sessions exist.
-  // Cheap, deterministic, doesn't require a program-start-date field that doesn't exist.
-  const priorWeekIndex = (await sbGet(sbUrl, sbKey,
-    `/rest/v1/weekly_reports?select=id&student_id=eq.${studentId}&week_start=lte.${window.startDate}`)).length;
-  const weekIndex = Math.max(1, priorWeekIndex || 1);
+  // weekIndex: count of STRICTLY-prior reports + 1. Using `lt` (not `lte`)
+  // excludes the current week's row, so the result is identical on first-
+  // generate vs regenerate of the same week (1, 1) and correctly increments
+  // for subsequent weeks (2, 3, …). The label "Week N" written into
+  // progress_config.weeklyProgress relies on this being unique per week.
+  const priorRowCount = (await sbGet(sbUrl, sbKey,
+    `/rest/v1/weekly_reports?select=id&student_id=eq.${studentId}&week_start=lt.${window.startDate}`)).length;
+  const weekIndex = priorRowCount + 1;
 
   const phase = (cfg.phases || []).find(p => p.num === cfg.currentPhase) || null;
 
@@ -228,13 +242,46 @@ async function generateReport(sbUrl, sbKey, apiKey, body) {
     notesPresent,
   };
 
-  // 7) Gemini summary (family-facing)
+  // 7) Gemini projection — strict JSON: weekGrade + skillGains + summary.
+  // These are PROJECTIONS (estimates from brief notes + configured plan),
+  // not measured scores. Sanitization clamps weekGrade so it never exceeds
+  // target and never regresses below the current grade.
   const subject = cfg.subject || 'their program';
-  const summary = await callGeminiForSummary(apiKey, {
+  const projection = await callGeminiForProjection(apiKey, {
     studentName: student.name,
     subject,
     snapshot,
   });
+  const summary = projection.summary;
+  snapshot.skillGains = projection.skillGains;
+
+  // 7b) Sync progress_config so the Progress + Game Plan visuals stay
+  // consistent week to week:
+  //   - weeklyProgress: append/replace this week's {label,grade} so the
+  //     Game Plan trajectory line grows by one realistic point per week.
+  //     Idempotent — re-running the same week REPLACES the same label
+  //     instead of duplicating.
+  //   - currentGrade: bump to weekGrade so the Climb card's "you are here"
+  //     marker (which reads cfg.currentGrade) moves in lockstep with the
+  //     trajectory. Without this, the climb stays frozen at the start while
+  //     the line climbs — visually inconsistent.
+  // Wrapped in try/catch so a cfg-PATCH failure doesn't block the report
+  // upsert below.
+  if (typeof projection.weekGrade === 'number') {
+    const wp = Array.isArray(cfg.weeklyProgress) ? [...cfg.weeklyProgress] : [];
+    const label = `Week ${weekIndex}`;
+    const i = wp.findIndex(p => p && p.label === label);
+    const entry = { label, grade: projection.weekGrade };
+    if (i >= 0) wp[i] = entry; else wp.push(entry);
+    const newCfg = { ...cfg, weeklyProgress: wp, currentGrade: projection.weekGrade };
+    try {
+      await sbPatch(sbUrl, sbKey,
+        `/rest/v1/students?id=eq.${studentId}`,
+        { progress_config: newCfg });
+    } catch (e) {
+      console.warn(`[weekly-report] cfg PATCH failed: ${e.message}`);
+    }
+  }
 
   // 8) Upsert — Prefer: resolution=merge-duplicates against the
   // (student_id, week_start) unique key. PATCH-like behavior: existing
@@ -296,8 +343,12 @@ function computePracticeAvg(legacyRows, vaultRows) {
 }
 
 // ── Gemini ───────────────────────────────────────────────────────────
-async function callGeminiForSummary(apiKey, { studentName, subject, snapshot }) {
-  const prompt = buildSummaryPrompt(studentName, subject, snapshot);
+// Single call returns STRICT JSON: weekGrade + skillGains + summary.
+// responseSchema constrains shape; sanitizeProjection clamps values so
+// projections can't escape [currentGrade, targetGrade] or invent oversized
+// per-topic deltas.
+async function callGeminiForProjection(apiKey, { studentName, subject, snapshot }) {
+  const prompt = buildProjectionPrompt(studentName, subject, snapshot);
   const r = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
     {
@@ -305,10 +356,29 @@ async function callGeminiForSummary(apiKey, { studentName, subject, snapshot }) 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        // Plain text out (no responseMimeType=application/json — this is a
-        // paragraph, not structured data). Low-ish temp because we are
-        // strictly forbidden from inventing facts.
-        generationConfig: { temperature: 0.55 },
+        generationConfig: {
+          temperature: 0.6,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              weekGrade:  { type: 'NUMBER' },
+              skillGains: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    topic: { type: 'STRING' },
+                    delta: { type: 'NUMBER' },
+                  },
+                  required: ['topic', 'delta'],
+                },
+              },
+              summary: { type: 'STRING' },
+            },
+            required: ['weekGrade', 'skillGains', 'summary'],
+          },
+        },
       }),
     }
   );
@@ -317,11 +387,43 @@ async function callGeminiForSummary(apiKey, { studentName, subject, snapshot }) 
     throw new Error(`Gemini API error ${r.status}: ${detail.slice(0, 400)}`);
   }
   const data = await r.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  return text.trim();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+  let parsed;
+  try { parsed = JSON.parse(text); }
+  catch { throw new Error(`Gemini returned non-JSON: ${text.slice(0, 200)}`); }
+  return sanitizeProjection(parsed, snapshot);
 }
 
-function buildSummaryPrompt(studentName, subject, snapshot) {
+// Trust the schema for shape; never trust raw values. weekGrade is clamped
+// to [currentGrade, targetGrade] so the climb-sync below can't push the
+// student's currentGrade backwards or past the goal. skillGains is capped
+// at 4 entries with per-entry delta in [0, 30].
+function sanitizeProjection(p, snapshot) {
+  const target = snapshot.climb?.gradeTarget;
+  const now    = snapshot.climb?.gradeNow;
+
+  let weekGrade = Number(p?.weekGrade);
+  if (!Number.isFinite(weekGrade)) weekGrade = typeof now === 'number' ? now : null;
+  if (typeof weekGrade === 'number') {
+    if (typeof now === 'number'    && weekGrade < now)    weekGrade = now;
+    if (typeof target === 'number' && weekGrade > target) weekGrade = target;
+    weekGrade = Math.round(weekGrade);
+  }
+
+  const rawGains = Array.isArray(p?.skillGains) ? p.skillGains : [];
+  const skillGains = rawGains
+    .filter(g => g && typeof g.topic === 'string' && g.topic.trim() && Number.isFinite(Number(g.delta)))
+    .slice(0, 4)
+    .map(g => ({
+      topic: g.topic.trim().slice(0, 60),
+      delta: Math.max(0, Math.min(30, Math.round(Number(g.delta)))),
+    }));
+
+  const summary = typeof p?.summary === 'string' ? p.summary.trim() : '';
+  return { weekGrade, skillGains, summary };
+}
+
+function buildProjectionPrompt(studentName, subject, snapshot) {
   const firstName = (studentName || 'the student').split(' ')[0];
   const sessions = snapshot.sessions || [];
   const sessionBlock = sessions.length
@@ -330,49 +432,38 @@ function buildSummaryPrompt(studentName, subject, snapshot) {
       ).join('\n\n')
     : '(no sessions this week)';
 
-  const climbStr = snapshot.climb?.fraction != null
-    ? `${Math.round(snapshot.climb.fraction * 100)}% of the way from ${snapshot.climb.gradeStart}% → ${snapshot.climb.gradeTarget}%`
-    : '(climb data not configured)';
+  const startG  = snapshot.climb?.gradeStart;
+  const targetG = snapshot.climb?.gradeTarget;
+  const nowG    = snapshot.climb?.gradeNow;
   const phaseStr = snapshot.phase
     ? `Phase ${snapshot.phase.num} — ${snapshot.phase.name}${snapshot.phase.description ? `: ${snapshot.phase.description}` : ''}`
     : '(no current phase configured)';
   const weakStr = (snapshot.weaknesses || []).map(w => w.area || w).filter(Boolean).join(', ') || '(none recorded)';
+  const focusTopics = (snapshot.units || []).map(u => u.name).filter(Boolean).join(', ') || '(units not configured)';
 
-  // notesPresent gate: when there are no logged notes, the model is
-  // boxed into a short forward-looking line tied to the configured
-  // phase/topics only. The caller flags `regeneratable=true` in that
-  // case so this can be re-run later without dropping a manual edit.
-  const guardrails = snapshot.notesPresent
-    ? `RULES (non-negotiable):
-- Expand on the MEANING and SIGNIFICANCE of what the session notes describe — why this work matters for the parent's understanding of their child's progress.
-- DO NOT invent any activity, exercise, score, grade, milestone, or behavioral observation that is not explicitly present in the session notes or the data block. If the notes are vague, keep your sentences vague.
-- DO NOT speculate about how ${firstName} felt, performed, or struggled unless the notes say so.
-- Cite at most one or two concrete numbers from the data block (e.g. practice avg, week N of M, climb%) and only if they help the parent. Never invent numbers.
-- 120–180 words, single paragraph, warm but not gushing, no greeting or sign-off.`
-    : `RULES (non-negotiable — NO SESSION NOTES WERE LOGGED THIS WEEK):
-- DO NOT describe any activity, outcome, score, behavior, or observation. There is no source material for that.
-- Write ONE short paragraph (3–5 sentences max) that is purely forward-looking, grounded in the current phase and the configured plan.
-- Use phrasing like "the focus this week is..." or "the plan continues to center on...". Do NOT use the past tense to describe work done.
-- No greeting, no sign-off. End with one sentence acknowledging the family will get a fuller picture once this week's sessions are logged.`;
+  return `You are projecting weekly academic progress for the parent of a Northstar Academic Prep student. The student is ${studentName}, working on ${subject}.
 
-  return `You are writing a brief weekly progress update for the parent of a Northstar Academic Prep student. The student is ${studentName}, working on ${subject}.
+These are ESTIMATED PROJECTIONS, not measured results. Frame the summary in projection language ("projected", "expected", "on pace for"). Never claim a number is a tested or graded score.
 
-CONTEXT (numerical):
-- Week: ${snapshot.weekStart} to ${snapshot.weekEnd} (${snapshot.programWeeks ? `week ${snapshot.weekIndex} of ${snapshot.programWeeks}` : 'no program length configured'})
-- Climb: ${climbStr}
-- Current grade: ${snapshot.climb?.gradeNow != null ? snapshot.climb.gradeNow + '%' : 'unknown'}
-- Practice avg this week: ${snapshot.practiceAvg.week != null ? snapshot.practiceAvg.week + '%' : 'no practice logged this week'}
-- Practice avg overall: ${snapshot.practiceAvg.overall != null ? snapshot.practiceAvg.overall + '%' : 'none'}
-- Homework avg: ${snapshot.homeworkAvg != null ? snapshot.homeworkAvg + '%' : 'none'}
+THIS WEEK CONTEXT
+- Week: ${snapshot.weekStart} to ${snapshot.weekEnd}
+- Week index: ${snapshot.weekIndex}${snapshot.programWeeks ? ' of ' + snapshot.programWeeks : ''}
+- Starting grade: ${startG != null ? startG + '%' : 'unknown'}
+- Current grade (most recent estimate): ${nowG != null ? nowG + '%' : 'unknown'}
+- Target grade: ${targetG != null ? targetG + '%' : 'unknown'}
 - Current phase: ${phaseStr}
+- Configured focus topics (units): ${focusTopics}
 - Known weak areas: ${weakStr}
 
-THIS WEEK'S TUTORING SESSIONS:
+THIS WEEK'S BRIEF TUTORING NOTES
 ${sessionBlock}
 
-${guardrails}
+RULES (non-negotiable):
+- weekGrade: a SMALL realistic step from the current grade toward the target. Typical step 1–5 points when work happened. Never above the target. Never below the current grade. If there are truly no sessions and no notes, weekGrade equals the current grade (flat).
+- skillGains: 2–4 entries when sessions were logged; empty array when no sessions. Each topic MUST be drawn from this week's notes OR the configured focus topics — do not invent unrelated areas. Each delta is a modest projected gain in the 5–25 range, varied across entries.
+- summary: ONE parent-facing paragraph, 120–180 words, plain language, warm but not gushing. Use projection phrasing — "projected to climb", "expected gain", "on pace for". Do NOT state numeric percentages other than those already in this JSON. Do NOT claim ${firstName} took a test or got a measured score. Describe direction and meaning, not measurement. No greeting, no sign-off.
 
-Output: the paragraph ONLY, no preamble, no headings.`;
+Return ONLY the JSON object. No preamble, no markdown fences.`;
 }
 
 // ── List ─────────────────────────────────────────────────────────────
