@@ -13,5 +13,8 @@
       "src": "^/(.*)$",
       "dest": "/$1"
     }
+  ],
+  "crons": [
+    { "path": "/api/cron-weekly-reports", "schedule": "0 16 * * 0" }
   ]
 }

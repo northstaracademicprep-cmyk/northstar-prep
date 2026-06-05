@@ -117,7 +117,11 @@ function weekWindowUtc(weekStartIso) {
 }
 
 // ── Generate ─────────────────────────────────────────────────────────
-async function generateReport(sbUrl, sbKey, apiKey, body) {
+// Exported so /api/cron-weekly-reports can drive the same flow on a
+// schedule without duplicating the Gemini/snapshot/upsert/climb-sync
+// logic. Vercel only treats the `default` export as the route handler;
+// named exports are fine to add.
+export async function generateReport(sbUrl, sbKey, apiKey, body) {
   const { studentId, weekStart } = body || {};
   if (!isUuid(studentId)) throw new Error('studentId must be a UUID');
   if (weekStart != null && !isIsoDate(weekStart)) throw new Error('weekStart must be YYYY-MM-DD');
