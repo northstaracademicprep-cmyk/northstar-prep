@@ -258,6 +258,11 @@ export async function generateReport(sbUrl, sbKey, apiKey, body) {
   });
   const summary = projection.summary;
   snapshot.skillGains = projection.skillGains;
+  // Echo weekGrade into the snapshot so downstream consumers (the approval
+  // email in particular) can read it straight off the report row without
+  // back-deriving from progress_config.weeklyProgress, which can drift if
+  // a later week has been generated before this one is approved.
+  snapshot.weekGrade  = projection.weekGrade;
 
   // 7b) Sync progress_config so the Progress + Game Plan visuals stay
   // consistent week to week:
@@ -502,5 +507,162 @@ async function approveReport(sbUrl, sbKey, body) {
   if (!rows.length) {
     return { approved: 0, message: 'No draft row matched — already approved/sent, or wrong id.' };
   }
+
+  // Send the parent-facing report email via Resend. Best-effort: the
+  // PATCH has already committed status='approved' regardless of what
+  // Resend does, so a failure here MUST NOT throw — we just log and
+  // return success. sendApprovalEmail also skips itself if
+  // email_sent_at is already populated (belt-and-suspenders against
+  // hand-edited status flips).
+  try {
+    await sendApprovalEmail(sbUrl, sbKey, rows[0]);
+  } catch (e) {
+    console.warn(`[weekly-report] approval email failed for report ${rows[0].id}: ${e.message}`);
+  }
+
   return { approved: rows.length, report: rows[0] };
+}
+
+// ── Resend email ─────────────────────────────────────────────────────
+// Fired by approveReport on the draft→approved transition. Single
+// parent-facing message branded navy/gold, summary + skill-boost rows
+// + projected weekly grade + CTA back to the portal. Writes
+// email_sent_at on success so re-running approve (or a hand-flipped
+// row) can't double-send.
+async function sendApprovalEmail(sbUrl, sbKey, report) {
+  if (report.email_sent_at) {
+    console.log(`[weekly-report] report ${report.id} already emailed at ${report.email_sent_at} — skipping`);
+    return;
+  }
+  const resendKey = process.env.RESEND_API_KEY;
+  if (!resendKey) {
+    console.warn('[weekly-report] RESEND_API_KEY not configured — skipping email send');
+    return;
+  }
+
+  // Look up parent_email + display name from the student row referenced
+  // by the report. parent_email is the column added in
+  // 20260601120000_weekly_reports.sql alongside the table itself.
+  const studentRows = await sbGet(sbUrl, sbKey,
+    `/rest/v1/students?select=id,name,parent_email&id=eq.${report.student_id}`);
+  const student = studentRows[0];
+  if (!student) {
+    console.warn(`[weekly-report] student ${report.student_id} not found — skipping email`);
+    return;
+  }
+  if (!student.parent_email) {
+    console.warn(`[weekly-report] no parent_email set for ${student.name} (${student.id}) — skipping email`);
+    return;
+  }
+
+  const snapshot   = report.snapshot || {};
+  const weekN      = snapshot.weekIndex;
+  const weekGrade  = typeof snapshot.weekGrade === 'number' ? snapshot.weekGrade : null;
+  const skillGains = Array.isArray(snapshot.skillGains) ? snapshot.skillGains : [];
+  const summary    = report.summary || '';
+
+  const subjectWeek = weekN != null ? `Week ${weekN} ` : '';
+  const subject = `${student.name} — ${subjectWeek}Progress Report`;
+  const html = buildApprovalEmailHtml({
+    studentName: student.name,
+    weekN, weekGrade, skillGains, summary,
+  });
+
+  const sendRes = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Northstar Academic Prep <reports@send.northstaracademicprep.com>',
+      to: student.parent_email,
+      reply_to: 'sahibsidhu190@gmail.com',
+      subject,
+      html,
+    }),
+  });
+  if (!sendRes.ok) {
+    const detail = await sendRes.text().catch(() => '');
+    throw new Error(`Resend ${sendRes.status}: ${detail.slice(0, 400)}`);
+  }
+
+  // Mark sent. Failure to write the timestamp doesn't unsend the email,
+  // so just warn — caller (approveReport) catches our throws either way.
+  try {
+    await sbPatch(sbUrl, sbKey,
+      `/rest/v1/weekly_reports?id=eq.${report.id}`,
+      { email_sent_at: new Date().toISOString() });
+  } catch (e) {
+    console.warn(`[weekly-report] email sent but could not write email_sent_at: ${e.message}`);
+  }
+  console.log(`[weekly-report] emailed report ${report.id} to ${student.parent_email}`);
+}
+
+function buildApprovalEmailHtml({ studentName, weekN, weekGrade, skillGains, summary }) {
+  // Inline styles only — Gmail/Outlook strip <style> blocks. Colors are
+  // the same navy/gold per the spec; the portal uses slightly different
+  // shades but these are the on-brand "email-safe" pair.
+  const NAVY = '#1B2A4A';
+  const GOLD = '#C9A84C';
+  const firstName = (studentName || 'Your student').split(' ')[0];
+  const safeSummary = escapeHtmlEmail(summary).replace(/\n+/g, '<br><br>');
+  const gainsRows = skillGains
+    .filter(g => g && g.topic && Number.isFinite(Number(g.delta)) && g.delta > 0)
+    .map(g => {
+      const pct = Math.max(0, Math.min(30, Math.round(Number(g.delta))));
+      return `<tr>
+        <td style="padding:10px 14px;font-size:14px;color:${NAVY};font-weight:600;border-bottom:1px solid #eef0f4">${escapeHtmlEmail(g.topic)}</td>
+        <td style="padding:10px 14px;font-size:14px;color:${GOLD};font-weight:800;text-align:right;border-bottom:1px solid #eef0f4">+${pct}%</td>
+      </tr>`;
+    }).join('');
+
+  return `<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f4f5f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1f2937">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f8;padding:24px 12px">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(27,42,74,.08)">
+        <tr>
+          <td style="background:${NAVY};padding:28px 32px;color:#ffffff">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:${GOLD};margin-bottom:6px">Northstar Academic Prep</div>
+            <div style="font-size:22px;font-weight:800;line-height:1.3">${escapeHtmlEmail(firstName)}'s Week ${escapeHtmlEmail(weekN ?? '')} Progress Report</div>
+          </td>
+        </tr>
+        ${typeof weekGrade === 'number' ? `<tr>
+          <td style="padding:24px 32px 6px">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Projected grade this week</div>
+            <div style="font-size:38px;font-weight:800;color:${NAVY};line-height:1">${weekGrade}%</div>
+          </td>
+        </tr>` : ''}
+        <tr>
+          <td style="padding:18px 32px 8px;font-size:15px;line-height:1.7;color:#1f2937">
+            ${safeSummary}
+          </td>
+        </tr>
+        ${gainsRows ? `<tr>
+          <td style="padding:8px 32px 16px">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin:8px 0 8px">Projected skill boost</div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafbfc;border:1px solid #e5e7eb;border-radius:10px;border-collapse:separate">
+              ${gainsRows}
+            </table>
+          </td>
+        </tr>` : ''}
+        <tr>
+          <td align="center" style="padding:18px 32px 32px">
+            <a href="https://portal.northstaracademicprep.com" style="display:inline-block;background:${GOLD};color:${NAVY};text-decoration:none;font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase;padding:14px 28px;border-radius:9px">Open Student Portal →</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#f9fafb;padding:16px 32px;border-top:1px solid #eef0f4;font-size:12px;color:#6b7280;line-height:1.6">
+            These figures are projections from this week's session notes and ${escapeHtmlEmail(firstName)}'s plan — not measured test scores. Reply to this email to reach Northstar directly.
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+function escapeHtmlEmail(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
