@@ -7841,6 +7841,9 @@ async function buildAdminStudents() {
     const hoursLeft= (hoursTotal - hoursUsed).toFixed(1);
     const initials = (s.name||'Student').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const safeName = (s.name||'Student').replace(/'/g,"\\'");
+    // parent_email goes through both onclick args (which are single-quoted)
+    // and any display below, so escape apostrophes the same way as name.
+    const safeParentEmail = (s.parent_email||'').replace(/'/g,"\\'");
     return `<div class="adm-student-card" id="admstu-${s.id}" style="${isCompleted?'opacity:.85;border-style:dashed':''}">
       <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1rem">
         <div class="adm-card-avatar" style="width:46px;height:46px;font-size:1rem;${isCompleted?'background:linear-gradient(135deg,#6b7280,#9ca3af)':''}">${initials}</div>
@@ -7848,7 +7851,7 @@ async function buildAdminStudents() {
           <div style="font-weight:700;color:#0f2044;font-size:.95rem">${s.name} ${isCompleted?'<span style="font-size:.7rem;font-weight:700;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:.1rem .5rem;border-radius:99px;margin-left:.25rem">🎓 Completed</span>':''}</div>
           <div style="font-size:.75rem;color:#64748b">${subj} · Grade ${s.grade||'—'}</div>
         </div>
-        <button onclick="openAdminEditStudent('${s.id}','${safeName}',${hoursUsed},${hoursTotal},'${s.grade||''}','${s.code||''}','${s.tutor_id||''}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:7px;font-size:.75rem;font-weight:600;padding:.3rem .7rem;cursor:pointer;flex-shrink:0">✏️ Edit</button>
+        <button onclick="openAdminEditStudent('${s.id}','${safeName}',${hoursUsed},${hoursTotal},'${s.grade||''}','${s.code||''}','${s.tutor_id||''}','${safeParentEmail}')" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;border-radius:7px;font-size:.75rem;font-weight:600;padding:.3rem .7rem;cursor:pointer;flex-shrink:0">✏️ Edit</button>
       </div>
       <div style="margin-bottom:.5rem">
         <div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;margin-bottom:.3rem">
@@ -7863,6 +7866,10 @@ async function buildAdminStudents() {
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem">
         <span style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#eff6ff;color:#2563eb">Code: ${s.code||'—'}</span>
         ${s.exam_date?`<span style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#fef9ee;color:#92400e">Exam: ${s.exam_date}</span>`:''}
+        ${s.parent_email
+          ? `<span title="${safeParentEmail}" style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#f0fdf4;color:#065f46;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📬 ${s.parent_email}</span>`
+          : `<span title="No parent_email — weekly reports won't email until this is filled in." style="font-size:.7rem;font-weight:600;padding:.2rem .6rem;border-radius:99px;background:#fef2f2;color:#b91c1c">📬 No parent email</span>`
+        }
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.6rem;padding:.45rem .65rem;border-radius:8px;background:${s.tutor_id?'#f0fdf4':'#fffbeb'};border:1px solid ${s.tutor_id?'#bbf7d0':'#fde68a'}">
         <span style="font-size:.75rem;font-weight:600;color:${s.tutor_id?'#065f46':'#92400e'}">${s.tutor_id?`👨‍🏫 ${s.tutors?.name||'Assigned'}`:'⚠️ No tutor assigned'}</span>
@@ -7911,7 +7918,7 @@ function _genCode() {
 
 function openAdminAddStudent() {
   // Reset form
-  ['admNewName','admNewSubjects','admNewGrade','admNewHoursTotal','admNewExamDate'].forEach(id => {
+  ['admNewName','admNewSubjects','admNewParentEmail','admNewGrade','admNewHoursTotal','admNewExamDate'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('admNewCode').value = _genCode();
@@ -7933,6 +7940,7 @@ function closeAdminAddModal() {
 async function saveAdminAddStudent() {
   const name       = document.getElementById('admNewName').value.trim();
   const subjectsRaw= document.getElementById('admNewSubjects').value.trim();
+  const parentEmail= document.getElementById('admNewParentEmail').value.trim();
   const grade      = document.getElementById('admNewGrade').value.trim();
   const hoursTotal = parseFloat(document.getElementById('admNewHoursTotal').value) || 0;
   const examDate   = document.getElementById('admNewExamDate').value || null;
@@ -7941,6 +7949,13 @@ async function saveAdminAddStudent() {
 
   if (!name) { showToast('Please enter the student\'s name.', 'error'); return; }
   if (!code)  { showToast('Access code is required.', 'error'); return; }
+  // Light client-side email validation — empty is OK (it's optional and
+  // can be added later via Edit). If present, require an @ and a dot so
+  // we don't accept obvious typos that would silently break the
+  // weekly-report email send.
+  if (parentEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
+    showToast('Parent email looks invalid — leave blank or fix the format.', 'error'); return;
+  }
 
   const subjects = subjectsRaw ? subjectsRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
 
@@ -7950,6 +7965,7 @@ async function saveAdminAddStudent() {
   const { data, error } = await db.from('students').insert({
     name,
     subjects,
+    parent_email: parentEmail || null,
     grade: grade || null,
     hours_total: hoursTotal,
     hours_used: 0,
@@ -8003,13 +8019,14 @@ async function saveAssignTutor() {
   buildAdminStudents();
 }
 
-function openAdminEditStudent(id, name, hoursUsed, hoursTotal, grade, code, tutorId='') {
-  document.getElementById('admEditStuId').value     = id;
-  document.getElementById('admEditStuName').value   = name;
-  document.getElementById('admEditHoursUsed').value = hoursUsed;
-  document.getElementById('admEditHoursTotal').value= hoursTotal;
-  document.getElementById('admEditGrade').value     = grade;
-  document.getElementById('admEditCode').value      = code;
+function openAdminEditStudent(id, name, hoursUsed, hoursTotal, grade, code, tutorId='', parentEmail='') {
+  document.getElementById('admEditStuId').value      = id;
+  document.getElementById('admEditStuName').value    = name;
+  document.getElementById('admEditParentEmail').value= parentEmail || '';
+  document.getElementById('admEditHoursUsed').value  = hoursUsed;
+  document.getElementById('admEditHoursTotal').value = hoursTotal;
+  document.getElementById('admEditGrade').value      = grade;
+  document.getElementById('admEditCode').value       = code;
   // Populate tutor dropdown
   const sel = document.getElementById('admEditTutor');
   sel.innerHTML = '<option value="">Loading…</option>';
@@ -8023,19 +8040,25 @@ function closeAdminEditModal() {
   document.getElementById('admEditModal').style.display = 'none';
 }
 async function saveAdminEditStudent() {
-  const id         = document.getElementById('admEditStuId').value;
-  const name       = document.getElementById('admEditStuName').value.trim();
-  const hoursUsed  = parseFloat(document.getElementById('admEditHoursUsed').value)||0;
-  const hoursTotal = parseFloat(document.getElementById('admEditHoursTotal').value)||0;
-  const grade      = document.getElementById('admEditGrade').value.trim();
+  const id          = document.getElementById('admEditStuId').value;
+  const name        = document.getElementById('admEditStuName').value.trim();
+  const parentEmail = document.getElementById('admEditParentEmail').value.trim();
+  const hoursUsed   = parseFloat(document.getElementById('admEditHoursUsed').value)||0;
+  const hoursTotal  = parseFloat(document.getElementById('admEditHoursTotal').value)||0;
+  const grade       = document.getElementById('admEditGrade').value.trim();
   // Always store code uppercased — login flow uppercases input before lookup
-  const code       = document.getElementById('admEditCode').value.trim().toUpperCase();
-  const tutorId    = document.getElementById('admEditTutor').value || null;
-  const btn        = document.getElementById('admEditSaveBtn');
+  const code        = document.getElementById('admEditCode').value.trim().toUpperCase();
+  const tutorId     = document.getElementById('admEditTutor').value || null;
+  const btn         = document.getElementById('admEditSaveBtn');
   if (!name) { showToast('Student name cannot be empty','error'); return; }
+  // Same light validation as the Add form — empty is fine, present-but-
+  // malformed is rejected so a typo doesn't quietly break Resend.
+  if (parentEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
+    showToast('Parent email looks invalid — leave blank or fix the format.', 'error'); return;
+  }
   btn.textContent  = 'Saving…'; btn.disabled = true;
   const { error }  = await db.from('students').update({
-    name, hours_used: hoursUsed, hours_total: hoursTotal, grade, code, tutor_id: tutorId
+    name, parent_email: parentEmail || null, hours_used: hoursUsed, hours_total: hoursTotal, grade, code, tutor_id: tutorId
   }).eq('id', id);
   btn.textContent  = 'Save Changes'; btn.disabled = false;
   if (error) { showToast('Error: '+error.message,'error'); return; }
@@ -9571,6 +9594,11 @@ async function loadAdminConvo(studentId, studentName) {
         <label style="display:block;font-size:.72rem;font-weight:700;color:#374151;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.06em">Student Name</label>
         <input id="admEditStuName" type="text" style="width:100%;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
       </div>
+      <div>
+        <label style="display:block;font-size:.72rem;font-weight:700;color:#374151;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.06em">Parent Email</label>
+        <input id="admEditParentEmail" type="email" placeholder="e.g. parent@example.com" autocomplete="off" style="width:100%;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;outline:none" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+        <div style="font-size:.7rem;color:#94a3b8;margin-top:.25rem">Weekly progress reports are emailed here on approval. Leave blank to skip.</div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
         <div>
           <label style="display:block;font-size:.72rem;font-weight:700;color:#374151;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.06em">Hours Used</label>
@@ -9620,6 +9648,11 @@ async function loadAdminConvo(studentId, studentName) {
         <label style="display:block;font-size:.72rem;font-weight:700;color:#374151;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.06em">Subject(s)</label>
         <input id="admNewSubjects" type="text" placeholder="e.g. AP Calc AB, SAT Prep" style="width:100%;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
         <div style="font-size:.7rem;color:#94a3b8;margin-top:.25rem">Separate multiple subjects with commas</div>
+      </div>
+      <div>
+        <label style="display:block;font-size:.72rem;font-weight:700;color:#374151;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.06em">Parent Email</label>
+        <input id="admNewParentEmail" type="email" placeholder="e.g. parent@example.com" autocomplete="off" style="width:100%;padding:.65rem .85rem;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.9rem;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#c9a03a'" onblur="this.style.borderColor='#e5e7eb'">
+        <div style="font-size:.7rem;color:#94a3b8;margin-top:.25rem">Where weekly progress reports are sent. Can be added later via ✏️ Edit.</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
         <div>
