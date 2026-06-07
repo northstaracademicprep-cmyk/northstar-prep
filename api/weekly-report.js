@@ -488,7 +488,11 @@ async function listReports(sbUrl, sbKey, body) {
 }
 
 // ── Approve ──────────────────────────────────────────────────────────
-async function approveReport(sbUrl, sbKey, body) {
+// Exported so /api/cron-weekly-reports can auto-promote drafts created
+// on the Sunday-night cron run without re-implementing the PATCH +
+// Resend email + email_sent_at write. Named export only — the route
+// handler is still the default export.
+export async function approveReport(sbUrl, sbKey, body) {
   const { reportId } = body || {};
   if (!isUuid(reportId)) throw new Error('reportId must be a UUID');
 

@@ -1,14 +1,17 @@
 // ============================================================
 // /api/cron-weekly-reports
-// Sunday 16:00 UTC cron (configured in vercel.json) that auto-
-// generates draft weekly reports for every active student who
+// Monday 02:00 UTC cron (= Sunday 18:00 PT; configured in
+// vercel.json) that auto-generates AND auto-approves the
+// weekly report for every active student who
 //   (a) had at least one session in the past 7 days, AND
 //   (b) doesn't already have a draft- or approved-status row
 //       for the just-ended week.
-// Never auto-approves — the admin still has to promote
-// draft → approved via the Weekly Reports admin tool before
-// anything surfaces on a student's Progress tab. This matches
-// the trust boundary already enforced by /api/weekly-report.
+// Each successful generate is immediately handed to
+// approveReport(), which flips status to 'approved' and fires
+// the parent-facing Resend email in the same run. The admin
+// Weekly Reports tool is now a backstop for retries and for
+// students the cron skipped (no recent sessions), not the
+// primary delivery path.
 //
 // Auth: Vercel cron sends `Authorization: Bearer ${CRON_SECRET}`
 // when CRON_SECRET is set in project env. Any other caller
@@ -18,15 +21,19 @@
 //
 // Returns { generated, skipped, weekStart }. `skipped` lumps
 // together "no recent sessions", "row already exists", and
-// per-student generate errors — granular detail lives in the
+// per-student generate errors. A generate that succeeds but
+// whose auto-approve PATCH fails still counts as `generated`
+// (the row IS in the DB) — admins can promote it by hand from
+// the Weekly Reports admin tool. Granular detail lives in the
 // Vercel function logs (one console.log per branch).
 //
-// Reuses generateReport() from /api/weekly-report.js so the
-// Gemini call, snapshot build, weekly_reports upsert, and
-// progress_config climb-sync stay in one place.
+// Reuses generateReport() + approveReport() from
+// /api/weekly-report.js so the Gemini call, snapshot build,
+// weekly_reports upsert, progress_config climb-sync, and
+// Resend send all stay in one place.
 // ============================================================
 
-import { generateReport } from './weekly-report.js';
+import { generateReport, approveReport } from './weekly-report.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -100,17 +107,37 @@ export default async function handler(req, res) {
         skipped++;
         continue;
       }
+      let generatedReportId = null;
       try {
-        await generateReport(sbUrl, sbKey, apiKey, {
+        const result = await generateReport(sbUrl, sbKey, apiKey, {
           studentId: s.id,
           weekStart: weekStartIso,
         });
+        generatedReportId = result?.report?.id || null;
         generated++;
       } catch (e) {
         // One bad student shouldn't stop the rest of the run — log and
         // count as skipped so the response totals stay accurate.
         console.warn(`[cron-weekly-reports] generate failed for ${s.id} (${s.name}): ${e.message}`);
         skipped++;
+        continue;
+      }
+
+      // Auto-approve immediately so the parent email goes out in the
+      // same run. approveReport handles the status PATCH, the Resend
+      // call, and writing email_sent_at; its email send is already
+      // best-effort (missing parent_email, missing RESEND_API_KEY, or
+      // a Resend 4xx all log and continue rather than throw). So a
+      // throw here is a hard failure of the PATCH itself — the report
+      // exists as draft and the admin can still promote it manually
+      // via the Weekly Reports admin tool. We log + leave `generated`
+      // counted (the row IS in the DB) and move on.
+      if (generatedReportId) {
+        try {
+          await approveReport(sbUrl, sbKey, { reportId: generatedReportId });
+        } catch (e) {
+          console.warn(`[cron-weekly-reports] auto-approve failed for ${s.id} (${s.name}) report=${generatedReportId}: ${e.message}`);
+        }
       }
     }
 
