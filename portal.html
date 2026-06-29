@@ -9433,6 +9433,7 @@ async function buildAdminTutorMgmt() {
               <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">SAT Score</label><input id="te-sat-${t.id}" type="number" value="${t.sat_score||''}" placeholder="e.g. 1450" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
               <div><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Hourly Rate ($)</label><input id="te-pay-${t.id}" type="number" step="0.5" value="${t.hourly_rate||''}" placeholder="e.g. 25" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
             </div>
+            <div style="margin-bottom:.65rem"><label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.25rem">Email</label><input id="te-email-${t.id}" type="email" value="${t.email||''}" placeholder="tutor@email.com" autocomplete="off" style="width:100%;padding:.5rem .7rem;border:1.5px solid #e5e7eb;border-radius:7px;font-size:.82rem;outline:none"></div>
             <div style="margin-bottom:.65rem">
               <label style="font-size:.7rem;font-weight:700;color:#374151;display:block;margin-bottom:.4rem">AP Exams Taken</label>
               <table style="width:100%;border-collapse:collapse;font-size:.8rem" id="aptable-${t.id}">
@@ -9532,9 +9533,15 @@ function removeAPRow(tutorId, rowId) {
 async function saveTutorProfile(id) {
   const sat      = parseInt(document.getElementById('te-sat-'+id)?.value)||null;
   const pay      = parseFloat(document.getElementById('te-pay-'+id)?.value)||null;
+  const email    = (document.getElementById('te-email-'+id)?.value||'').trim();
   const subjRaw  = document.getElementById('te-subj-'+id)?.value||'';
   const exp      = document.getElementById('te-exp-'+id)?.value||'';
   const bio      = document.getElementById('te-bio-'+id)?.value||'';
+  // Same light validation as parent_email / students.email in the
+  // student forms — empty is fine, present-but-malformed is rejected.
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Tutor email looks invalid — leave blank or fix the format.', 'error'); return;
+  }
   const subjects_can_teach = subjRaw.split(',').map(s=>s.trim()).filter(Boolean);
   // Read AP scores table
   const apRows = document.querySelectorAll('#aprows-'+id+' tr');
@@ -9567,7 +9574,7 @@ async function saveTutorProfile(id) {
   });
   const availability_days = [...new Set(availability_schedule.map(s=>s.day))];
   const { error } = await db.from('tutors').update({
-    sat_score: sat, hourly_rate: pay, ap_courses_taken, ap_scores, subjects_can_teach,
+    sat_score: sat, hourly_rate: pay, email: email || null, ap_courses_taken, ap_scores, subjects_can_teach,
     availability_days, availability_schedule, experience_notes: exp||null, bio: bio||null
   }).eq('id', id);
   if (error) { showToast('Error: '+error.message,'error'); return; }
