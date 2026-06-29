@@ -6653,6 +6653,18 @@ async function sendMessage(studentId, senderRole, senderName) {
   if (_chatChannel && msg.id) {
     _chatChannel.send({ type:'broadcast', event:'new_message', payload: msg });
   }
+
+  // 4. Fire-and-forget email notification. Don't await — UI already
+  //    rendered and the recipient is reached either way (realtime if
+  //    open, email if not). Server enforces idempotency via
+  //    messages.notified_at, so accidental double-dispatch is safe.
+  if (msg.id) {
+    fetch('/api/notify-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messageId: msg.id, studentId })
+    }).catch(err => console.warn('[notify-message] dispatch failed:', err));
+  }
 }
 
 /* ── EDIT / DELETE MESSAGES ── */
