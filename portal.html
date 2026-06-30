@@ -8291,44 +8291,23 @@ async function adminResetPractice(studentId, name) {
     `Account, login code, sessions, homework, and messages will NOT be touched. Cannot be undone.`
   )) return;
 
-  // The admin secret is held in sessionStorage so the prompt only happens
-  // once per admin session. Clearing it on 401 forces a re-prompt next time.
-  let adminSecret = sessionStorage.getItem('adminResetSecret');
-  if (!adminSecret) {
-    adminSecret = prompt('Admin secret (set as ADMIN_RESET_SECRET in Vercel env):');
-    if (!adminSecret) return;
-  }
-
   let res;
   try {
     res = await fetch('/api/reset-practice', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentId, adminSecret }),
+      body: JSON.stringify({ studentId }),
     });
   } catch (err) {
     showToast(`Network error: ${err.message}`, 'error');
     return;
   }
 
-  if (res.status === 401) {
-    sessionStorage.removeItem('adminResetSecret');
-    showToast('Wrong admin secret — try again.', 'error');
-    return;
-  }
-  if (res.status === 503) {
-    const body = await res.json().catch(() => ({}));
-    showToast(body.error || 'Server not configured (ADMIN_RESET_SECRET missing in Vercel env)', 'error');
-    return;
-  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     showToast(`Error: ${body.detail || body.error || `HTTP ${res.status}`}`, 'error');
     return;
   }
-
-  // Cache the secret on first successful use so subsequent resets don't prompt.
-  sessionStorage.setItem('adminResetSecret', adminSecret);
 
   const data = await res.json();
 
@@ -8446,23 +8425,12 @@ function _seedLogAppend(html) {
   log.scrollTop = log.scrollHeight;
 }
 
-function _seedSecretPrompt() {
-  let s = sessionStorage.getItem('adminResetSecret');
-  if (!s) {
-    s = prompt('Admin secret (ADMIN_RESET_SECRET):');
-    if (s) sessionStorage.setItem('adminResetSecret', s);
-  }
-  return s;
-}
-
 async function seedAllStart() {
   if (_seedRunning) {
     _seedCancelled = true;
     _seedLogAppend(`<span style="color:#fbbf24">⏸ Cancel requested — finishing current call…</span>`);
     return;
   }
-  const secret = _seedSecretPrompt();
-  if (!secret) return;
   const subject = document.getElementById('seedSubject').value;
   const count = Math.max(1, Math.min(20, Number(document.getElementById('seedCount').value) || 10));
   const units = SEED_UNITS_BY_SUBJECT[subject] || [];
@@ -8487,20 +8455,11 @@ async function seedAllStart() {
     const job = jobs[i];
     _seedLogAppend(`<span style="color:#94a3b8">[${i + 1}/${jobs.length}] ⏳ ${job.label}…</span>`);
     try {
-      const r = await _seedCall(subject, job.type, job.unit, count, secret);
+      const r = await _seedCall(subject, job.type, job.unit, count);
       totalInserted += r.inserted;
       _seedLogAppend(`<span style="color:#34d399">[${i + 1}/${jobs.length}] ✅ ${job.label}: ${r.inserted} inserted${r.skipped ? `, ${r.skipped} skipped` : ''}</span>`);
     } catch (err) {
       _seedLogAppend(`<span style="color:#f87171">[${i + 1}/${jobs.length}] ❌ ${job.label}: ${escapeHtmlPortal(err.message)}</span>`);
-      if (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')) {
-        sessionStorage.removeItem('adminResetSecret');
-        _seedLogAppend(`<span style="color:#fbbf24">Wrong admin secret — aborting.</span>`);
-        break;
-      }
-      if (err.message.includes('503')) {
-        _seedLogAppend(`<span style="color:#fbbf24">Server missing ADMIN_RESET_SECRET env var — aborting.</span>`);
-        break;
-      }
     }
     if (i < jobs.length - 1 && !_seedCancelled) {
       _seedLogAppend(`<span style="color:#64748b">    waiting ${SEED_THROTTLE_MS / 1000}s …</span>`);
@@ -8516,25 +8475,20 @@ async function seedAllStart() {
 }
 
 async function seedOneFromUi(type, unit) {
-  const secret = _seedSecretPrompt();
-  if (!secret) return;
   const subject = document.getElementById('seedSubject').value;
   const count = Math.max(1, Math.min(20, Number(document.getElementById('seedCount').value) || 10));
   const label = type === 'mcq' ? `MCQ · ${unit}` : type.toUpperCase() + ' batch';
   _seedLogAppend(`<span style="color:#94a3b8">⏳ ${label}…</span>`);
   try {
-    const r = await _seedCall(subject, type, unit, count, secret);
+    const r = await _seedCall(subject, type, unit, count);
     _seedLogAppend(`<span style="color:#34d399">✅ ${label}: ${r.inserted} inserted${r.skipped ? `, ${r.skipped} skipped` : ''}</span>`);
   } catch (err) {
     _seedLogAppend(`<span style="color:#f87171">❌ ${label}: ${escapeHtmlPortal(err.message)}</span>`);
-    if (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')) {
-      sessionStorage.removeItem('adminResetSecret');
-    }
   }
 }
 
-async function _seedCall(subject, type, unit, count, secret) {
-  const body = { subject, questionType: type, count, adminSecret: secret };
+async function _seedCall(subject, type, unit, count) {
+  const body = { subject, questionType: type, count };
   if (unit) body.unit = unit;
   const res = await fetch('/api/seed-batch', {
     method: 'POST',
@@ -8551,9 +8505,8 @@ async function _seedCall(subject, type, unit, count, secret) {
 
 /* ── REVIEW QUEUE ─────────────────────────────────────────────────────────────
    Phase 1b: in-portal approval/rejection of AI-seeded questions. Reads and
-   writes go through /api/review-queue (gated by ADMIN_RESET_SECRET +
-   service-role key). SAQ's 3 parts arrive as one item so the admin reviews
-   them as a single unit.
+   writes go through /api/review-queue (service-role key on the server).
+   SAQ's 3 parts arrive as one item so the admin reviews them as a single unit.
 ─────────────────────────────────────────────────────────────────────────────── */
 let _rqQueue = [];
 let _rqIdx = 0;
@@ -8575,15 +8528,8 @@ async function buildAdminReviewQueue() {
     </div>
   `;
 
-  const secret = _seedSecretPrompt();
-  if (!secret) {
-    document.getElementById('rqHost').innerHTML =
-      `<div style="text-align:center;color:#94a3b8;padding:1rem">Cancelled — admin secret required.</div>`;
-    return;
-  }
-
   try {
-    const data = await _rqCall({ action: 'list', adminSecret: secret });
+    const data = await _rqCall({ action: 'list' });
     _rqQueue = Array.isArray(data.items) ? data.items : [];
     _rqByType = data.byType || {};
     _rqIdx = 0;
@@ -8715,10 +8661,8 @@ function _rqRenderLeq(item) {
 async function rqApproveCurrent() {
   const item = _rqQueue[_rqIdx];
   if (!item) return;
-  const secret = sessionStorage.getItem('adminResetSecret');
-  if (!secret) { showToast('Admin secret missing — reopen Review Queue.', 'error'); return; }
   try {
-    await _rqCall({ action: 'approve', adminSecret: secret, parentNumber: item.parentNumber, subject: item.subject });
+    await _rqCall({ action: 'approve', parentNumber: item.parentNumber, subject: item.subject });
     _rqByType[item.questionType] = Math.max(0, (_rqByType[item.questionType] || 1) - 1);
     _rqQueue.splice(_rqIdx, 1);
     _renderReviewItem();
@@ -8733,10 +8677,8 @@ async function rqRejectCurrent() {
   if (!item) return;
   const label = item.questionType === 'saq' ? 'SAQ (all 3 parts)' : item.questionType.toUpperCase();
   if (!confirm(`Permanently delete this ${label}? This cannot be undone.`)) return;
-  const secret = sessionStorage.getItem('adminResetSecret');
-  if (!secret) { showToast('Admin secret missing — reopen Review Queue.', 'error'); return; }
   try {
-    await _rqCall({ action: 'reject', adminSecret: secret, parentNumber: item.parentNumber, subject: item.subject });
+    await _rqCall({ action: 'reject', parentNumber: item.parentNumber, subject: item.subject });
     _rqByType[item.questionType] = Math.max(0, (_rqByType[item.questionType] || 1) - 1);
     _rqQueue.splice(_rqIdx, 1);
     _renderReviewItem();
@@ -8761,7 +8703,6 @@ async function _rqCall(payload) {
   if (!res.ok) {
     let detail = '';
     try { const j = await res.json(); detail = j.detail || j.error || ''; } catch {}
-    if (res.status === 401) sessionStorage.removeItem('adminResetSecret');
     throw new Error(`HTTP ${res.status}${detail ? ' · ' + detail.slice(0, 200) : ''}`);
   }
   return res.json();
@@ -8772,8 +8713,7 @@ async function _rqCall(payload) {
    "Generate this week" calls /api/weekly-report action=generate (writes a
    draft + projection, syncs progress_config.currentGrade + weeklyProgress);
    "Approve" promotes draft→approved so the row surfaces on the student's
-   Progress tab. Gated by ADMIN_RESET_SECRET, same as Review Queue and
-   Seed Bank.
+   Progress tab.
 ─────────────────────────────────────────────────────────────────────────────*/
 async function buildAdminWeeklyReports() {
   const body = document.getElementById('admBody');
@@ -8828,18 +8768,15 @@ async function _wrCall(payload) {
   if (!res.ok) {
     let detail = '';
     try { const j = await res.json(); detail = j.detail || j.error || ''; } catch {}
-    if (res.status === 401) sessionStorage.removeItem('adminResetSecret');
     throw new Error(`HTTP ${res.status}${detail ? ' · ' + detail.slice(0, 200) : ''}`);
   }
   return res.json();
 }
 
 async function adminGenWR(studentId) {
-  const secret = _seedSecretPrompt();
-  if (!secret) return;
   showToast('Generating projection…', 'info');
   try {
-    await _wrCall({ action: 'generate', adminSecret: secret, studentId });
+    await _wrCall({ action: 'generate', studentId });
     showToast('Draft report ready. Approve to publish.', 'success');
     buildAdminWeeklyReports();
   } catch (e) {
@@ -8848,10 +8785,8 @@ async function adminGenWR(studentId) {
 }
 
 async function adminApproveWR(reportId) {
-  const secret = sessionStorage.getItem('adminResetSecret') || _seedSecretPrompt();
-  if (!secret) return;
   try {
-    await _wrCall({ action: 'approve', adminSecret: secret, reportId });
+    await _wrCall({ action: 'approve', reportId });
     showToast('Approved. Now visible on student Progress.', 'success');
     buildAdminWeeklyReports();
   } catch (e) {

@@ -4,7 +4,7 @@
 // Review Queue admin UI so a human can approve AI-seeded questions
 // without leaving the portal.
 //
-// POST { action, adminSecret, ... }
+// POST { action, ... }
 //   action: "list"     → returns unapproved AI questions, SAQ parts
 //                        collapsed into a single item per parent.
 //   action: "approve"  → flips approved=true, reviewed_at=now(),
@@ -12,10 +12,9 @@
 //                        (subject, parent_question_number).
 //   action: "reject"   → DELETEs every row matching the same key.
 //
-// Gated by ADMIN_RESET_SECRET (reused — same admin trust boundary as
-// /api/reset-practice and /api/seed-batch). Writes are scoped to
-// ai_generated=true AND approved=false so the curated College Board
-// set is unreachable even with a wrong parent_question_number.
+// Writes are scoped to ai_generated=true AND approved=false so the
+// curated College Board set is unreachable even with a wrong
+// parent_question_number.
 // ============================================================
 
 const VALID_ACTIONS = new Set(['list', 'approve', 'reject']);
@@ -29,14 +28,9 @@ export default async function handler(req, res) {
 
   const sbUrl  = process.env.SUPABASE_URL;
   const sbKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const secret = process.env.ADMIN_RESET_SECRET;
   if (!sbUrl || !sbKey) return res.status(500).json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured on server' });
-  if (!secret)          return res.status(503).json({ error: 'ADMIN_RESET_SECRET not configured on server — set it in Vercel project settings' });
 
-  const { action, adminSecret, parentNumber, subject } = req.body || {};
-  if (typeof adminSecret !== 'string' || adminSecret !== secret) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const { action, parentNumber, subject } = req.body || {};
   if (!VALID_ACTIONS.has(action)) {
     return res.status(400).json({ error: `Invalid action: ${action}` });
   }

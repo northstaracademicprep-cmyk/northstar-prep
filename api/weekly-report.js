@@ -4,7 +4,7 @@
 // + storage only — no email, no cron, no portal UI. Admin eyeballs
 // the draft in weekly_reports before anything ships to families.
 //
-// POST { action, adminSecret, ... }
+// POST { action, ... }
 //   action: "generate" → build/refresh the report for one student.
 //                        Body: { studentId, weekStart? (ISO date) }.
 //                        Defaults weekStart to the most recent Sunday
@@ -15,9 +15,6 @@
 //                        Body: { studentId, limit? }
 //   action: "approve"  → flip status 'draft' → 'approved'.
 //                        Body: { reportId }
-//
-// Gated by ADMIN_RESET_SECRET (same trust boundary as
-// /api/reset-practice, /api/seed-batch, /api/review-queue).
 //
 // Practice Avg source: matches the portal's My Progress card exactly.
 // That card blends legacy practice_attempts (one row per session,
@@ -40,14 +37,9 @@ export default async function handler(req, res) {
   const sbUrl  = process.env.SUPABASE_URL;
   const sbKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const apiKey = process.env.GEMINI_API_KEY;
-  const secret = process.env.ADMIN_RESET_SECRET;
   if (!sbUrl || !sbKey) return res.status(500).json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured on server' });
-  if (!secret)          return res.status(503).json({ error: 'ADMIN_RESET_SECRET not configured on server — set it in Vercel project settings' });
 
-  const { action, adminSecret } = req.body || {};
-  if (typeof adminSecret !== 'string' || adminSecret !== secret) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const { action } = req.body || {};
   if (!VALID_ACTIONS.has(action)) {
     return res.status(400).json({ error: `Invalid action: ${action}` });
   }

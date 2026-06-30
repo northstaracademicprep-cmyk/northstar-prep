@@ -5,17 +5,6 @@
 // quiz (practice_attempts) for that student, and bumps the student's
 // practice_reset_at so other devices flush their seen-question cache
 // on next login. Account, sessions, homework, messages are untouched.
-//
-// Gating: requires { adminSecret } in the request body and compares it
-// to process.env.ADMIN_RESET_SECRET on the server. The client never
-// sees the real value. Returns 401 on mismatch, 503 if the env var
-// isn't configured (so the button is effectively disabled until you
-// set it in Vercel project settings → Environment Variables).
-//
-// Why not RLS / real auth: the project has no auth layer today — the
-// admin "login" is a hardcoded code in portal.html. This adds one
-// targeted hardening on the highest-risk action (irreversible delete)
-// without rebuilding all auth.
 // ============================================================
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -26,18 +15,9 @@ export default async function handler(req, res) {
 
   const sbUrl  = process.env.SUPABASE_URL;
   const sbKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const secret = process.env.ADMIN_RESET_SECRET;
   if (!sbUrl || !sbKey) return res.status(500).json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured on server' });
-  if (!secret) {
-    return res.status(503).json({
-      error: 'ADMIN_RESET_SECRET not configured on server — set it in Vercel project settings before using this endpoint',
-    });
-  }
 
-  const { studentId, adminSecret } = req.body || {};
-  if (typeof adminSecret !== 'string' || adminSecret !== secret) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const { studentId } = req.body || {};
   if (!isUuid(studentId)) {
     return res.status(400).json({ error: 'studentId must be a UUID' });
   }

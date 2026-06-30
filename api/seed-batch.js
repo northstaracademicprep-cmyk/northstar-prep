@@ -6,10 +6,6 @@
 // question bank with reviewable AI batches so Phase 2's serve path can
 // hand questions to students instantly without firing Gemini per Next.
 //
-// Gated by ADMIN_RESET_SECRET (reused — same admin trust boundary as
-// /api/reset-practice; no point managing a second secret for the same
-// admin operator).
-//
 // Model: full gemini-2.5-flash, not flash-lite. This is an interactive
 // off-hours admin op, well within the daily flash quota, and quality
 // matters more than per-request cost since admin reviews every output.
@@ -33,15 +29,10 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   const sbUrl  = process.env.SUPABASE_URL;
   const sbKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const secret = process.env.ADMIN_RESET_SECRET;
   if (!apiKey)          return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
   if (!sbUrl || !sbKey) return res.status(500).json({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured on server' });
-  if (!secret)          return res.status(503).json({ error: 'ADMIN_RESET_SECRET not configured on server — set it in Vercel project settings' });
 
-  const { subject, questionType, unit, count, adminSecret } = req.body || {};
-  if (typeof adminSecret !== 'string' || adminSecret !== secret) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const { subject, questionType, unit, count } = req.body || {};
   if (!subject || typeof subject !== 'string') {
     return res.status(400).json({ error: 'Missing subject' });
   }
