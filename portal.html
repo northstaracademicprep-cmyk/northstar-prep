@@ -12510,7 +12510,7 @@ function homeworkCardHTML(a, studentId) {
           <textarea class="hw-textarea" id="hwtext-${a.id}" placeholder="Type your written response here…"></textarea>
           <div class="hw-or">— or upload a photo / PDF of your handwritten work —</div>
           <div class="hw-file-zone" id="hwzone-${a.id}">
-            <input type="file" accept="image/*,.pdf" onchange="hwFileSelected('${a.id}',this)">
+            <input type="file" accept="image/*,.pdf" multiple onchange="hwFileSelected('${a.id}',this)">
             <div class="hw-file-zone-text">📷 Click to upload photo or PDF</div>
             <div class="hw-file-selected" id="hwfile-label-${a.id}"></div>
           </div>
@@ -12522,14 +12522,14 @@ function homeworkCardHTML(a, studentId) {
         <div class="hw-submitted-view">
           <div class="hs-label">✅ Submitted — waiting for ${currentStudent.tutors?.name?.split(' ')[0]||'your tutor'} to grade</div>
           ${a.submissionText?`<div style="font-size:.83rem;color:#374151;margin-top:.4rem">${a.submissionText}</div>`:''}
-          ${a.submissionUrl?`<a href="${a.submissionUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-top:.5rem">📷 View your uploaded work</a>`:''}
+          ${hwSubLinks(a.submissionUrl,'View your uploaded work')}
         </div>` : ''}
       ${isGraded ? `
         <div class="hw-submitted-view">
           ${a.score!=null?`<div class="hw-score-badge">Score: ${a.score} / ${a.maxScore}</div>`:''}
           <div class="hs-label" style="margin-top:.35rem">${currentStudent.tutors?.name?.split(' ')[0]||'Tutor'}'s Feedback:</div>
           <div class="hw-feedback-box">${a.feedback||'No feedback yet.'}</div>
-          ${a.submissionUrl?`<a href="${a.submissionUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-top:.5rem">📷 Your submitted work</a>`:''}
+          ${hwSubLinks(a.submissionUrl,'Your submitted work')}
         </div>` : ''}
     </div>
   </div>`;
@@ -12543,7 +12543,35 @@ function toggleHWCard(id) {
 }
 function hwFileSelected(id, input) {
   const label = document.getElementById('hwfile-label-'+id);
-  if (label && input.files[0]) label.textContent = '✓ ' + input.files[0].name;
+  if (!label) return;
+  const n = input.files ? input.files.length : 0;
+  label.textContent = n === 0 ? '' : n === 1 ? ('✓ ' + input.files[0].name) : `✓ ${n} files selected`;
+}
+/* Parse a submission value into an array (back-compat: old rows hold a single string) */
+function parseSubs(val){
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string' && val.trim().startsWith('[')) {
+    try { const a = JSON.parse(val); return Array.isArray(a) ? a : [val]; } catch(e) { return [val]; }
+  }
+  return [val];
+}
+/* Student-facing: render each submitted file as a link */
+function hwSubLinks(val, label){
+  const items = parseSubs(val);
+  if (!items.length) return '';
+  return items.map((u,i)=>`<a href="${u}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-top:.5rem;margin-right:.6rem">📷 ${label}${items.length>1?(' '+(i+1)):''}</a>`).join('');
+}
+/* Tutor-facing: render each submitted image inline, links otherwise */
+function hwSubTutor(val){
+  const items = parseSubs(val);
+  if (!items.length) return '';
+  return items.map((u,i)=>{
+    if (typeof u === 'string' && u.startsWith('data:image')) {
+      return `<div style="margin-bottom:.75rem"><img src="${u}" alt="Student submission ${i+1}" style="max-width:100%;max-height:320px;border-radius:8px;border:1px solid #e5e7eb;display:block"></div>`;
+    }
+    return `<a href="${u}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-bottom:.75rem;margin-right:.6rem">📷 View submitted work${items.length>1?(' '+(i+1)):''}</a>`;
+  }).join('');
 }
 
 /* ── IMAGE UTILS ── */
@@ -12575,46 +12603,51 @@ async function submitHomework(hwId, studentId) {
   const linkEl  = document.getElementById('hwlink-'+hwId);
   const fileInput = zoneEl ? zoneEl.querySelector('input[type="file"]') : null;
   const text      = textEl ? textEl.value.trim() : '';
-  const file      = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
+  const files     = fileInput && fileInput.files ? Array.from(fileInput.files) : [];
   const pastedLink= linkEl ? linkEl.value.trim() : '';
-  if (!text && !file && !pastedLink) { showToast('Please write a response, upload a photo, or paste a link.','error'); return; }
+  if (!text && !files.length && !pastedLink) { showToast('Please write a response, upload a photo, or paste a link.','error'); return; }
 
   const btn = document.getElementById('hwsubmit-'+hwId);
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
-  let submissionUrl = pastedLink || null;
-
-  // Convert image to base64 (stored directly in DB — no storage bucket needed)
-  if (file) {
+  // Collect EVERY uploaded file (multiple photos/PDFs supported) plus an optional pasted link.
+  // Images are compressed to base64 and stored in the row; PDFs go to the storage bucket.
+  const subs = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     const isImage = file.type.startsWith('image/');
     if (isImage) {
+      if (file.size > 10 * 1024 * 1024) {
+        showToast(`"${file.name}" is too large (max 10MB). Please compress it or paste a Google Drive link.`,'error');
+        if (btn) { btn.disabled=false; btn.textContent='Submit Assignment →'; }
+        return;
+      }
       try {
-        if (file.size > 10 * 1024 * 1024) {
-          showToast('Photo is too large (max 10MB). Please compress it or paste a Google Drive link.','error');
-          if (btn) { btn.disabled=false; btn.textContent='Submit Assignment →'; }
-          return;
-        }
-        if (btn) btn.textContent = 'Processing photo…';
-        submissionUrl = await resizeImageToBase64(file);
+        if (btn) btn.textContent = files.length > 1 ? `Processing photo ${i+1} of ${files.length}…` : 'Processing photo…';
+        subs.push(await resizeImageToBase64(file));
       } catch(imgErr) {
         console.warn('Image conversion failed:', imgErr);
-        showToast('Could not process image. Try pasting a Google Drive link instead.','error');
+        showToast('Could not process an image. Try pasting a Google Drive link instead.','error');
       }
     } else {
       // Non-image file (PDF etc) — try storage, fall back to telling user to use a link
       try {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-        const path = `${studentId}/${hwId}_${Date.now()}_${safeName}`;
+        const path = `${studentId}/${hwId}_${Date.now()}_${i}_${safeName}`;
         const { error: upErr } = await db.storage.from('submissions').upload(path, file, {upsert:true});
         if (!upErr) {
           const { data: urlData } = db.storage.from('submissions').getPublicUrl(path);
-          submissionUrl = urlData.publicUrl;
+          subs.push(urlData.publicUrl);
         } else {
-          if (!pastedLink) showToast('PDF upload failed. Please paste a Google Drive link to your PDF instead.','error');
+          if (!pastedLink) showToast(`"${file.name}" upload failed. Please paste a Google Drive link to your PDF instead.`,'error');
         }
       } catch(e) { console.warn('PDF upload error:', e); }
     }
   }
+  if (pastedLink) subs.push(pastedLink);
+
+  // One value for a single submission (back-compat) or a JSON array for multiple
+  const submissionUrl = subs.length === 0 ? null : subs.length === 1 ? subs[0] : JSON.stringify(subs);
 
   try {
     if (btn) btn.textContent = 'Saving…';
@@ -12625,9 +12658,10 @@ async function submitHomework(hwId, studentId) {
       submitted_at: new Date().toISOString()
     }).eq('id', hwId);
     if (error) throw error;
-    const hasPhoto = submissionUrl && submissionUrl.startsWith('data:');
-    const hasLink  = submissionUrl && !submissionUrl.startsWith('data:');
-    showToast(hasPhoto ? `Submitted with photo! ${currentStudent.tutors?.name?.split(' ')[0]||'Your tutor'} will see it. ✅` : hasLink ? 'Submitted with link! ✅' : 'Submitted! ✅','success');
+    const who = currentStudent.tutors?.name?.split(' ')[0] || 'Your tutor';
+    const n = subs.length;
+    const anyPhoto = subs.some(u => typeof u === 'string' && u.startsWith('data:'));
+    showToast(n > 1 ? `Submitted ${n} files! ${who} will see them. ✅` : anyPhoto ? `Submitted with photo! ${who} will see it. ✅` : n === 1 ? 'Submitted with link! ✅' : 'Submitted! ✅','success');
     const fresh = await loadFromSupabase(sessionStorage.getItem('portalCode'));
     if (fresh) { currentStudent = fresh; buildAssignments(); }
   } catch(err) {
@@ -13690,7 +13724,7 @@ function buildTutorAssignmentsPanel(homework, studentId, subject) {
           ${h.status==='submitted'?`
           <div class="t-grade-expand">
             ${h.submission_text?`<div class="t-submission-text">${h.submission_text}</div>`:''}
-            ${h.submission_url?(h.submission_url.startsWith('data:image')?`<div style="margin-bottom:.75rem"><img src="${h.submission_url}" alt="Student submission" style="max-width:100%;max-height:320px;border-radius:8px;border:1px solid #e5e7eb;display:block"></div>`:`<a href="${h.submission_url}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#3b82f6;font-size:.8rem;font-weight:600;margin-bottom:.75rem">📷 View submitted work</a>`):''}
+            ${hwSubTutor(h.submission_url)}
             <div style="display:flex;gap:.65rem;align-items:center;flex-wrap:wrap">
               <input type="number" min="0" max="100" placeholder="Score /100" class="t-input" id="grade-score-${h.id}" style="width:110px">
               <input type="text" placeholder="Feedback for student…" class="t-input" id="grade-fb-${h.id}" style="flex:1;min-width:180px">
