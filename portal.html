@@ -11508,6 +11508,30 @@ function buildPracticeVault() {
     return;
   }
 
+  if (subjects.some(s => s === 'apeuro' || s === 'ap european history' || s === 'ap european')) {
+    container.innerHTML = `
+      <div class="pv-hero">
+        <div class="pv-hero-text">
+          <h2>🎯 Practice Vault</h2>
+          <p>Multiple-choice practice for AP European History.</p>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2.5rem 2rem;text-align:center">
+        <div style="font-size:2.5rem;margin-bottom:1rem">🏰</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#0f2044;margin-bottom:.6rem">AP European History Practice</div>
+        <div style="font-size:.9rem;color:#64748b;margin-bottom:1.75rem;line-height:1.65;max-width:480px;margin-left:auto;margin-right:auto">
+          54 questions across all 9 units, many built on primary-source stimuli. Answer, then see the explanation and why each distractor is wrong.
+        </div>
+        <a href="vault-v2.html?subject=apeuro&mode=mcq" style="display:inline-block;background:var(--navy);color:#fff;padding:.85rem 2rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:.95rem">
+          Open Practice Vault →
+        </a>
+        <div style="margin-top:1rem;font-size:.75rem;color:#94a3b8">
+          Opens in this tab. Your responses save automatically.
+        </div>
+      </div>`;
+    return;
+  }
+
   const result = getPracticeBank(currentStudent?.subjects);
   if (!result) {
     const subj = (currentStudent?.subjects||[])[0] || 'your subject';

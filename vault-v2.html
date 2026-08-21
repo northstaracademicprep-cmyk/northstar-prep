@@ -524,6 +524,7 @@ code {
   const SUBJECT_MAP = {
     apush:   { dbSubject: 'AP US History',    label: 'APUSH FRQs',         year: '2025' },
     apworld: { dbSubject: 'AP World History', label: 'AP World History FRQs', year: '2025' },
+    apeuro:  { dbSubject: 'AP European History', label: 'AP European History Practice', year: '2025', mcqSource: 'bank' },
   };
   const subjectKey  = (new URLSearchParams(location.search).get('subject') || 'apush').toLowerCase();
   const subjectCfg  = SUBJECT_MAP[subjectKey] || SUBJECT_MAP['apush'];
@@ -593,6 +594,8 @@ code {
       inFlight: false,        // user-facing on-demand fetch in progress
       buffer: [],             // pre-fetched items, target PRACTICE_PREFETCH_TARGET deep
       prefetchInFlight: false, // background prefetch in progress
+      bankPool: null,          // bank-served MCQ: cached rows from question_bank (null = not loaded)
+      bankQueue: [],           // bank-served MCQ: shuffled draw queue; refills from bankPool when empty
     },
   };
 
@@ -1303,9 +1306,11 @@ code {
 
   function renderStartCta(type) {
     const meta = PRACTICE_TYPE_META[type];
-    const hint = type === 'mcq'
-      ? 'Pick a unit above, then click Start. Each question is freshly generated.'
-      : 'Click Start. Each question is freshly generated; stop whenever you like.';
+    const hint = type === 'mcq' && subjectCfg.mcqSource === 'bank'
+      ? 'Click Start. Real approved questions with explanations after each answer.'
+      : type === 'mcq'
+        ? 'Pick a unit above, then click Start. Each question is freshly generated.'
+        : 'Click Start. Each question is freshly generated; stop whenever you like.';
     document.getElementById('practice-card').innerHTML = `
       <div class="mcq-start-cta">
         <div class="mcq-start-cta-title">${escapeHtml(meta.tag)} — ready when you are</div>
@@ -1324,11 +1329,46 @@ code {
     return units.find(u => u.id === state.practice.unitId) || units[0];
   }
 
+  // Bank-served MCQ: fetch approved rows once, then serve locally by draining
+  // a shuffled queue. Queue refills from the pool when empty → endless
+  // practice with no immediate repeats.
+  async function loadBankMcqPool() {
+    if (state.practice.bankPool) return;
+    const { data, error } = await sb
+      .from('question_bank')
+      .select('id, unit, stimulus, question_text, choices, correct_answer, official_explanation, wrong_answer_explanations')
+      .eq('subject', SUBJECT)
+      .eq('question_type', 'mcq')
+      .eq('approved', true);
+    if (error) throw new Error('Could not load questions: ' + error.message);
+    if (!data || !data.length) throw new Error(`No approved MCQ rows in question_bank for "${SUBJECT}".`);
+    state.practice.bankPool = data;
+    state.practice.bankQueue = [];
+  }
+
+  function nextBankMcqRow() {
+    if (!state.practice.bankQueue.length) {
+      const q = state.practice.bankPool.slice();
+      for (let i = q.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [q[i], q[j]] = [q[j], q[i]];
+      }
+      state.practice.bankQueue = q;
+    }
+    return state.practice.bankQueue.shift();
+  }
+
   // Network call only. Returns one practice item shape per type. Throws on
   // HTTP error. Accepts an optional pre-picked unitObj for MCQ so the
   // on-demand loading message can name the same unit the fetch targets.
   async function fetchPracticeItem(unitObj) {
     const type = state.practice.type;
+    // Bank-served MCQ subjects (e.g. AP Euro): serve pre-approved question_bank
+    // rows directly; no AI generation, no /api/generate call.
+    if (type === 'mcq' && subjectCfg.mcqSource === 'bank') {
+      await loadBankMcqPool();
+      return { kind: 'mcq', row: nextBankMcqRow() };
+    }
     const payload = { subject: SUBJECT, questionType: type };
     if (type === 'mcq') {
       const u = unitObj || pickConcreteUnit();
@@ -1397,6 +1437,9 @@ code {
   // Errors break the chain — next user-driven Next falls through to the
   // on-demand path with a real error UI.
   function refillPracticeBuffer() {
+    // Bank-served MCQ serves from a local pool — no network per Next, so
+    // buffering ahead has no latency benefit. Skip prefetch entirely.
+    if (state.practice.type === 'mcq' && subjectCfg.mcqSource === 'bank') return;
     if (state.practice.prefetchInFlight) return;
     if (state.practice.buffer.length >= PRACTICE_PREFETCH_TARGET) return;
 
@@ -1441,9 +1484,11 @@ code {
     const card = document.getElementById('practice-card');
     const unitObj = targetType === 'mcq' ? pickConcreteUnit() : null;
     statusEl.hidden = false;
-    statusEl.textContent = targetType === 'mcq'
-      ? `Generating a fresh ${SUBJECT} MCQ for ${unitObj.label}…`
-      : `Generating a fresh ${SUBJECT} ${targetType.toUpperCase()}…`;
+    statusEl.textContent = targetType === 'mcq' && subjectCfg.mcqSource === 'bank'
+      ? `Loading a ${SUBJECT} question…`
+      : targetType === 'mcq'
+        ? `Generating a fresh ${SUBJECT} MCQ for ${unitObj.label}…`
+        : `Generating a fresh ${SUBJECT} ${targetType.toUpperCase()}…`;
     card.innerHTML = `<div class="muted" style="padding:1.5rem;text-align:center">Loading…</div>`;
 
     let item;
