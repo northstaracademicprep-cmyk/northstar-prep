@@ -14169,7 +14169,43 @@ async function buildAdminApprovals() {
     return;
   }
 
-  body.innerHTML = `
+  // Tutor pay: rate x hours for each pending session, plus a per-tutor total
+  // so the Sunday approval run doubles as the pay run.
+  const { data: tutorRows } = await db.from('tutors').select('id, name, hourly_rate');
+  const tutorById = {};
+  (tutorRows || []).forEach(t => { tutorById[t.id] = t; });
+  const money = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
+  const payFor = s => {
+    const t = tutorById[s.tutor_id];
+    const rate = t && t.hourly_rate != null ? Number(t.hourly_rate) : null;
+    const hrs  = Number(s.duration_hours) || 0;
+    return { tutor: t, rate, hrs, pay: rate != null ? rate * hrs : null };
+  };
+  const totals = {};
+  sessions.forEach(s => {
+    const p = payFor(s);
+    const key = s.tutor_id || 'none';
+    if (!totals[key]) totals[key] = { name: p.tutor ? p.tutor.name : 'Unknown tutor', rate: p.rate, sessions: 0, hours: 0, pay: 0, missingRate: false };
+    totals[key].sessions++;
+    totals[key].hours += p.hrs;
+    if (p.pay == null) totals[key].missingRate = true; else totals[key].pay += p.pay;
+  });
+  const totalRows = Object.values(totals).sort((a, b) => b.pay - a.pay);
+  const grandTotal = totalRows.reduce((t, r) => t + r.pay, 0);
+  const payPanel = `
+    <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem">
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280">Tutor pay if you approve everything</div>
+        <div style="font-size:1.15rem;font-weight:800;color:#0f2044">${money(grandTotal)}</div>
+      </div>
+      ${totalRows.map(r => `
+        <div style="display:flex;justify-content:space-between;gap:.75rem;padding:.4rem 0;border-top:1px solid #f1f5f9;font-size:.86rem">
+          <span><b>${r.name}</b> <span style="color:#6b7280">· ${r.sessions} session${r.sessions>1?'s':''} · ${r.hours}h${r.rate!=null?' · '+money(r.rate)+'/hr':''}</span></span>
+          <span style="font-weight:700;color:${r.missingRate?'#b45309':'#065f46'}">${r.missingRate?'No rate set':money(r.pay)}</span>
+        </div>`).join('')}
+    </div>`;
+
+  body.innerHTML = payPanel + `
     <div class="adm-section-header">
       <span class="adm-badge-count">${sessions.length}</span> session${sessions.length>1?'s':''} waiting for approval
     </div>
@@ -14192,6 +14228,11 @@ async function buildAdminApprovals() {
           <div id="sess-view-${s.id}" class="adm-card-detail">
             <div class="adm-detail-row"><span class="adm-detail-label">Date</span><span>${s.session_date||'—'}</span></div>
             <div class="adm-detail-row"><span class="adm-detail-label">Duration</span><span>${s.duration_hours}h</span></div>
+            ${(() => { const p = payFor(s);
+              const who = p.tutor ? p.tutor.name : 'Unknown tutor';
+              return p.pay != null
+                ? `<div class="adm-detail-row"><span class="adm-detail-label">Tutor pay</span><span><b>${who}</b> · ${money(p.rate)}/hr × ${p.hrs}h = <b style="color:#065f46">${money(p.pay)}</b></span></div>`
+                : `<div class="adm-detail-row"><span class="adm-detail-label">Tutor pay</span><span><b>${who}</b> · <b style="color:#b45309">no hourly rate set</b></span></div>`; })()}
             <div class="adm-detail-row"><span class="adm-detail-label">Topic</span><span>${s.topic||'—'}</span></div>
             ${s.notes?`<div class="adm-detail-row"><span class="adm-detail-label">Notes</span><span style="font-style:italic">${s.notes}</span></div>`:''}
             ${s.meeting_url?`<div class="adm-detail-row"><span class="adm-detail-label">Meet</span><a href="${s.meeting_url}" target="_blank" style="color:#3b82f6;font-size:.82rem">${s.meeting_url}</a></div>`:''}
