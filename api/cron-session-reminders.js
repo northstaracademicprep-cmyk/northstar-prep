@@ -5,7 +5,10 @@
 // reminded yet. Goes to the student, the parent and the tutor.
 // Auth: Vercel sends `Authorization: Bearer ${CRON_SECRET}`.
 // ============================================================
-import { sbGet, sbPatch, sendReminderEmail } from './notify-calendar.js';
+import { sbGet, sbPatch, sendReminderEmail, layout, fmt } from './notify-calendar.js';
+
+const ADMIN_EMAIL = 'northstaracademicprep@gmail.com';
+const RESEND_FROM = 'Northstar Academic Prep <reports@send.northstaracademicprep.com>';
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -33,8 +36,30 @@ export default async function handler(req, res) {
       if (n > 0) { await sbPatch(c, `/rest/v1/scheduled_sessions?id=eq.${s.id}`, { reminder_sent_at: new Date().toISOString() }); sent++; }
       else skipped++;
     }
-    console.log('[cron-session-reminders]', JSON.stringify({ found: sessions.length, sent, skipped }));
-    return res.status(200).json({ found: sessions.length, sent, skipped });
+    // Office hours: one announcement per slot to every active student + parent
+    let ohSent = 0;
+    const slots = await sbGet(c, `/rest/v1/office_hours?select=*&status=eq.scheduled&announced_at=is.null&starts_at=gte.${now.toISOString()}&starts_at=lt.${until.toISOString()}&order=starts_at`);
+    if (slots.length) {
+      const studs = await sbGet(c, `/rest/v1/students?select=email,parent_email&status=eq.active`);
+      const to = [...new Set(studs.flatMap(x => [x.email, x.parent_email]).filter(Boolean).map(x => x.toLowerCase()).concat(ADMIN_EMAIL))];
+      for (const o of slots) {
+        const end = new Date(new Date(o.starts_at).getTime() + o.duration_minutes * 60000).toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' });
+        const lines = [['When', `${fmt(o.starts_at)} to ${end}`]];
+        if (o.host_name) lines.push(['Host', o.host_name]);
+        if (o.meeting_url) lines.push(['Join link', o.meeting_url]);
+        lines.push(['Who', 'Any student. Drop in with any question, no sign up needed.']);
+        const html = layout('🙋 Office hours today', 'Free office hours with a Northstar tutor', lines, 'Open the portal →');
+        let ok = 0;
+        for (let i = 0; i < to.length; i += 100) {
+          const batch = to.slice(i, i + 100).map(addr => ({ from: RESEND_FROM, to: addr, reply_to: ADMIN_EMAIL, subject: 'Office hours today · Northstar', html }));
+          const r = await fetch('https://api.resend.com/emails/batch', { method: 'POST', headers: { Authorization: `Bearer ${c.resendKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(batch) });
+          if (r.ok) ok += batch.length; else console.error('[office-hours] batch failed', r.status, (await r.text()).slice(0, 200));
+        }
+        if (ok > 0) { await sbPatch(c, `/rest/v1/office_hours?id=eq.${o.id}`, { announced_at: new Date().toISOString() }); ohSent += ok; }
+      }
+    }
+    console.log('[cron-session-reminders]', JSON.stringify({ found: sessions.length, sent, skipped, officeHoursEmails: ohSent }));
+    return res.status(200).json({ found: sessions.length, sent, skipped, officeHoursEmails: ohSent });
   } catch (e) {
     console.error('[cron-session-reminders] failed', e.message);
     return res.status(502).json({ error: e.message });

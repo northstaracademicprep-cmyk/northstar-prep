@@ -1489,6 +1489,7 @@ async function loadFromSupabase(code) {
         title: h.title || '',
         subject: subj,
         dueDate: h.due_date ? fmtDateLong(h.due_date) : 'No due date',
+        dueISO: h.due_date || '',
         dueSoon: h.due_date ? ((new Date(h.due_date) - new Date()) < 3 * 24 * 60 * 60 * 1000) : false,
         isOverdue: h.due_date ? (new Date(h.due_date) < new Date()) : false,
         status: h.status || 'pending',
@@ -1637,6 +1638,7 @@ function bootPortal() {
   showNewItemsNotification();
   // Start background notification listener so student gets notified on other tabs
   if (s.studentId) _initBgNotifs([s.studentId], 'student');
+  if (s.studentId && window.NSCal) { NSCal.badge({ el: 'calNavBadge', role: 'student', studentIds: [s.studentId] }); setInterval(()=>NSCal.badge(), 60000); }
 }
 
 function showNewItemsNotification() {
@@ -1688,7 +1690,7 @@ const NAV_AP = [
     {id:'gameplan',icon:'🗺️',label:'Game Plan'},
   ]},
   {section:'schedule',items:[
-    {id:'calendar',icon:'🗓️',label:'Calendar'},
+    {id:'calendar',icon:'🗓️',label:'Calendar',badge:'calNavBadge'},
     {id:'sessions',icon:'📅',label:'Sessions',badge:'upcomingBadge'},
   ]},
   {section:'learning',items:[
@@ -1698,7 +1700,7 @@ const NAV_AP = [
   ]},
   {section:'updates',items:[
     {id:'announcements',icon:'📣',label:'Announcements'},
-    {id:'messages',icon:'💬',label:'Messages',badge:'msgBadge'},
+    {id:'messages',icon:'🛟',label:'Homework Helpline',badge:'msgBadge'},
   ]},
 ];
 const NAV_CC = [
@@ -1760,7 +1762,7 @@ function showSection(id, navEl) {
     if (id === 'messages') sec.style.display = 'flex';
   }
   if (navEl) navEl.classList.add('active');
-  const titles = {dashboard:'Dashboard',progress:'My Progress',gameplan:'Game Plan',colleges:'College List',calendar:'Calendar',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault',messages:'Messages'};
+  const titles = {dashboard:'Dashboard',progress:'My Progress',gameplan:'Game Plan',colleges:'College List',calendar:'Calendar',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault',messages:'Homework Helpline'};
   document.getElementById('topbarTitle').textContent = titles[id]||id;
   if (id==='progress') { buildProgressPage(); setTimeout(animateAllBars,200); }
   if (id==='gameplan') { buildGameplanPage(); }
@@ -1773,6 +1775,7 @@ function mountStudentCalendar() {
   const s = currentStudent;
   const el = document.getElementById('calendarBody');
   if (!s || !el || !window.NSCal) return;
+  NSCal.markSeen(s.studentId);
   NSCal.mount(el, {
     role: 'student',
     studentIds: [s.studentId],
@@ -1829,6 +1832,63 @@ function buildDashboard() {
   else { buildDashCC(); }
 }
 
+function _dashGraded() {
+  return (currentStudent.assignments||[]).filter(a=>a.status==='graded' && a.score!=null).map(a=>Math.round(Number(a.score)/Math.max(Number(a.maxScore)||100,1)*100));
+}
+function _dashHwAvg() { const g=_dashGraded(); return g.length ? Math.round(g.reduce((x,y)=>x+y,0)/g.length) : null; }
+function _dashSpark() {
+  const g=_dashGraded().slice(-8);
+  if (g.length < 2) return '<div class="stat-change gold">Scores appear after grading</div>';
+  const w=120,h=28,pad=3, min=Math.min(...g,50), max=Math.max(...g,100);
+  const pts=g.map((v,i)=>[pad+i*(w-2*pad)/(g.length-1), h-pad-(v-min)/(max-min||1)*(h-2*pad)]);
+  const trend=g[g.length-1]-g[0];
+  const col=trend>=0?'#10b981':'#ef4444';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="margin-top:.35rem"><polyline fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${pts.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ')}"/><circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="3" fill="${col}"/></svg>
+    <div class="stat-change ${trend>=0?'up':'red'}" style="margin-top:.2rem">${trend>=0?'▲':'▼'} ${Math.abs(trend)} pts over last ${g.length} graded</div>`;
+}
+async function hydrateDashNext() {
+  const s = currentStudent; if (!s || !s.studentId) return;
+  try {
+    const now = new Date().toISOString();
+    const [ss, oh] = await Promise.all([
+      db.from('scheduled_sessions').select('*').eq('student_id', s.studentId).eq('status','scheduled').gte('starts_at', now).order('starts_at').limit(1),
+      db.from('office_hours').select('*').eq('status','scheduled').gte('starts_at', now).order('starts_at').limit(1)
+    ]);
+    const nx = (ss.data||[])[0];
+    const val = document.getElementById('dashNextVal'), sub = document.getElementById('dashNextSub');
+    if (nx && val) {
+      const d = new Date(nx.starts_at);
+      val.textContent = d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});
+      if (sub) sub.textContent = d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) + ' · ' + nx.duration_minutes + ' min';
+    } else if (sub) { sub.textContent = 'Request a time →'; }
+    const grid = document.getElementById('dashGrid'); if (!grid) return;
+    const slot = document.getElementById('dashNextSession');
+    if (slot) {
+      if (nx) {
+        const d = new Date(nx.starts_at), live = Date.now() >= d.getTime()-15*60000;
+        slot.innerHTML = `<div class="session-item" style="border-color:var(--gold)">
+          <div class="session-date-block"><div class="session-month">${fmtMonthAbbr(nx.starts_at.slice(0,10))}</div><div class="session-day">${d.getDate()}</div></div>
+          <div class="session-info"><div class="session-subject">${escapeHtmlPortal(nx.topic||'Tutoring session')}</div>
+          <div class="session-topic">${d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} · ${nx.duration_minutes} min${s.tutors?.name?' · with '+escapeHtmlPortal(s.tutors.name.split(' ')[0]):''}</div>
+          <div class="session-meta">${nx.meeting_url?`<a href="${escapeHtmlPortal(nx.meeting_url)}" target="_blank" rel="noopener" style="display:inline-flex;background:${live?'#1a73e8':'#94a3b8'};color:#fff;font-size:.72rem;font-weight:700;padding:.25rem .75rem;border-radius:6px;text-decoration:none">📹 Join Meeting</a>`:''}
+          <a href="#" onclick="showSection('calendar',document.getElementById('nav-calendar'));return false" style="font-size:.74rem;font-weight:700;color:#3b82f6;margin-left:.4rem">Reschedule or cancel →</a></div></div></div>`;
+      }
+      if (nx) { let n = slot.nextElementSibling; while (n) { n.style.display = 'none'; n = n.nextElementSibling; } }
+    }
+    const o = (oh.data||[])[0];
+    const ohSlot = document.getElementById('dashOfficeHours');
+    if (o && ohSlot) {
+      const d = new Date(o.starts_at);
+      ohSlot.innerHTML = `<div class="card dash-grid-full" style="border-color:#f3d98b;background:linear-gradient(135deg,#fffbeb,#fff)"><div class="card-body" style="display:flex;flex-wrap:wrap;gap:.8rem;align-items:center">
+        <div style="font-size:1.5rem">🙋</div>
+        <div style="flex:1;min-width:200px"><div style="font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#92400e">Office hours</div>
+        <div style="font-weight:800;color:#0f2044">${d.toLocaleDateString([], {weekday:'long',month:'short',day:'numeric'})}, ${d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</div>
+        <div style="font-size:.76rem;color:#64748b">Drop in with any question. Ask in the Homework Helpline anytime in between.</div></div>
+        <a href="#" onclick="showSection('messages',document.getElementById('nav-messages'));return false" style="background:#0f2044;color:#fff;text-decoration:none;font-weight:700;font-size:.8rem;padding:.55rem 1rem;border-radius:9px">Open Helpline</a></div></div>`;
+    }
+  } catch (e) { console.warn('dash hydrate', e); }
+}
+
 function buildDashAP() {
   const s = currentStudent;
   document.getElementById('welcomeBadgeLabel').textContent = 'Target';
@@ -1856,22 +1916,23 @@ function buildDashAP() {
       <div class="stat-icon" style="background:#ecfdf5">⏱️</div>
       <div class="stat-value" style="font-size:1.25rem">${hoursUsed}h <span style="font-size:.9rem;font-weight:500;color:var(--muted)">/ ${hoursTotal}h</span></div>
       <div class="stat-label">Hours Learned</div>
-      <div style="margin-top:.4rem;background:#e5e7eb;border-radius:99px;height:5px;overflow:hidden">
-        <div style="height:100%;width:${hoursPct}%;background:#10b981;border-radius:99px;transition:width 1s ease"></div>
+      <div style="margin-top:.5rem;background:#e5e7eb;border-radius:99px;height:7px;overflow:hidden">
+        <div style="height:100%;width:${hoursPct}%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:99px;transition:width 1s ease"></div>
       </div>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:.25rem;font-weight:600">${hoursPct}% of package used</div>
       <div class="stat-change up" style="margin-top:.3rem">${hoursLeft}h remaining in package</div>
     </div>
-    <div class="stat-card anim-up" style="animation-delay:.16s">
+    <div class="stat-card anim-up" style="animation-delay:.16s;cursor:pointer" onclick="showSection('assignments',document.getElementById('nav-assignments'))">
       <div class="stat-icon" style="background:#fef9ee">📈</div>
-      <div class="stat-value" style="font-size:1rem;line-height:1.3">In Progress</div>
-      <div class="stat-label">Class Performance</div>
-      <div class="stat-change up">Improving each session</div>
+      <div class="stat-value">${_dashHwAvg()!=null?_dashHwAvg()+'%':'—'}</div>
+      <div class="stat-label">Homework Average</div>
+      ${_dashSpark()}
     </div>
-    <div class="stat-card anim-up" style="animation-delay:.24s">
+    <div class="stat-card anim-up" id="dashNextCard" style="animation-delay:.24s;cursor:pointer" onclick="showSection('calendar',document.getElementById('nav-calendar'))">
       <div class="stat-icon" style="background:#fff0f0">🔥</div>
-      <div class="stat-value" style="font-size:1rem;line-height:1.3">${s.stats.currentStreak}</div>
+      <div class="stat-value" id="dashNextVal" style="font-size:1rem;line-height:1.3">${s.stats.currentStreak}</div>
       <div class="stat-label">Next Session</div>
-      <div class="stat-change up">Consistent work!</div>
+      <div class="stat-change up" id="dashNextSub">Open calendar →</div>
     </div>`;
   setTimeout(animateStats, 150);
 
@@ -1882,8 +1943,8 @@ function buildDashAP() {
   const aBadge = document.getElementById('assignBadge');
   if (aBadge) { aBadge.textContent = pending.length; aBadge.style.display = pending.length?'':'none'; }
 
-  let dashHTML = '';
-  dashHTML += `<div class="card"><div class="card-header"><div class="card-title">📅 Next Session</div></div><div class="card-body">`;
+  let dashHTML = '<div id="dashOfficeHours" class="dash-grid-full"></div>';
+  dashHTML += `<div class="card"><div class="card-header"><div class="card-title">📅 Next Session</div><button onclick="showSection('calendar',document.getElementById('nav-calendar'))" style="font-size:.75rem;font-weight:600;color:#3b82f6;background:none;border:none;cursor:pointer;padding:0">Calendar →</button></div><div class="card-body"><div id="dashNextSession"></div>`;
   if (upcoming.length) {
     const ns = upcoming[0];
     dashHTML += `<div class="session-item" style="border-color:var(--gold)">
@@ -1909,6 +1970,7 @@ function buildDashAP() {
     </div></div></div>`;
   }
   document.getElementById('dashGrid').innerHTML = dashHTML;
+  hydrateDashNext();
 }
 
 function buildDashCC() {
@@ -11550,6 +11612,7 @@ function buildPracticeVault() {
           <p>Real AP World History free-response questions from the College Board.</p>
         </div>
       </div>
+      <div id="ftHubSlot"></div>
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2.5rem 2rem;text-align:center">
         <div style="font-size:2.5rem;margin-bottom:1rem">🌍</div>
         <div style="font-size:1.1rem;font-weight:700;color:#0f2044;margin-bottom:.6rem">2025 College Board AP World History FRQs</div>
@@ -11564,6 +11627,7 @@ function buildPracticeVault() {
           Opens in this tab. Your responses save automatically.
         </div>
       </div>`;
+    if (window.FullTest) FullTest.hub('ftHubSlot');
     return;
   }
 
@@ -11616,6 +11680,7 @@ function buildPracticeVault() {
         <p>${label} — auto-graded MCQ practice, unlimited rounds.</p>
       </div>
     </div>
+    <div id="ftHubSlot"></div>
     <div class="pv-grid">
       ${bank.map(b => {
         const best = sessionStorage.getItem('pv_best_'+b.key);
@@ -11630,6 +11695,7 @@ function buildPracticeVault() {
         </div>`;
       }).join('')}
     </div>`;
+  if (window.FullTest) FullTest.hub('ftHubSlot');
 }
 
 function findBankSection(key) {
@@ -12418,6 +12484,7 @@ function buildSessions() {
       html += `</div>`;
     }
   } else {
+    html += `<div id="sessCalUpcoming"></div>`;
     if (upcoming.length) {
       html += `<div class="section-subtitle">Upcoming</div><div class="sessions-list">`;
       html += upcoming.map((ses,i)=>`<div class="session-item anim-up" style="animation-delay:${i*.07}s">
@@ -12447,6 +12514,21 @@ function buildSessions() {
   }
   if (!html) html = `<div class="empty-state"><div class="empty-icon">📅</div><p>No sessions yet</p></div>`;
   document.getElementById('sessionsBody').innerHTML = html;
+  if (!iCC) hydrateSessionsUpcoming();
+}
+async function hydrateSessionsUpcoming() {
+  const el = document.getElementById('sessCalUpcoming'); const s = currentStudent;
+  if (!el || !s || !s.studentId) return;
+  try {
+    const { data } = await db.from('scheduled_sessions').select('*').eq('student_id', s.studentId).eq('status','scheduled').gte('starts_at', new Date(Date.now()-3600*1000).toISOString()).order('starts_at').limit(10);
+    if (!data || !data.length) { el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:space-between;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:.9rem 1.1rem;margin-bottom:1rem"><span style="font-size:.85rem;color:#64748b">No sessions on the calendar yet.</span><a href="#" onclick="showSection('calendar',document.getElementById('nav-calendar'));return false" style="font-size:.8rem;font-weight:700;color:#3b82f6">Request a session →</a></div>`; return; }
+    el.innerHTML = `<div class="section-subtitle">Booked sessions</div><div class="sessions-list">` + data.map(x=>{
+      const d = new Date(x.starts_at);
+      return `<div class="session-item" style="border-color:var(--gold)"><div class="session-date-block"><div class="session-month">${d.toLocaleString([], {month:'short'}).toUpperCase()}</div><div class="session-day">${d.getDate()}</div></div>
+        <div class="session-info"><div class="session-subject">${escapeHtmlPortal(x.topic||'Tutoring session')}</div><div class="session-topic">${d.toLocaleDateString([], {weekday:'long'})} · ${d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} · ${x.duration_minutes} min</div>
+        <div class="session-meta">${x.meeting_url?`<a href="${escapeHtmlPortal(x.meeting_url)}" target="_blank" rel="noopener" style="display:inline-flex;background:#1a73e8;color:#fff;font-size:.72rem;font-weight:700;padding:.25rem .75rem;border-radius:6px;text-decoration:none">📹 Join Meeting</a>`:''}<a href="#" onclick="showSection('calendar',document.getElementById('nav-calendar'));return false" style="font-size:.74rem;font-weight:700;color:#3b82f6;margin-left:.4rem">Reschedule or cancel →</a></div></div></div>`;
+    }).join('') + `</div>`;
+  } catch (e) { console.warn(e); }
 }
 function sessionCardCC(ses, state) {
   const borderColor = state==='inprog'?'var(--purple)':state==='past'?'var(--border)':'var(--border)';
@@ -12519,7 +12601,10 @@ function buildECPlan() {
 }
 
 /* ── RESOURCES ── */
-function buildResources() {
+let _resFilter = 'all', _resQuery = '';
+function setResFilter(f) { _resFilter = f; buildResources(); }
+function setResQuery(q) { _resQuery = q; buildResources(true); }
+function buildResources(keepFocus) {
   const s = currentStudent;
   const res = s.resources||[];
   const grid = document.getElementById('resourcesGrid');
@@ -12530,46 +12615,77 @@ function buildResources() {
   const newCount = res.filter(r=>r.isNew).length;
   const rb = document.getElementById('resourcesBadge');
   if (rb) { rb.textContent = newCount; rb.style.display = newCount ? '' : 'none'; }
-  grid.innerHTML = res.map((r,i)=>`
-    <a class="resource-card anim-up" href="${r.url}" target="_blank" rel="noopener" style="animation-delay:${i*.06}s;text-decoration:none">
+  const kind = r => ({'slide-deck':'Slide decks','notes':'Notes','worksheet':'Worksheets'}[r.type] || 'Other');
+  const kinds = ['Notes','Slide decks','Worksheets','Other'].filter(k=>res.some(r=>kind(r)===k));
+  const q = _resQuery.trim().toLowerCase();
+  const list = res.filter(r => (_resFilter==='all' || kind(r)===_resFilter) && (!q || (r.title+' '+(r.description||'')).toLowerCase().includes(q)));
+  const chip = (id,label,n) => `<button onclick="setResFilter('${id}')" style="border:1.5px solid ${_resFilter===id?'#0f2044':'#e2e8f0'};background:${_resFilter===id?'#0f2044':'#fff'};color:${_resFilter===id?'#fff':'#475569'};border-radius:99px;padding:.35rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit">${label} <span style="opacity:.7">${n}</span></button>`;
+  const card = (r,i)=>`
+    <a class="resource-card anim-up" href="${r.url}" target="_blank" rel="noopener" style="animation-delay:${Math.min(i,8)*.04}s;text-decoration:none">
       <div class="resource-icon" style="background:${r.iconBg||'#f3f4f6'}">${r.icon}</div>
       <div style="flex:1;min-width:0">
-        <div class="resource-name">${r.title}${r.isNew?'<span class="new-badge">NEW</span>':''}</div>
+        <div class="resource-name">${escapeHtmlPortal(r.title)}${r.isNew?'<span class="new-badge">NEW</span>':''}</div>
         <div class="resource-meta">${r.type.replace('-',' ')} · Added ${r.date}</div>
-        ${r.description?`<div class="resource-meta" style="margin-top:.2rem;color:#374151">${r.description}</div>`:''}
+        ${r.description?`<div class="resource-meta" style="margin-top:.2rem;color:#374151">${escapeHtmlPortal(r.description)}</div>`:''}
       </div>
       <div style="color:#c9a03a;font-size:.8rem;font-weight:600;flex-shrink:0">Open →</div>
-    </a>`).join('');
+    </a>`;
+  let html = `<div style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.25rem">
+    ${chip('all','All',res.length)}${kinds.map(k=>chip(k,k,res.filter(r=>kind(r)===k).length)).join('')}
+    <input id="resSearch" type="search" placeholder="Search resources…" value="${escapeHtmlPortal(_resQuery)}" oninput="setResQuery(this.value)" style="margin-left:auto;border:1.5px solid #e2e8f0;border-radius:99px;padding:.4rem .9rem;font-size:.8rem;font-family:inherit;min-width:180px">
+  </div>`;
+  if (!list.length) html += `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><p>No resources match.</p></div>`;
+  else {
+    const fresh = list.filter(r=>r.isNew);
+    if (fresh.length && _resFilter==='all' && !q) {
+      html += `<div class="section-subtitle" style="grid-column:1/-1;margin-top:.5rem">New this week</div>` + fresh.map(card).join('');
+      html += `<div class="section-subtitle" style="grid-column:1/-1;margin-top:1rem">Everything else</div>` + list.filter(r=>!r.isNew).map(card).join('');
+    } else html += list.map(card).join('');
+  }
+  grid.innerHTML = html;
+  if (keepFocus) { const i=document.getElementById('resSearch'); if (i) { i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 }
 
 /* ── ASSIGNMENTS (AP) ── */
+let _hwFilter = 'all';
+function setHwFilter(f) { _hwFilter = f; buildAssignments(); }
 function buildAssignments() {
   const s = currentStudent;
   const assignments = s.assignments||[];
   const body = document.getElementById('assignmentsBody');
+  const tutorFirst = s.tutors?.name?.split(' ')[0] || 'Your tutor';
   if (!assignments.length) {
-    body.innerHTML = `<div class="empty-state"><div class="empty-icon">✏️</div><p>No assignments yet. Sid will assign work here after each session.</p></div>`;
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">✏️</div><p>No assignments yet. ${tutorFirst} will assign work here after each session.</p></div>`;
     return;
   }
-  const pending   = assignments.filter(a=>a.status==='pending');
+  const byDue = (x,y) => String(x.dueISO||'').localeCompare(String(y.dueISO||''));
+  const pending   = assignments.filter(a=>a.status==='pending').sort((x,y)=>(y.isOverdue?1:0)-(x.isOverdue?1:0));
   const submitted = assignments.filter(a=>a.status==='submitted');
-  const graded    = assignments.filter(a=>a.status==='graded');
-  const newCount  = assignments.filter(a=>a.isNew && a.status==='pending').length;
+  const graded    = assignments.filter(a=>a.status==='graded').slice().reverse();
   const ab = document.getElementById('assignBadge');
   if (ab) { ab.textContent = pending.length; ab.style.display = pending.length?'':'none'; }
-  let html = '';
-  if (pending.length) {
-    html += `<div class="section-subtitle">To Do (${pending.length})</div>`;
-    html += pending.map(a=>homeworkCardHTML(a,s.studentId)).join('');
+  const pcts = graded.filter(a=>a.score!=null).map(a=>Math.round(Number(a.score)/Math.max(Number(a.maxScore)||100,1)*100));
+  const avg = pcts.length ? Math.round(pcts.reduce((x,y)=>x+y,0)/pcts.length) : null;
+  const overdue = pending.filter(a=>a.isOverdue).length;
+  const tab = (id,label,n) => `<button onclick="setHwFilter('${id}')" style="border:1.5px solid ${_hwFilter===id?'#0f2044':'#e2e8f0'};background:${_hwFilter===id?'#0f2044':'#fff'};color:${_hwFilter===id?'#fff':'#475569'};border-radius:99px;padding:.35rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit">${label} <span style="opacity:.7">${n}</span></button>`;
+  let html = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.7rem;margin-bottom:1rem">
+    <div class="prog-overview-card"><div class="prog-overview-val${overdue?' red':''}">${pending.length}</div><div class="prog-overview-label">To do${overdue?` · ${overdue} overdue`:''}</div></div>
+    <div class="prog-overview-card"><div class="prog-overview-val gold">${submitted.length}</div><div class="prog-overview-label">Awaiting grade</div></div>
+    <div class="prog-overview-card"><div class="prog-overview-val">${graded.length}</div><div class="prog-overview-label">Graded</div></div>
+    <div class="prog-overview-card"><div class="prog-overview-val${avg!=null?(avg>=80?' green':avg>=65?' gold':' red'):''}">${avg!=null?avg+'%':'—'}</div><div class="prog-overview-label">Average score</div></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:1rem">${tab('all','All',assignments.length)}${tab('pending','To do',pending.length)}${tab('submitted','Submitted',submitted.length)}${tab('graded','Graded',graded.length)}</div>`;
+  const show = id => _hwFilter==='all' || _hwFilter===id;
+  if (show('pending') && pending.length) {
+    html += `<div class="section-subtitle">To Do (${pending.length})</div>` + pending.map(a=>homeworkCardHTML(a,s.studentId)).join('');
   }
-  if (submitted.length) {
-    html += `<div class="section-subtitle" style="margin-top:1.5rem">Submitted — Awaiting Grade</div>`;
-    html += submitted.map(a=>homeworkCardHTML(a,s.studentId)).join('');
+  if (show('submitted') && submitted.length) {
+    html += `<div class="section-subtitle" style="margin-top:1.5rem">Submitted, awaiting grade</div>` + submitted.map(a=>homeworkCardHTML(a,s.studentId)).join('');
   }
-  if (graded.length) {
-    html += `<div class="section-subtitle" style="margin-top:1.5rem">Graded ✓</div>`;
-    html += graded.map(a=>homeworkCardHTML(a,s.studentId)).join('');
+  if (show('graded') && graded.length) {
+    html += `<div class="section-subtitle" style="margin-top:1.5rem">Graded ✓</div>` + graded.map(a=>homeworkCardHTML(a,s.studentId)).join('');
   }
+  if (html.indexOf('hw-card') === -1) html += `<div class="empty-state"><div class="empty-icon">✅</div><p>Nothing here.</p></div>`;
   body.innerHTML = html;
 }
 
@@ -12585,6 +12701,7 @@ function homeworkCardHTML(a, studentId) {
         <div class="hw-meta" style="${dueCls}">Due ${a.dueDate}${a.isOverdue && isPending?' · OVERDUE':''} · ${a.subject}</div>
       </div>
       <div class="hw-badges">
+        ${isGraded && a.score!=null ? (()=>{const p=Math.round(Number(a.score)/Math.max(Number(a.maxScore)||100,1)*100);const c=p>=85?'#10b981':p>=70?'#f59e0b':'#ef4444';return `<span style="font-size:.74rem;font-weight:800;color:${c};background:${c}18;border-radius:99px;padding:.2rem .6rem">${p}%</span>`;})() : ''}
         <span class="hw-status ${a.status}">${isPending?'Pending':isSubmitted?'Submitted':'Graded ✓'}</span>
         <span style="color:#94a3b8;font-size:.85rem" id="hwchev-${a.id}">▼</span>
       </div>
@@ -12969,20 +13086,21 @@ function renderMessagesUI(container, msgs, studentId, myRole, myName) {
   const typingId  = 'msgTyping-' + studentId;
 
   container.innerHTML = `
+    ${myRole==='student' ? '<div id="ohCard" style="flex-shrink:0"></div>' : ''}
     <div style="flex:1;min-height:0;width:100%;display:flex;flex-direction:column">
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(15,32,68,.07);flex:1;min-height:0">
         <!-- header -->
         <div style="padding:1rem 1.4rem;border-bottom:1px solid #f0f2f5;background:linear-gradient(135deg,#0f2044 0%,#1a3260 100%);display:flex;align-items:center;gap:.75rem">
           <div style="width:36px;height:36px;border-radius:50%;background:rgba(201,160,58,.25);display:flex;align-items:center;justify-content:center;font-size:1rem">💬</div>
           <div>
-            <div style="font-weight:700;color:#fff;font-size:.95rem">Group Chat</div>
-            <div style="font-size:.7rem;color:rgba(255,255,255,.5)">Student · Tutor · Northstar Admin</div>
+            <div style="font-weight:700;color:#fff;font-size:.95rem">${myRole==='student' ? 'Homework Helpline' : 'Group Chat'}</div>
+            <div style="font-size:.7rem;color:rgba(255,255,255,.5)">${myRole==='student' ? 'Ask anytime, day or night. Your tutor replies as soon as they are online.' : 'Student · Tutor · Northstar Admin'}</div>
           </div>
           <div style="margin-left:auto;width:9px;height:9px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.2)" title="Live"></div>
         </div>
         <!-- feed -->
         <div id="${feedId}" style="padding:1.25rem 1.25rem .75rem;display:flex;flex-direction:column;gap:.1rem;flex:1;min-height:200px;overflow-y:auto;scroll-behavior:smooth">
-          ${msgs.length===0 ? `<div data-empty="1" style="text-align:center;color:#9ca3af;font-size:.85rem;padding:2.5rem 1rem;animation:fadeIn .3s">No messages yet — say hello! 👋</div>` :
+          ${msgs.length===0 ? `<div data-empty="1" style="text-align:center;color:#9ca3af;font-size:.85rem;padding:2.5rem 1rem;animation:fadeIn .3s">${myRole==='student' ? 'Stuck on something? Send your question here, any time. Include the problem or take a photo link and tell us where you got stuck.' : 'No messages yet. Say hello! 👋'}</div>` :
             _renderMsgBubbles(msgs, myRole)}
         </div>
         <!-- typing indicator (iMessage style) -->
@@ -12995,9 +13113,12 @@ function renderMessagesUI(container, msgs, studentId, myRole, myName) {
             <span class="typing-name" id="${typingId}-name"></span>
           </div>
         </div>
+        ${myRole==='student' ? `<div style="padding:.6rem 1.25rem 0;display:flex;flex-wrap:wrap;gap:.4rem;background:#fafbfc;border-top:1px solid #f0f2f5">
+          ${['I am stuck on a homework problem','Can you check my work?','I do not understand a concept','I have a test coming up'].map(t=>`<button type="button" onclick="(function(){var i=document.getElementById('msgInput');i.value='${t}: ';i.focus();})()" style="border:1.5px solid #e2e8f0;background:#fff;color:#0f2044;border-radius:99px;padding:.3rem .7rem;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit">${t}</button>`).join('')}
+        </div>` : ''}
         <!-- input bar -->
         <div style="padding:.85rem 1.25rem;border-top:1px solid #f0f2f5;display:flex;gap:.6rem;align-items:flex-end;background:#fafbfc">
-          <textarea id="msgInput" rows="1" placeholder="iMessage…" class="msg-input"
+          <textarea id="msgInput" rows="1" placeholder="${myRole==='student' ? 'Type your question…' : 'iMessage…'}" class="msg-input"
             oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';_onMsgTyping('${studentId}','${safeRole}','${safeName}')"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage('${studentId}','${safeRole}','${safeName}');}"></textarea>
           <button class="msg-send-btn" onclick="sendMessage('${studentId}','${safeRole}','${safeName}')">
@@ -13007,6 +13128,7 @@ function renderMessagesUI(container, msgs, studentId, myRole, myName) {
       </div>
     </div>`;
 
+  if (myRole==='student') renderOfficeHoursCard('ohCard');
   // Mark existing IDs as shown
   msgs.forEach(m => { if (m.id) _shownMsgIds.add(m.id); });
   // Scroll to bottom
@@ -13283,6 +13405,104 @@ async function deleteMessage(msgId) {
   }
   setTimeout(() => wrap.remove(), 300);
   if (_chatChannel) _chatChannel.send({ type:'broadcast', event:'delete_message', payload:{ id:msgId } });
+}
+
+/* ── OFFICE HOURS (student card, shown above the helpline) ── */
+async function renderOfficeHoursCard(elId) {
+  const el = document.getElementById(elId); if (!el) return;
+  const since = new Date(Date.now() - 3*3600*1000).toISOString();
+  const { data } = await db.from('office_hours').select('*').eq('status','scheduled').gte('starts_at', since).order('starts_at').limit(3);
+  const rows = data || [];
+  if (!rows.length) { el.innerHTML = ''; return; }
+  const tz = (()=>{ try { return new Intl.DateTimeFormat([], {timeZoneName:'short'}).formatToParts(new Date()).find(p=>p.type==='timeZoneName').value; } catch(e){ return ''; } })();
+  const fmt = iso => { const d=new Date(iso); return d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'}) + ', ' + d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); };
+  const endT = r => new Date(new Date(r.starts_at).getTime()+r.duration_minutes*60000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  const now = Date.now();
+  const next = rows[0];
+  const startMs = new Date(next.starts_at).getTime(), endMs = startMs + next.duration_minutes*60000;
+  const live = now >= startMs - 15*60000 && now <= endMs;
+  const hostLine = r => r.host_name || '';
+  el.innerHTML = `<div style="background:linear-gradient(135deg,#fffbeb,#fff);border:1.5px solid #f3d98b;border-radius:14px;padding:1rem 1.2rem;margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:.9rem;align-items:center">
+    <div style="font-size:1.6rem">🙋</div>
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#92400e">${live?'Office hours are live':'Next office hours'}</div>
+      <div style="font-weight:800;color:#0f2044;font-size:1rem">${fmt(next.starts_at)} to ${endT(next)} ${tz}</div>
+      <div style="font-size:.78rem;color:#64748b">${hostLine(next) ? 'Hosted by '+escapeHtmlPortal(hostLine(next))+'. ' : ''}Drop in with any question, no sign up needed.</div>
+      ${rows.length>1?`<div style="font-size:.72rem;color:#94a3b8;margin-top:.25rem">Then: ${rows.slice(1).map(r=>fmt(r.starts_at)).join(' · ')}</div>`:''}
+    </div>
+    ${next.meeting_url ? `<a href="${escapeHtmlPortal(next.meeting_url)}" target="_blank" rel="noopener" style="background:${live?'#1a73e8':'#e2e8f0'};color:${live?'#fff':'#64748b'};text-decoration:none;font-weight:800;font-size:.85rem;padding:.6rem 1.1rem;border-radius:10px;${live?'':'pointer-events:none'}">${live?'📹 Join now':'Link opens 15 min before'}</a>` : '<span style="font-size:.75rem;color:#94a3b8">Link coming soon</span>'}
+  </div>`;
+}
+
+/* ── ADMIN: OFFICE HOURS ── */
+async function buildAdminOfficeHours() {
+  const body = document.getElementById('admBody');
+  const [oh, tu] = await Promise.all([
+    db.from('office_hours').select('*').gte('starts_at', new Date(Date.now()-3*3600*1000).toISOString()).order('starts_at'),
+    db.from('tutors').select('id, name').order('name')
+  ]);
+  const rows = oh.data || [], tutors = tu.data || [];
+  const opts = (sel) => `<option value="">Host (optional)</option>` + tutors.map(t=>`<option value="${t.id}" ${t.id===sel?'selected':''}>${escapeHtmlPortal(t.name)}</option>`).join('');
+  const fmt = iso => new Date(iso).toLocaleString([], {weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  body.innerHTML = `
+    <div class="adm-card" style="margin-bottom:1rem">
+      <div style="font-weight:800;color:#0f2044;margin-bottom:.4rem">🙋 Add office hours</div>
+      <div style="font-size:.8rem;color:#64748b;margin-bottom:.8rem">One Google Meet link for everyone. Students are emailed the morning of, and see it in the Homework Helpline.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end">
+        <div><label style="font-size:.7rem;font-weight:800;color:#475569">DAYS</label><div style="display:flex;gap:.3rem;margin-top:.25rem">
+          ${[['Sun',0],['Mon',1],['Tue',2],['Wed',3],['Thu',4],['Fri',5],['Sat',6]].map(([n,v])=>`<label style="border:1.5px solid #e2e8f0;border-radius:8px;padding:.3rem .5rem;font-size:.75rem;font-weight:700;cursor:pointer"><input type="checkbox" class="ohDay" value="${v}" ${[0,2,4].includes(v)?'checked':''}> ${n}</label>`).join('')}</div></div>
+        <div><label style="font-size:.7rem;font-weight:800;color:#475569">START TIME</label><br><input id="ohTime" type="time" value="17:00" class="adm-input" style="padding:.45rem"></div>
+        <div><label style="font-size:.7rem;font-weight:800;color:#475569">LENGTH</label><br><select id="ohDur" class="adm-input" style="padding:.45rem"><option value="60">1 hr</option><option value="90">1.5 hr</option><option value="120" selected>2 hr</option></select></div>
+        <div><label style="font-size:.7rem;font-weight:800;color:#475569">WEEKS</label><br><input id="ohWeeks" type="number" min="1" max="12" value="4" class="adm-input" style="padding:.45rem;width:70px"></div>
+        <div><label style="font-size:.7rem;font-weight:800;color:#475569">HOST</label><br><select id="ohHost" class="adm-input" style="padding:.45rem">${opts('')}</select></div>
+        <div style="flex:1;min-width:220px"><label style="font-size:.7rem;font-weight:800;color:#475569">GOOGLE MEET LINK</label><br><input id="ohUrl" type="url" placeholder="https://meet.google.com/..." class="adm-input" style="padding:.45rem;width:100%;box-sizing:border-box"></div>
+        <button class="adm-btn" style="background:#0f2044;color:#fff" onclick="adminAddOfficeHours()">Add to calendar</button>
+      </div>
+    </div>
+    <div class="adm-card">
+      <div style="font-weight:800;color:#0f2044;margin-bottom:.6rem">Upcoming office hours (${rows.length})</div>
+      ${rows.length ? rows.map(r=>`<div style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;padding:.6rem 0;border-top:1px solid #f1f5f9;${r.status==='cancelled'?'opacity:.5;text-decoration:line-through':''}">
+        <div style="min-width:170px;font-weight:700;color:#0f2044;font-size:.85rem">${fmt(r.starts_at)} <span style="font-weight:500;color:#64748b">· ${r.duration_minutes} min</span></div>
+        <select id="ohh-${r.id}" class="adm-input" style="padding:.35rem">${opts(r.host_tutor_id)}</select>
+        <input id="ohu-${r.id}" type="url" value="${escapeHtmlPortal(r.meeting_url||'')}" placeholder="Meet link" class="adm-input" style="padding:.35rem;flex:1;min-width:200px">
+        <button class="adm-btn" onclick="adminSaveOfficeHours('${r.id}')">Save</button>
+        ${r.status==='scheduled'?`<button class="adm-btn" style="color:#dc2626" onclick="adminCancelOfficeHours('${r.id}')">Cancel</button>`:'<span style="font-size:.72rem">cancelled</span>'}
+      </div>`).join('') : '<div style="color:#94a3b8;font-size:.85rem;padding:.5rem 0">Nothing scheduled. Add some above.</div>'}
+    </div>`;
+}
+async function adminAddOfficeHours() {
+  const days = [...document.querySelectorAll('.ohDay:checked')].map(x=>+x.value);
+  const time = document.getElementById('ohTime').value, dur = +document.getElementById('ohDur').value;
+  const weeks = Math.max(1, Math.min(12, +document.getElementById('ohWeeks').value || 4));
+  const hostId = document.getElementById('ohHost').value || null, url = (document.getElementById('ohUrl').value||'').trim() || null;
+  if (!days.length || !time) { showToast('Pick at least one day and a time.', 'error'); return; }
+  const [hh, mm] = time.split(':').map(Number);
+  const hostName = hostId ? (document.getElementById('ohHost').selectedOptions[0].textContent) : null;
+  const out = [];
+  const start = new Date(); start.setHours(0,0,0,0);
+  for (let i = 0; i < weeks*7; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i, hh, mm);
+    if (d.getTime() < Date.now()) continue;
+    if (days.includes(d.getDay())) out.push({ starts_at: d.toISOString(), duration_minutes: dur, meeting_url: url, host_tutor_id: hostId, host_name: hostName });
+  }
+  if (!out.length) { showToast('No matching dates.', 'error'); return; }
+  const { error } = await db.from('office_hours').insert(out);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast(out.length + ' office hours added ✅', 'success');
+  buildAdminOfficeHours();
+}
+async function adminSaveOfficeHours(id) {
+  const sel = document.getElementById('ohh-'+id), url = (document.getElementById('ohu-'+id).value||'').trim() || null;
+  const hostId = sel.value || null;
+  const { error } = await db.from('office_hours').update({ meeting_url: url, host_tutor_id: hostId, host_name: hostId ? sel.selectedOptions[0].textContent : null }).eq('id', id);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('Saved ✅', 'success');
+}
+async function adminCancelOfficeHours(id) {
+  if (!confirm('Cancel these office hours?')) return;
+  const { error } = await db.from('office_hours').update({ status: 'cancelled' }).eq('id', id);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  buildAdminOfficeHours();
 }
 
 /* ── LOAD STUDENT MESSAGES ── */
@@ -14204,7 +14424,7 @@ function showAdminSection(id) {
   if (id !== 'adm-messages' && _activeMsgCtx) _unsubscribeMessages();
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
-    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', review:'Review Queue', 'seed-bank':'Seed Bank', 'weekly-reports':'Weekly Reports', 'adm-messages':'Messages', calendar:'Calendar'}[id] || id;
+    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', review:'Review Queue', 'seed-bank':'Seed Bank', 'weekly-reports':'Weekly Reports', 'adm-messages':'Messages', calendar:'Calendar', 'office-hours':'Office Hours'}[id] || id;
   // Full-bleed layout for messages, restore padding for other sections
   const admContent = document.querySelector('.adm-content');
   if (admContent) admContent.style.padding = id === 'adm-messages' ? '0' : '';
@@ -14222,6 +14442,7 @@ function showAdminSection(id) {
   else if (id === 'weekly-reports') buildAdminWeeklyReports();
   else if (id === 'adm-messages') buildAdminMessages();
   else if (id === 'calendar')     mountAdminCalendar();
+  else if (id === 'office-hours') buildAdminOfficeHours();
 }
 
 /* ── APPROVALS ── */
@@ -16266,6 +16487,8 @@ async function loadAdminConvo(studentId, studentName) {
   .adm-btn{font-size:.75rem;padding:.4rem .8rem}
   .adm-topbar-title{font-size:.9rem}
 }
+
+.adm-input{border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.82rem;color:#0f2044;background:#fff}
 </style>
 
 <!-- ADMIN SHELL HTML -->
@@ -16282,6 +16505,7 @@ async function loadAdminConvo(studentId, studentName) {
         <div class="adm-nav-item active" data-id="approvals" onclick="showAdminSection('approvals')"><span class="adm-nav-icon">⏳</span> Pending Approvals</div>
         <div class="adm-nav-item" data-id="enrollments" onclick="showAdminSection('enrollments')"><span class="adm-nav-icon">📋</span> Enrollment Requests <span id="admEnrBadge" style="display:none;margin-left:auto;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;padding:.1rem .45rem;border-radius:99px"></span></div>
         <div class="adm-nav-item" data-id="calendar" onclick="showAdminSection('calendar')"><span class="adm-nav-icon">🗓️</span> Calendar <span id="admCalBadge" style="display:none;margin-left:auto;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;padding:.1rem .45rem;border-radius:99px"></span></div>
+        <div class="adm-nav-item" data-id="office-hours" onclick="showAdminSection('office-hours')"><span class="adm-nav-icon">🙋</span> Office Hours</div>
         <div class="adm-nav-label">People</div>
         <div class="adm-nav-item" data-id="students" onclick="showAdminSection('students')"><span class="adm-nav-icon">🎓</span> My Students</div>
         <div class="adm-nav-item" data-id="tutors" onclick="showAdminSection('tutors')"><span class="adm-nav-icon">👨‍🏫</span> My Tutors</div>
@@ -16639,5 +16863,6 @@ Return ONLY the raw JSON. No text before or after.</pre>
   </div>
 </div>
 <script src="/calendar.js"></script>
+<script src="/fulltest.js"></script>
 </body>
 </html>
