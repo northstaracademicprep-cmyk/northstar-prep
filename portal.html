@@ -1489,6 +1489,7 @@ async function loadFromSupabase(code) {
         title: h.title || '',
         subject: subj,
         dueDate: h.due_date ? fmtDateLong(h.due_date) : 'No due date',
+        dueISO: h.due_date || '',
         dueSoon: h.due_date ? ((new Date(h.due_date) - new Date()) < 3 * 24 * 60 * 60 * 1000) : false,
         isOverdue: h.due_date ? (new Date(h.due_date) < new Date()) : false,
         status: h.status || 'pending',
@@ -12479,6 +12480,7 @@ function buildSessions() {
       html += `</div>`;
     }
   } else {
+    html += `<div id="sessCalUpcoming"></div>`;
     if (upcoming.length) {
       html += `<div class="section-subtitle">Upcoming</div><div class="sessions-list">`;
       html += upcoming.map((ses,i)=>`<div class="session-item anim-up" style="animation-delay:${i*.07}s">
@@ -12508,6 +12510,21 @@ function buildSessions() {
   }
   if (!html) html = `<div class="empty-state"><div class="empty-icon">📅</div><p>No sessions yet</p></div>`;
   document.getElementById('sessionsBody').innerHTML = html;
+  if (!iCC) hydrateSessionsUpcoming();
+}
+async function hydrateSessionsUpcoming() {
+  const el = document.getElementById('sessCalUpcoming'); const s = currentStudent;
+  if (!el || !s || !s.studentId) return;
+  try {
+    const { data } = await db.from('scheduled_sessions').select('*').eq('student_id', s.studentId).eq('status','scheduled').gte('starts_at', new Date(Date.now()-3600*1000).toISOString()).order('starts_at').limit(10);
+    if (!data || !data.length) { el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:space-between;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:.9rem 1.1rem;margin-bottom:1rem"><span style="font-size:.85rem;color:#64748b">No sessions on the calendar yet.</span><a href="#" onclick="showSection('calendar',document.getElementById('nav-calendar'));return false" style="font-size:.8rem;font-weight:700;color:#3b82f6">Request a session →</a></div>`; return; }
+    el.innerHTML = `<div class="section-subtitle">Booked sessions</div><div class="sessions-list">` + data.map(x=>{
+      const d = new Date(x.starts_at);
+      return `<div class="session-item" style="border-color:var(--gold)"><div class="session-date-block"><div class="session-month">${d.toLocaleString([], {month:'short'}).toUpperCase()}</div><div class="session-day">${d.getDate()}</div></div>
+        <div class="session-info"><div class="session-subject">${escapeHtmlPortal(x.topic||'Tutoring session')}</div><div class="session-topic">${d.toLocaleDateString([], {weekday:'long'})} · ${d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} · ${x.duration_minutes} min</div>
+        <div class="session-meta">${x.meeting_url?`<a href="${escapeHtmlPortal(x.meeting_url)}" target="_blank" rel="noopener" style="display:inline-flex;background:#1a73e8;color:#fff;font-size:.72rem;font-weight:700;padding:.25rem .75rem;border-radius:6px;text-decoration:none">📹 Join Meeting</a>`:''}<a href="#" onclick="showSection('calendar',document.getElementById('nav-calendar'));return false" style="font-size:.74rem;font-weight:700;color:#3b82f6;margin-left:.4rem">Reschedule or cancel →</a></div></div></div>`;
+    }).join('') + `</div>`;
+  } catch (e) { console.warn(e); }
 }
 function sessionCardCC(ses, state) {
   const borderColor = state==='inprog'?'var(--purple)':state==='past'?'var(--border)':'var(--border)';
@@ -12580,7 +12597,10 @@ function buildECPlan() {
 }
 
 /* ── RESOURCES ── */
-function buildResources() {
+let _resFilter = 'all', _resQuery = '';
+function setResFilter(f) { _resFilter = f; buildResources(); }
+function setResQuery(q) { _resQuery = q; buildResources(true); }
+function buildResources(keepFocus) {
   const s = currentStudent;
   const res = s.resources||[];
   const grid = document.getElementById('resourcesGrid');
@@ -12591,46 +12611,77 @@ function buildResources() {
   const newCount = res.filter(r=>r.isNew).length;
   const rb = document.getElementById('resourcesBadge');
   if (rb) { rb.textContent = newCount; rb.style.display = newCount ? '' : 'none'; }
-  grid.innerHTML = res.map((r,i)=>`
-    <a class="resource-card anim-up" href="${r.url}" target="_blank" rel="noopener" style="animation-delay:${i*.06}s;text-decoration:none">
+  const kind = r => ({'slide-deck':'Slide decks','notes':'Notes','worksheet':'Worksheets'}[r.type] || 'Other');
+  const kinds = ['Notes','Slide decks','Worksheets','Other'].filter(k=>res.some(r=>kind(r)===k));
+  const q = _resQuery.trim().toLowerCase();
+  const list = res.filter(r => (_resFilter==='all' || kind(r)===_resFilter) && (!q || (r.title+' '+(r.description||'')).toLowerCase().includes(q)));
+  const chip = (id,label,n) => `<button onclick="setResFilter('${id}')" style="border:1.5px solid ${_resFilter===id?'#0f2044':'#e2e8f0'};background:${_resFilter===id?'#0f2044':'#fff'};color:${_resFilter===id?'#fff':'#475569'};border-radius:99px;padding:.35rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit">${label} <span style="opacity:.7">${n}</span></button>`;
+  const card = (r,i)=>`
+    <a class="resource-card anim-up" href="${r.url}" target="_blank" rel="noopener" style="animation-delay:${Math.min(i,8)*.04}s;text-decoration:none">
       <div class="resource-icon" style="background:${r.iconBg||'#f3f4f6'}">${r.icon}</div>
       <div style="flex:1;min-width:0">
-        <div class="resource-name">${r.title}${r.isNew?'<span class="new-badge">NEW</span>':''}</div>
+        <div class="resource-name">${escapeHtmlPortal(r.title)}${r.isNew?'<span class="new-badge">NEW</span>':''}</div>
         <div class="resource-meta">${r.type.replace('-',' ')} · Added ${r.date}</div>
-        ${r.description?`<div class="resource-meta" style="margin-top:.2rem;color:#374151">${r.description}</div>`:''}
+        ${r.description?`<div class="resource-meta" style="margin-top:.2rem;color:#374151">${escapeHtmlPortal(r.description)}</div>`:''}
       </div>
       <div style="color:#c9a03a;font-size:.8rem;font-weight:600;flex-shrink:0">Open →</div>
-    </a>`).join('');
+    </a>`;
+  let html = `<div style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.25rem">
+    ${chip('all','All',res.length)}${kinds.map(k=>chip(k,k,res.filter(r=>kind(r)===k).length)).join('')}
+    <input id="resSearch" type="search" placeholder="Search resources…" value="${escapeHtmlPortal(_resQuery)}" oninput="setResQuery(this.value)" style="margin-left:auto;border:1.5px solid #e2e8f0;border-radius:99px;padding:.4rem .9rem;font-size:.8rem;font-family:inherit;min-width:180px">
+  </div>`;
+  if (!list.length) html += `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><p>No resources match.</p></div>`;
+  else {
+    const fresh = list.filter(r=>r.isNew);
+    if (fresh.length && _resFilter==='all' && !q) {
+      html += `<div class="section-subtitle" style="grid-column:1/-1;margin-top:.5rem">New this week</div>` + fresh.map(card).join('');
+      html += `<div class="section-subtitle" style="grid-column:1/-1;margin-top:1rem">Everything else</div>` + list.filter(r=>!r.isNew).map(card).join('');
+    } else html += list.map(card).join('');
+  }
+  grid.innerHTML = html;
+  if (keepFocus) { const i=document.getElementById('resSearch'); if (i) { i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 }
 
 /* ── ASSIGNMENTS (AP) ── */
+let _hwFilter = 'all';
+function setHwFilter(f) { _hwFilter = f; buildAssignments(); }
 function buildAssignments() {
   const s = currentStudent;
   const assignments = s.assignments||[];
   const body = document.getElementById('assignmentsBody');
+  const tutorFirst = s.tutors?.name?.split(' ')[0] || 'Your tutor';
   if (!assignments.length) {
-    body.innerHTML = `<div class="empty-state"><div class="empty-icon">✏️</div><p>No assignments yet. Sid will assign work here after each session.</p></div>`;
+    body.innerHTML = `<div class="empty-state"><div class="empty-icon">✏️</div><p>No assignments yet. ${tutorFirst} will assign work here after each session.</p></div>`;
     return;
   }
-  const pending   = assignments.filter(a=>a.status==='pending');
+  const byDue = (x,y) => String(x.dueISO||'').localeCompare(String(y.dueISO||''));
+  const pending   = assignments.filter(a=>a.status==='pending').sort((x,y)=>(y.isOverdue?1:0)-(x.isOverdue?1:0));
   const submitted = assignments.filter(a=>a.status==='submitted');
-  const graded    = assignments.filter(a=>a.status==='graded');
-  const newCount  = assignments.filter(a=>a.isNew && a.status==='pending').length;
+  const graded    = assignments.filter(a=>a.status==='graded').slice().reverse();
   const ab = document.getElementById('assignBadge');
   if (ab) { ab.textContent = pending.length; ab.style.display = pending.length?'':'none'; }
-  let html = '';
-  if (pending.length) {
-    html += `<div class="section-subtitle">To Do (${pending.length})</div>`;
-    html += pending.map(a=>homeworkCardHTML(a,s.studentId)).join('');
+  const pcts = graded.filter(a=>a.score!=null).map(a=>Math.round(Number(a.score)/Math.max(Number(a.maxScore)||100,1)*100));
+  const avg = pcts.length ? Math.round(pcts.reduce((x,y)=>x+y,0)/pcts.length) : null;
+  const overdue = pending.filter(a=>a.isOverdue).length;
+  const tab = (id,label,n) => `<button onclick="setHwFilter('${id}')" style="border:1.5px solid ${_hwFilter===id?'#0f2044':'#e2e8f0'};background:${_hwFilter===id?'#0f2044':'#fff'};color:${_hwFilter===id?'#fff':'#475569'};border-radius:99px;padding:.35rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit">${label} <span style="opacity:.7">${n}</span></button>`;
+  let html = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.7rem;margin-bottom:1rem">
+    <div class="prog-overview-card"><div class="prog-overview-val${overdue?' red':''}">${pending.length}</div><div class="prog-overview-label">To do${overdue?` · ${overdue} overdue`:''}</div></div>
+    <div class="prog-overview-card"><div class="prog-overview-val gold">${submitted.length}</div><div class="prog-overview-label">Awaiting grade</div></div>
+    <div class="prog-overview-card"><div class="prog-overview-val">${graded.length}</div><div class="prog-overview-label">Graded</div></div>
+    <div class="prog-overview-card"><div class="prog-overview-val${avg!=null?(avg>=80?' green':avg>=65?' gold':' red'):''}">${avg!=null?avg+'%':'—'}</div><div class="prog-overview-label">Average score</div></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:1rem">${tab('all','All',assignments.length)}${tab('pending','To do',pending.length)}${tab('submitted','Submitted',submitted.length)}${tab('graded','Graded',graded.length)}</div>`;
+  const show = id => _hwFilter==='all' || _hwFilter===id;
+  if (show('pending') && pending.length) {
+    html += `<div class="section-subtitle">To Do (${pending.length})</div>` + pending.map(a=>homeworkCardHTML(a,s.studentId)).join('');
   }
-  if (submitted.length) {
-    html += `<div class="section-subtitle" style="margin-top:1.5rem">Submitted — Awaiting Grade</div>`;
-    html += submitted.map(a=>homeworkCardHTML(a,s.studentId)).join('');
+  if (show('submitted') && submitted.length) {
+    html += `<div class="section-subtitle" style="margin-top:1.5rem">Submitted, awaiting grade</div>` + submitted.map(a=>homeworkCardHTML(a,s.studentId)).join('');
   }
-  if (graded.length) {
-    html += `<div class="section-subtitle" style="margin-top:1.5rem">Graded ✓</div>`;
-    html += graded.map(a=>homeworkCardHTML(a,s.studentId)).join('');
+  if (show('graded') && graded.length) {
+    html += `<div class="section-subtitle" style="margin-top:1.5rem">Graded ✓</div>` + graded.map(a=>homeworkCardHTML(a,s.studentId)).join('');
   }
+  if (html.indexOf('hw-card') === -1) html += `<div class="empty-state"><div class="empty-icon">✅</div><p>Nothing here.</p></div>`;
   body.innerHTML = html;
 }
 
@@ -12646,6 +12697,7 @@ function homeworkCardHTML(a, studentId) {
         <div class="hw-meta" style="${dueCls}">Due ${a.dueDate}${a.isOverdue && isPending?' · OVERDUE':''} · ${a.subject}</div>
       </div>
       <div class="hw-badges">
+        ${isGraded && a.score!=null ? (()=>{const p=Math.round(Number(a.score)/Math.max(Number(a.maxScore)||100,1)*100);const c=p>=85?'#10b981':p>=70?'#f59e0b':'#ef4444';return `<span style="font-size:.74rem;font-weight:800;color:${c};background:${c}18;border-radius:99px;padding:.2rem .6rem">${p}%</span>`;})() : ''}
         <span class="hw-status ${a.status}">${isPending?'Pending':isSubmitted?'Submitted':'Graded ✓'}</span>
         <span style="color:#94a3b8;font-size:.85rem" id="hwchev-${a.id}">▼</span>
       </div>
