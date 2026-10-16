@@ -164,13 +164,32 @@ export async function generateReport(sbUrl, sbKey, apiKey, body) {
   const practiceWeek    = computePracticeAvg(legacyWeek, vaultWeek);
   const practiceOverall = computePracticeAvg(legacyAll,  vaultAll);
 
-  // 4) Homework — overall graded avg, same formula the portal uses
+  // 4) Homework — overall graded avg (same formula the portal uses) plus
+  //    this week's activity: what got done, what's overdue, what's coming.
   const homework = await sbGet(sbUrl, sbKey,
-    `/rest/v1/homework?select=score,max_score,status,due_date&student_id=eq.${studentId}`);
+    `/rest/v1/homework?select=title,score,max_score,status,due_date,submitted_at,graded_at,feedback`
+    + `&student_id=eq.${studentId}&order=due_date.asc`);
   const gradedHw  = homework.filter(h => h.status === 'graded' && h.score != null);
   const homeworkAvg = gradedHw.length
     ? Math.round(gradedHw.reduce((s, h) => s + Number(h.score), 0) / gradedHw.length)
     : null;
+  const inWindow = ts => ts && ts >= window.startTs && ts <= window.endTs;
+  const nextWeekEnd = toIsoDate(new Date(new Date(`${window.endDate}T00:00:00Z`).getTime() + 7 * 86400000));
+  const hwShape = h => ({
+    title: (h.title || 'Homework').trim(),
+    status: h.status,
+    dueDate: h.due_date,
+    score: h.score != null ? Number(h.score) : null,
+    maxScore: h.max_score != null ? Number(h.max_score) : null,
+  });
+  const homeworkWeek = {
+    // handed in or graded during the week
+    completed: homework.filter(h => inWindow(h.submitted_at) || inWindow(h.graded_at)).map(hwShape),
+    // still open and past due as of the end of the week
+    overdue: homework.filter(h => h.status === 'pending' && h.due_date && h.due_date <= window.endDate).map(hwShape),
+    // still open and due in the coming 7 days
+    upcoming: homework.filter(h => h.status === 'pending' && h.due_date && h.due_date > window.endDate && h.due_date <= nextWeekEnd).map(hwShape),
+  };
 
   // 5) Prior snapshot (most recent strictly before this week)
   const priorRows = await sbGet(sbUrl, sbKey,
@@ -229,6 +248,7 @@ export async function generateReport(sbUrl, sbKey, apiKey, body) {
     weekIndex,
     climb: { gradeStart, gradeTarget, gradeNow, fraction },
     homeworkAvg,
+    homework: homeworkWeek,
     practiceAvg: { week: practiceWeek, overall: practiceOverall },
     units,
     weaknesses: cfg.weaknesses || [],
@@ -250,6 +270,9 @@ export async function generateReport(sbUrl, sbKey, apiKey, body) {
   });
   const summary = projection.summary;
   snapshot.skillGains = projection.skillGains;
+  snapshot.completedText = projection.completed;
+  snapshot.gaps     = projection.gaps;
+  snapshot.nextWeek = projection.nextWeek;
   // Echo weekGrade into the snapshot so downstream consumers (the approval
   // email in particular) can read it straight off the report row without
   // back-deriving from progress_config.weeklyProgress, which can drift if
@@ -376,8 +399,11 @@ async function callGeminiForProjection(apiKey, { studentName, subject, snapshot 
                 },
               },
               summary: { type: 'STRING' },
+              completed: { type: 'STRING' },
+              gaps:      { type: 'ARRAY', items: { type: 'STRING' } },
+              nextWeek:  { type: 'ARRAY', items: { type: 'STRING' } },
             },
-            required: ['weekGrade', 'skillGains', 'summary'],
+            required: ['weekGrade', 'skillGains', 'summary', 'completed', 'gaps', 'nextWeek'],
           },
         },
       }),
@@ -421,7 +447,17 @@ function sanitizeProjection(p, snapshot) {
     }));
 
   const summary = typeof p?.summary === 'string' ? p.summary.trim() : '';
-  return { weekGrade, skillGains, summary };
+  const completed = typeof p?.completed === 'string' ? p.completed.trim() : '';
+  const list = v => (Array.isArray(v) ? v : [])
+    .filter(x => typeof x === 'string' && x.trim())
+    .slice(0, 4)
+    .map(x => x.trim().slice(0, 240));
+  return { weekGrade, skillGains, summary, completed, gaps: list(p?.gaps), nextWeek: list(p?.nextWeek) };
+}
+
+function fmtHw(h) {
+  const sc = h.score != null ? ` — scored ${h.score}${h.maxScore ? '/' + h.maxScore : ''}` : '';
+  return `${h.title} (${h.status}${h.dueDate ? ', due ' + h.dueDate : ''})${sc}`;
 }
 
 function buildProjectionPrompt(studentName, subject, snapshot) {
@@ -441,30 +477,48 @@ function buildProjectionPrompt(studentName, subject, snapshot) {
     : '(no current phase configured)';
   const weakStr = (snapshot.weaknesses || []).map(w => w.area || w).filter(Boolean).join(', ') || '(none recorded)';
   const focusTopics = (snapshot.units || []).map(u => u.name).filter(Boolean).join(', ') || '(units not configured)';
+  const unitScores = (snapshot.units || []).filter(u => u.score != null)
+    .map(u => `${u.name}: ${u.score}%${u.delta != null ? ` (${u.delta >= 0 ? '+' : ''}${u.delta} vs last week)` : ''}`).join('; ') || '(none)';
+  const hw = snapshot.homework || { completed: [], overdue: [], upcoming: [] };
+  const block = arr => arr.length ? arr.map(h => '  - ' + fmtHw(h)).join('\n') : '  (none)';
+  const pr = snapshot.practiceAvg || {};
 
-  return `You are projecting weekly academic progress for the parent of a Northstar Academic Prep student. The student is ${studentName}, working on ${subject}.
+  return `You are writing the weekly update a parent receives about their child's tutoring at Northstar Academic Prep. The student is ${studentName}, working on ${subject}.
 
-These are ESTIMATED PROJECTIONS, not measured results. Frame the summary in projection language ("projected", "expected", "on pace for"). Never claim a number is a tested or graded score.
+Everything below is REAL data from our system. Ground every statement in it. Never invent scores, topics, tests, or events that are not listed. If data is missing, say less rather than guessing.
 
-THIS WEEK CONTEXT
-- Week: ${snapshot.weekStart} to ${snapshot.weekEnd}
-- Week index: ${snapshot.weekIndex}${snapshot.programWeeks ? ' of ' + snapshot.programWeeks : ''}
-- Starting grade: ${startG != null ? startG + '%' : 'unknown'}
-- Current grade (most recent estimate): ${nowG != null ? nowG + '%' : 'unknown'}
-- Target grade: ${targetG != null ? targetG + '%' : 'unknown'}
-- Current phase: ${phaseStr}
-- Configured focus topics (units): ${focusTopics}
-- Known weak areas: ${weakStr}
+THIS WEEK: ${snapshot.weekStart} to ${snapshot.weekEnd} (week ${snapshot.weekIndex}${snapshot.programWeeks ? ' of ' + snapshot.programWeeks : ''})
+Grade climb: start ${startG != null ? startG + '%' : 'unknown'}, current estimate ${nowG != null ? nowG + '%' : 'unknown'}, target ${targetG != null ? targetG + '%' : 'unknown'}
+Current phase: ${phaseStr}
+Configured units: ${focusTopics}
+Unit scores: ${unitScores}
+Known weak areas: ${weakStr}
 
-THIS WEEK'S BRIEF TUTORING NOTES
+SESSIONS THIS WEEK (${sessions.length})
 ${sessionBlock}
 
-RULES (non-negotiable):
-- weekGrade: a SMALL realistic step from the current grade toward the target. Typical step 1–5 points when work happened. Never above the target. Never below the current grade. If there are truly no sessions and no notes, weekGrade equals the current grade (flat).
-- skillGains: 2–4 entries when sessions were logged; empty array when no sessions. Each topic MUST be drawn from this week's notes OR the configured focus topics — do not invent unrelated areas. Each delta is a modest projected gain in the 5–25 range, varied across entries.
-- summary: ONE parent-facing paragraph, 120–180 words, plain language, warm but not gushing. Use projection phrasing — "projected to climb", "expected gain", "on pace for". Do NOT state numeric percentages other than those already in this JSON. Do NOT claim ${firstName} took a test or got a measured score. Describe direction and meaning, not measurement. No greeting, no sign-off.
+HOMEWORK
+Completed or graded this week:
+${block(hw.completed)}
+Overdue (not yet handed in):
+${block(hw.overdue)}
+Due in the next 7 days:
+${block(hw.upcoming)}
+Overall graded homework average: ${snapshot.homeworkAvg != null ? snapshot.homeworkAvg + '%' : 'none graded yet'}
 
-Return ONLY the JSON object. No preamble, no markdown fences.`;
+PRACTICE QUESTIONS
+This week average: ${pr.week != null ? pr.week + '%' : 'no practice this week'}; all-time average: ${pr.overall != null ? pr.overall + '%' : 'none yet'}
+
+Return JSON with:
+- completed: 2–4 plain sentences on what ${firstName} worked on and finished this week — topics covered in sessions, homework handed in or graded (with scores when present), practice results. If there were no sessions, say so plainly and mention anything else that was done.
+- gaps: 0–3 short, specific items on where ${firstName} is struggling or falling behind — drawn from session notes, overdue homework, low homework or practice scores, or the known weak areas. Be honest but constructive. Empty array if there is genuinely nothing to flag.
+- nextWeek: 2–3 short, concrete items on what we plan to work on next week to close those gaps and move through the current phase, including upcoming homework due dates.
+- summary: ONE warm, plain-language sentence (max 35 words) giving the overall picture. No greeting or sign-off.
+- weekGrade and skillGains are internal progress-tracker estimates (not shown to parents): weekGrade is a small realistic step (typically 1–5 points when work happened, flat if no sessions) from the current grade, never above target, never below current. skillGains has 2–4 entries when sessions were logged, empty otherwise; topics must come from the notes or configured units; deltas 5–25.
+
+Style: address the parent in third person about ${firstName}. Warm, direct, no filler, no emojis, no markdown. Never claim a test result that is not in the data above.
+
+Return ONLY the JSON object.`;
 }
 
 // ── List ─────────────────────────────────────────────────────────────
@@ -521,8 +575,8 @@ export async function approveReport(sbUrl, sbKey, body) {
 
 // ── Resend email ─────────────────────────────────────────────────────
 // Fired by approveReport on the draft→approved transition. Single
-// parent-facing message branded navy/gold, summary + skill-boost rows
-// + projected weekly grade + CTA back to the portal. Writes
+// parent-facing message branded navy/gold: stats, what was completed,
+// homework & scores, gaps, next week's plan, tutor's note, portal CTA. Writes
 // email_sent_at on success so re-running approve (or a hand-flipped
 // row) can't double-send.
 async function sendApprovalEmail(sbUrl, sbKey, report) {
@@ -551,17 +605,16 @@ async function sendApprovalEmail(sbUrl, sbKey, report) {
     return;
   }
 
-  const snapshot   = report.snapshot || {};
-  const weekN      = snapshot.weekIndex;
-  const weekGrade  = typeof snapshot.weekGrade === 'number' ? snapshot.weekGrade : null;
-  const skillGains = Array.isArray(snapshot.skillGains) ? snapshot.skillGains : [];
-  const summary    = report.summary || '';
+  const snapshot = report.snapshot || {};
+  const weekN    = snapshot.weekIndex;
 
   const subjectWeek = weekN != null ? `Week ${weekN} ` : '';
   const subject = `${student.name} — ${subjectWeek}Progress Report`;
   const html = buildApprovalEmailHtml({
     studentName: student.name,
-    weekN, weekGrade, skillGains, summary,
+    snapshot,
+    summary: report.summary || '',
+    tutorNote: report.tutor_note || '',
   });
 
   const sendRes = await fetch('https://api.resend.com/emails', {
@@ -595,23 +648,61 @@ async function sendApprovalEmail(sbUrl, sbKey, report) {
   console.log(`[weekly-report] emailed report ${report.id} to ${student.parent_email}`);
 }
 
-function buildApprovalEmailHtml({ studentName, weekN, weekGrade, skillGains, summary }) {
-  // Inline styles only — Gmail/Outlook strip <style> blocks. Colors are
-  // the same navy/gold per the spec; the portal uses slightly different
-  // shades but these are the on-brand "email-safe" pair.
+function buildApprovalEmailHtml({ studentName, snapshot, summary, tutorNote }) {
+  // Inline styles only — Gmail/Outlook strip <style> blocks.
   const NAVY = '#1B2A4A';
   const GOLD = '#C9A84C';
+  const esc = escapeHtmlEmail;
   const firstName = (studentName || 'Your student').split(' ')[0];
-  const safeSummary = escapeHtmlEmail(summary).replace(/\n+/g, '<br><br>');
-  const gainsRows = skillGains
-    .filter(g => g && g.topic && Number.isFinite(Number(g.delta)) && g.delta > 0)
-    .map(g => {
-      const pct = Math.max(0, Math.min(30, Math.round(Number(g.delta))));
-      return `<tr>
-        <td style="padding:10px 14px;font-size:14px;color:${NAVY};font-weight:600;border-bottom:1px solid #eef0f4">${escapeHtmlEmail(g.topic)}</td>
-        <td style="padding:10px 14px;font-size:14px;color:${GOLD};font-weight:800;text-align:right;border-bottom:1px solid #eef0f4">+${pct}%</td>
-      </tr>`;
-    }).join('');
+  const weekN = snapshot.weekIndex;
+  const hw = snapshot.homework || { completed: [], overdue: [], upcoming: [] };
+  const pr = snapshot.practiceAvg || {};
+  const sessions = snapshot.sessions || [];
+  const gaps = Array.isArray(snapshot.gaps) ? snapshot.gaps : [];
+  const nextWeek = Array.isArray(snapshot.nextWeek) ? snapshot.nextWeek : [];
+
+  const fmtDate = iso => {
+    if (!iso) return '';
+    const d = new Date(`${iso}T00:00:00Z`);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  };
+  const sectionTitle = t => `<div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin:0 0 8px">${esc(t)}</div>`;
+  const section = (title, inner) => `<tr><td style="padding:14px 32px 6px">${sectionTitle(title)}${inner}</td></tr>`;
+  const para = t => `<div style="font-size:15px;line-height:1.7;color:#1f2937">${esc(t).replace(/\n+/g, '<br><br>')}</div>`;
+  const bullets = arr => `<ul style="margin:0;padding-left:20px;font-size:15px;line-height:1.7;color:#1f2937">${arr.map(x => `<li style="margin-bottom:4px">${esc(x)}</li>`).join('')}</ul>`;
+  const chip = (label, value) => `<td align="center" style="padding:12px 6px;background:#fafbfc;border:1px solid #e5e7eb;border-radius:10px">
+      <div style="font-size:22px;font-weight:800;color:${NAVY};line-height:1.1">${esc(value)}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px">${esc(label)}</div></td>`;
+
+  const hours = sessions.reduce((t, s) => t + (Number(s.durationHours) || 0), 0);
+  const hwDone = hw.completed.length;
+  const stats = `<table role="presentation" width="100%" cellpadding="0" cellspacing="6" style="border-collapse:separate">
+      <tr>
+        ${chip('Sessions', sessions.length)}
+        ${chip('Hours', hours ? Number(hours.toFixed(1)) : 0)}
+        ${chip('Homework done', hwDone)}
+        ${chip('Practice avg', pr.week != null ? pr.week + '%' : '—')}
+      </tr></table>`;
+
+  const hwLine = h => {
+    const sc = h.score != null ? ` — ${h.score}${h.maxScore ? '/' + h.maxScore : ''}` : '';
+    return `${h.title}${sc}`;
+  };
+  const hwRows = [];
+  hw.completed.forEach(h => hwRows.push(`${hwLine(h)} (${h.status === 'graded' ? 'graded' : 'handed in'})`));
+  hw.overdue.forEach(h => hwRows.push(`${h.title} — overdue, was due ${fmtDate(h.dueDate)}`));
+
+  const sessionRows = sessions.map(s => `${fmtDate(s.date)}${s.topic ? ' — ' + s.topic : ''}`);
+
+  let completedInner = para(snapshot.completedText || summary || `No sessions were logged for ${firstName} this week.`);
+  if (sessionRows.length) completedInner += `<div style="height:8px"></div>` + bullets(sessionRows);
+
+  const hwInner = hwRows.length ? bullets(hwRows) : '';
+  const overallHw = snapshot.homeworkAvg != null
+    ? `<div style="font-size:13px;color:#6b7280;margin-top:6px">Overall homework average: ${esc(snapshot.homeworkAvg)}%${pr.overall != null ? ` · Overall practice average: ${esc(pr.overall)}%` : ''}</div>`
+    : '';
+
+  const upcomingRows = hw.upcoming.map(h => `${h.title} — due ${fmtDate(h.dueDate)}`);
 
   return `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#f4f5f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1f2937">
@@ -621,36 +712,25 @@ function buildApprovalEmailHtml({ studentName, weekN, weekGrade, skillGains, sum
         <tr>
           <td style="background:${NAVY};padding:28px 32px;color:#ffffff">
             <div style="font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:${GOLD};margin-bottom:6px">Northstar Academic Prep</div>
-            <div style="font-size:22px;font-weight:800;line-height:1.3">${escapeHtmlEmail(firstName)}'s Week ${escapeHtmlEmail(weekN ?? '')} Progress Report</div>
+            <div style="font-size:22px;font-weight:800;line-height:1.3">${esc(firstName)}'s Week ${esc(weekN ?? '')} Progress Report</div>
+            <div style="font-size:13px;color:#c9d1e3;margin-top:6px">${esc(fmtDate(snapshot.weekStart))} – ${esc(fmtDate(snapshot.weekEnd))}</div>
           </td>
         </tr>
-        ${typeof weekGrade === 'number' ? `<tr>
-          <td style="padding:24px 32px 6px">
-            <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Projected grade this week</div>
-            <div style="font-size:38px;font-weight:800;color:${NAVY};line-height:1">${weekGrade}%</div>
-          </td>
-        </tr>` : ''}
+        <tr><td style="padding:22px 32px 4px">${stats}</td></tr>
+        ${summary ? `<tr><td style="padding:14px 32px 0;font-size:15px;line-height:1.7;color:${NAVY};font-weight:600">${esc(summary)}</td></tr>` : ''}
+        ${section('What we completed', completedInner)}
+        ${(hwInner || overallHw) ? section('Homework &amp; scores', hwInner + overallHw) : ''}
+        ${gaps.length ? section('Where the gaps are', bullets(gaps)) : ''}
+        ${(nextWeek.length || upcomingRows.length) ? section('Plan for next week', (nextWeek.length ? bullets(nextWeek) : '') + (upcomingRows.length ? `<div style="font-size:13px;font-weight:700;color:${NAVY};margin:10px 0 4px">Coming due</div>` + bullets(upcomingRows) : '')) : ''}
+        ${tutorNote ? `<tr><td style="padding:14px 32px 6px">${sectionTitle("Tutor's note")}<div style="border-left:3px solid ${GOLD};padding:6px 0 6px 14px;font-size:15px;line-height:1.7;color:#1f2937">${esc(tutorNote).replace(/\n+/g, '<br><br>')}</div></td></tr>` : ''}
         <tr>
-          <td style="padding:18px 32px 8px;font-size:15px;line-height:1.7;color:#1f2937">
-            ${safeSummary}
-          </td>
-        </tr>
-        ${gainsRows ? `<tr>
-          <td style="padding:8px 32px 16px">
-            <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin:8px 0 8px">Projected skill boost</div>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fafbfc;border:1px solid #e5e7eb;border-radius:10px;border-collapse:separate">
-              ${gainsRows}
-            </table>
-          </td>
-        </tr>` : ''}
-        <tr>
-          <td align="center" style="padding:18px 32px 32px">
+          <td align="center" style="padding:22px 32px 32px">
             <a href="https://portal.northstaracademicprep.com" style="display:inline-block;background:${GOLD};color:${NAVY};text-decoration:none;font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase;padding:14px 28px;border-radius:9px">Open Student Portal →</a>
           </td>
         </tr>
         <tr>
           <td style="background:#f9fafb;padding:16px 32px;border-top:1px solid #eef0f4;font-size:12px;color:#6b7280;line-height:1.6">
-            These figures are projections from this week's session notes and ${escapeHtmlEmail(firstName)}'s plan — not measured test scores. Reply to this email to reach Northstar directly.
+            Questions about ${esc(firstName)}'s progress? Reply to this email to reach Northstar directly.
           </td>
         </tr>
       </table>

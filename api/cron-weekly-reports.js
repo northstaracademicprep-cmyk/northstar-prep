@@ -59,12 +59,12 @@ export default async function handler(req, res) {
   if (!apiKey)          return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
 
   try {
-    // Target week = the one that just ended.
-    // Cron schedule is `0 16 * * 0` (Sunday 16:00 UTC); on that firing
-    // previousCompletedSundayUtc(now) is the previous Sunday — i.e. the
-    // start of the seven days we're reporting on. On any other day this
-    // still resolves to the most recent Sunday strictly before today.
-    const weekStartDate = previousCompletedSundayUtc(new Date());
+    // Target window = the 7 days ending today (UTC). The cron fires
+    // Monday 02:00 UTC (= Sunday ~7 PM PT), so today-7 is the Monday that
+    // started the week being reported: Mon..Sun. Previously this resolved
+    // to the Sunday that had JUST started, so the report window (Sun..Sat)
+    // was almost entirely in the future and most reports showed 0 sessions.
+    const weekStartDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const weekStartIso  = toIsoDate(weekStartDate);
 
     // "Past 7 days" of sessions, evaluated as a sliding window relative
