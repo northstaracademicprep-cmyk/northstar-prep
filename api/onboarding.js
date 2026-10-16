@@ -8,7 +8,7 @@
 // The table has RLS on with no policies: this endpoint is the only writer.
 // ============================================================
 
-const ADMIN_EMAIL = 'sahibsidhu190@gmail.com';
+const ADMIN_EMAIL = 'northstaracademicprep@gmail.com';
 const RESEND_FROM = 'Northstar Academic Prep <reports@send.northstaracademicprep.com>';
 
 const TEXT_FIELDS = {
