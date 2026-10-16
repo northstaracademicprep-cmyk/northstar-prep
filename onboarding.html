@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Northstar Academic Prep | Welcome Form</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy:#0f2044;--navy-mid:#1a3260;--gold:#c9a03a;--gold-light:#e0b84a;
+    --off-white:#f7f8fc;--text:#1a1a2e;--muted:#6b7280;--border:#e2e8f0;--red:#b42318;--red-bg:#fef2f2;--green:#10b981;
+    --font-arch:'Josefin Sans',sans-serif;--font-body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--off-white);color:var(--text);min-height:100vh;line-height:1.5}
+  header{background:var(--navy);color:#fff;padding:2rem 1rem 2.4rem;text-align:center}
+  .brand{font-family:var(--font-arch);font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem}
+  h1{font-family:var(--font-arch);font-size:1.7rem;font-weight:700;line-height:1.25;text-wrap:balance}
+  .lede{max-width:34rem;margin:.7rem auto 0;color:#c9d1e3;font-size:.95rem}
+  main{max-width:40rem;margin:-1.2rem auto 3rem;padding:0 1rem}
+  form,.done{background:#fff;border-radius:14px;box-shadow:0 2px 16px rgba(15,32,68,.10);padding:1.5rem 1.25rem}
+  fieldset{border:0;margin-bottom:1.9rem}
+  legend{font-family:var(--font-arch);font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:.9rem;padding:0;width:100%;border-bottom:1px solid var(--border);padding-bottom:.4rem}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+  .full{grid-column:1/-1}
+  label.f{display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem}
+  label.f small{font-weight:400;color:var(--muted)}
+  input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:8px;font:inherit;font-size:.92rem;color:var(--text);background:#fff;outline:none;transition:border-color .15s,box-shadow .15s}
+  textarea{resize:vertical;min-height:84px}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,160,58,.18)}
+  .chips{display:flex;flex-wrap:wrap;gap:.5rem}
+  .chip{position:relative}
+  .chip input{position:absolute;opacity:0;inset:0;cursor:pointer}
+  .chip span{display:inline-block;padding:.5rem .85rem;border:1.5px solid var(--border);border-radius:999px;font-size:.85rem;font-weight:500;color:var(--navy);background:#fff;transition:all .15s}
+  .chip input:checked + span{background:var(--navy);border-color:var(--navy);color:#fff}
+  .chip input:focus-visible + span{box-shadow:0 0 0 3px rgba(201,160,58,.4)}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:.3rem}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  button{width:100%;padding:.95rem;background:linear-gradient(135deg,var(--gold) 0%,var(--gold-light) 100%);color:var(--navy);font-family:var(--font-arch);font-size:.9rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border:0;border-radius:10px;cursor:pointer}
+  button:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+  button[disabled]{opacity:.6;cursor:default}
+  .err{display:none;background:var(--red-bg);color:var(--red);border-radius:8px;padding:.7rem .9rem;font-size:.88rem;margin-bottom:1rem}
+  .err.show{display:block}
+  .done{display:none;text-align:center;padding:2.5rem 1.5rem}
+  .done.show{display:block}
+  .done h2{font-family:var(--font-arch);color:var(--navy);font-size:1.4rem;margin-bottom:.6rem}
+  .done p{color:var(--muted);max-width:28rem;margin:0 auto}
+  .tick{width:52px;height:52px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 1rem}
+  footer{text-align:center;color:var(--muted);font-size:.78rem;padding-bottom:2rem}
+  @media (max-width:520px){.grid{grid-template-columns:1fr}h1{font-size:1.4rem}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Northstar Academic Prep</div>
+  <h1>Welcome. Let's get your student set up.</h1>
+  <p class="lede">This takes about three minutes. It tells us how to reach you, when your student is free, and what they need help with, so the first session starts with a plan.</p>
+</header>
+
+<main>
+  <form id="form" novalidate>
+    <div class="err" id="err" role="alert"></div>
+
+    <fieldset>
+      <legend>Student</legend>
+      <div class="grid">
+        <div class="full"><label class="f" for="student_name">Student's full name</label><input type="text" id="student_name" name="student_name" autocomplete="off" required /></div>
+        <div><label class="f" for="student_email">Student's email <small>(if they have one)</small></label><input type="email" id="student_email" name="student_email" autocomplete="off" /></div>
+        <div><label class="f" for="student_phone">Student's phone <small>(optional)</small></label><input type="tel" id="student_phone" name="student_phone" autocomplete="off" /></div>
+        <div><label class="f" for="student_grade">Grade</label>
+          <select id="student_grade" name="student_grade"><option value="">Select</option><option>8th</option><option>9th</option><option>10th</option><option>11th</option><option>12th</option><option>College</option></select></div>
+        <div><label class="f" for="school">School</label><input type="text" id="school" name="school" autocomplete="off" /></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Parents or guardians</legend>
+      <div class="grid">
+        <div class="full"><label class="f" for="parent1_name">Parent 1 name</label><input type="text" id="parent1_name" name="parent1_name" autocomplete="name" required /></div>
+        <div><label class="f" for="parent1_email">Parent 1 email</label><input type="email" id="parent1_email" name="parent1_email" autocomplete="email" required /></div>
+        <div><label class="f" for="parent1_phone">Parent 1 phone</label><input type="tel" id="parent1_phone" name="parent1_phone" autocomplete="tel" /></div>
+        <div class="full"><label class="f" for="parent2_name">Parent 2 name <small>(optional)</small></label><input type="text" id="parent2_name" name="parent2_name" autocomplete="off" /></div>
+        <div><label class="f" for="parent2_email">Parent 2 email</label><input type="email" id="parent2_email" name="parent2_email" autocomplete="off" /></div>
+        <div><label class="f" for="parent2_phone">Parent 2 phone</label><input type="tel" id="parent2_phone" name="parent2_phone" autocomplete="off" /></div>
+      </div>
+      <p class="hint">Weekly progress reports go to the parent emails you list here.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>How we reach you</legend>
+      <div class="grid">
+        <div><label class="f" for="preferred_contact">Preferred way to message</label>
+          <select id="preferred_contact" name="preferred_contact"><option value="">Select</option><option>iMessage</option><option>WhatsApp</option><option>Text (SMS)</option><option>Email</option></select></div>
+        <div><label class="f" for="contact_notes">Anything we should know? <small>(optional)</small></label><input type="text" id="contact_notes" name="contact_notes" placeholder="e.g. text the student, email the parent" autocomplete="off" /></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Scheduling</legend>
+      <div class="grid">
+        <div class="full"><label class="f" for="timezone">Time zone</label>
+          <select id="timezone" name="timezone" required>
+            <option value="">Select</option>
+            <option>Pacific (PT)</option><option>Mountain (MT)</option><option>Central (CT)</option><option>Eastern (ET)</option>
+            <option>Alaska</option><option>Hawaii</option><option>Outside the US</option>
+          </select></div>
+        <div class="full"><span class="f" style="display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem" id="days_label">Days that usually work</span>
+          <div class="chips" role="group" aria-labelledby="days_label" id="days"></div></div>
+        <div class="full"><label class="f" for="preferred_times">Best times of day <small>(your time zone)</small></label><input type="text" id="preferred_times" name="preferred_times" placeholder="e.g. weekdays after 6 PM, Sunday afternoons" autocomplete="off" /></div>
+        <div class="full"><label class="f" for="scheduling_notes">Anything that blocks scheduling <small>(optional)</small></label><textarea id="scheduling_notes" name="scheduling_notes" placeholder="Sports, activities, family commitments, exam weeks"></textarea></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Academics</legend>
+      <div class="grid">
+        <div class="full"><label class="f" for="subjects">Subject or course</label><input type="text" id="subjects" name="subjects" placeholder="e.g. AP Calculus AB, Honors Chemistry" autocomplete="off" /></div>
+        <div class="full"><label class="f" for="teacher_name">Teacher's name <small>(optional)</small></label><input type="text" id="teacher_name" name="teacher_name" autocomplete="off" /></div>
+        <div><label class="f" for="current_grade">Current grade in the class</label><input type="text" id="current_grade" name="current_grade" placeholder="e.g. 78% or C+" autocomplete="off" /></div>
+        <div><label class="f" for="target_grade">Goal grade</label><input type="text" id="target_grade" name="target_grade" placeholder="e.g. A or a 5 on the AP exam" autocomplete="off" /></div>
+        <div class="full"><label class="f" for="next_test_date">Next test or exam, and when</label><input type="text" id="next_test_date" name="next_test_date" placeholder="e.g. Unit 4 test, Oct 28" autocomplete="off" /></div>
+        <div class="full"><label class="f" for="struggles">Where is your student getting stuck?</label><textarea id="struggles" name="struggles" placeholder="Running out of time on tests, specific topics, careless mistakes, confidence"></textarea></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>One last thing</legend>
+      <div class="grid">
+        <div class="full"><label class="f" for="heard_about">How did you hear about Northstar? <small>(optional)</small></label><input type="text" id="heard_about" name="heard_about" autocomplete="off" /></div>
+        <div class="full"><label class="f" for="notes">Anything else we should know? <small>(optional)</small></label><textarea id="notes" name="notes"></textarea></div>
+      </div>
+    </fieldset>
+
+    <div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off" /></div>
+    <button type="submit" id="submit">Send to Northstar</button>
+  </form>
+
+  <section class="done" id="done" aria-live="polite">
+    <div class="tick" aria-hidden="true">✓</div>
+    <h2>Thank you, we have it.</h2>
+    <p>We'll use this to match your student with the right tutor and set up the first session. If anything changes, just reply to any email from us.</p>
+  </section>
+</main>
+<footer>Northstar Academic Prep</footer>
+
+<script>
+(function(){
+  var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var daysEl=document.getElementById('days');
+  DAYS.forEach(function(d){
+    var l=document.createElement('label');l.className='chip';
+    var i=document.createElement('input');i.type='checkbox';i.value=d;i.name='preferred_days';
+    var s=document.createElement('span');s.textContent=d.slice(0,3);s.setAttribute('title',d);
+    i.setAttribute('aria-label',d);
+    l.appendChild(i);l.appendChild(s);daysEl.appendChild(l);
+  });
+
+  var form=document.getElementById('form'),err=document.getElementById('err'),btn=document.getElementById('submit');
+  function showErr(m){err.textContent=m;err.classList.add('show');err.scrollIntoView({behavior:'smooth',block:'center'})}
+
+  form.addEventListener('submit',function(e){
+    e.preventDefault();err.classList.remove('show');
+    var data={};
+    Array.prototype.forEach.call(form.elements,function(el){
+      if(!el.name||el.type==='checkbox')return;
+      data[el.name]=el.value;
+    });
+    data.preferred_days=Array.prototype.filter.call(form.querySelectorAll('input[name=preferred_days]'),function(c){return c.checked}).map(function(c){return c.value});
+
+    var missing=[];
+    if(!data.student_name.trim())missing.push("the student's name");
+    if(!data.parent1_name.trim())missing.push("a parent's name");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.parent1_email.trim()))missing.push('a valid parent email');
+    if(!data.timezone)missing.push('your time zone');
+    if(missing.length){showErr('Please add '+missing.join(', ')+'.');return}
+
+    btn.disabled=true;btn.textContent='Sending...';
+    fetch('/api/onboarding',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+      .then(function(r){return r.json().catch(function(){return{}}).then(function(j){return{ok:r.ok,j:j}})})
+      .then(function(x){
+        if(!x.ok){throw new Error(x.j.error||'Something went wrong. Please try again.')}
+        form.style.display='none';
+        var d=document.getElementById('done');d.classList.add('show');d.scrollIntoView({behavior:'smooth',block:'start'});
+      })
+      .catch(function(ex){showErr(ex.message||'Something went wrong. Please try again.');btn.disabled=false;btn.textContent='Send to Northstar'});
+  });
+})();
+</script>
+</body>
+</html>
