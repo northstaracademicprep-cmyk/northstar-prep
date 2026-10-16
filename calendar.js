@@ -11,6 +11,11 @@
   const tzAbbr = () => { try { return new Intl.DateTimeFormat([], { timeZoneName: 'short' }).formatToParts(new Date()).find(p => p.type === 'timeZoneName').value; } catch (e) { return ''; } };
   const toLocalInput = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   const first = n => String(n || '').split(' ')[0] || '';
+  // fire-and-forget email alert; never blocks or breaks the UI
+  function notify(event, id) {
+    if (!id) return;
+    try { fetch('/api/notify-calendar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event, id }), keepalive: true }).catch(() => {}); } catch (e) {}
+  }
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   const S = { el: null, o: null, cursor: new Date(), view: 'month', filter: '', sessions: [], logged: [], requests: [], names: {}, tutorNames: {} };
@@ -84,6 +89,7 @@
       .gte('session_date', from.slice(0, 10)).lt('session_date', to.slice(0, 10));
     if (ids) { q1 = q1.in('student_id', ids); q2 = q2.in('student_id', ids); q3 = q3.in('student_id', ids); }
     const [a, b, c] = await Promise.all([q1, q2, q3]);
+    const bad = a.error || b.error || c.error; if (bad) throw new Error(bad.message);
     S.sessions = a.data || [];
     S.requests = b.data || [];
     S.logged = c.data || [];
@@ -118,9 +124,17 @@
       <div class="nscal-tz">Times shown in your timezone (${esc(tzAbbr())}).</div>
     </div>`;
     wire();
-    await load();
-    panels();
-    S.view === 'month' ? month() : list();
+    try {
+      await load();
+      panels();
+      S.view === 'month' ? month() : list();
+    } catch (e) { showErr(e); }
+    NSCal.badge();
+  }
+  function showErr(e) {
+    console.error('[NSCal]', e);
+    const b = document.getElementById('nscalBody');
+    if (b) b.innerHTML = `<div class="nscal-panel nscal-empty">Could not load the calendar.<br><span style="font-size:.75rem">${esc(e && e.message || e)}</span><br><br><button class="nscal-btn" onclick="NSCal.reload()">Try again</button></div>`;
   }
 
   function filterSelect() {
@@ -145,7 +159,7 @@
     });
   }
 
-  async function refresh() { await load(); panels(); S.view === 'month' ? month() : list(); }
+  async function refresh() { try { await load(); panels(); S.view === 'month' ? month() : list(); } catch (e) { showErr(e); } NSCal.badge(); }
 
   function who(x) {
     // label for staff = student first name; for students = tutor first name
@@ -251,6 +265,7 @@
       }
       const { error: e2 } = await db.from('session_requests').update({ status: verdict, decided_by: S.o.role, decided_at: new Date().toISOString() }).eq('id', id);
       if (e2) throw e2;
+      notify('request_decided', id);
       showToast(verdict === 'approved' ? 'Approved ✅' : 'Declined', 'success');
       refresh();
     } catch (e) { showToast('Error: ' + (e.message || e), 'error'); }
@@ -292,9 +307,10 @@
       const tutorId = (s && s.tutor_id) || S.o.tutorId || null;
       o.querySelector('#ncGo').disabled = true;
       const res = staff
-        ? await db.from('scheduled_sessions').insert({ student_id: sid, tutor_id: tutorId, starts_at: iso, duration_minutes: dur, topic, meeting_url: (o.querySelector('#ncMeet').value || '').trim() || null, created_by: S.o.role })
-        : await db.from('session_requests').insert({ student_id: sid, tutor_id: tutorId, kind: 'new', proposed_starts_at: iso, proposed_duration_minutes: dur, reason: topic, requested_by: 'student' });
+        ? await db.from('scheduled_sessions').insert({ student_id: sid, tutor_id: tutorId, starts_at: iso, duration_minutes: dur, topic, meeting_url: (o.querySelector('#ncMeet').value || '').trim() || null, created_by: S.o.role }).select('id').single()
+        : await db.from('session_requests').insert({ student_id: sid, tutor_id: tutorId, kind: 'new', proposed_starts_at: iso, proposed_duration_minutes: dur, reason: topic, requested_by: 'student' }).select('id').single();
       if (res.error) { showToast('Error: ' + res.error.message, 'error'); o.querySelector('#ncGo').disabled = false; return; }
+      notify(staff ? 'session_scheduled' : 'request_created', res.data && res.data.id);
       closeModal(); showToast(staff ? 'Session scheduled ✅' : 'Request sent ✅', 'success'); refresh();
     };
   }
@@ -322,6 +338,7 @@
       if (!confirm('Cancel this session?')) return;
       const { error } = await db.from('scheduled_sessions').update({ status: 'cancelled' }).eq('id', x.id);
       if (error) { showToast('Error: ' + error.message, 'error'); return; }
+      notify('session_cancelled', x.id);
       closeModal(); showToast('Session cancelled', 'success'); refresh();
     };
   }
@@ -337,9 +354,10 @@
       const when = o.querySelector('#nmWhen').value; if (!when) return;
       const iso = new Date(when).toISOString(), dur = parseInt(o.querySelector('#nmDur').value, 10);
       const res = direct
-        ? await db.from('scheduled_sessions').update({ starts_at: iso, duration_minutes: dur }).eq('id', x.id)
-        : await db.from('session_requests').insert({ student_id: x.student_id, tutor_id: x.tutor_id, scheduled_session_id: x.id, kind: 'reschedule', proposed_starts_at: iso, proposed_duration_minutes: dur, reason: (o.querySelector('#nmWhy').value || '').trim() || null, requested_by: 'student' });
+        ? await db.from('scheduled_sessions').update({ starts_at: iso, duration_minutes: dur, reminder_sent_at: null }).eq('id', x.id).select('id').single()
+        : await db.from('session_requests').insert({ student_id: x.student_id, tutor_id: x.tutor_id, scheduled_session_id: x.id, kind: 'reschedule', proposed_starts_at: iso, proposed_duration_minutes: dur, reason: (o.querySelector('#nmWhy').value || '').trim() || null, requested_by: 'student' }).select('id').single();
       if (res.error) { showToast('Error: ' + res.error.message, 'error'); return; }
+      notify(direct ? 'session_rescheduled' : 'request_created', res.data && res.data.id);
       closeModal(); showToast(direct ? 'Session moved ✅' : 'Request sent ✅', 'success'); refresh();
     };
   }
@@ -349,8 +367,9 @@
       <div><label>Reason (optional)</label><textarea id="ncqWhy" rows="2"></textarea></div>
       <div class="nscal-acts"><button class="nscal-btn danger" id="ncqGo">Send cancel request</button><button class="nscal-btn" onclick="NSCal.close()">Back</button></div>`);
     o.querySelector('#ncqGo').onclick = async () => {
-      const { error } = await db.from('session_requests').insert({ student_id: x.student_id, tutor_id: x.tutor_id, scheduled_session_id: x.id, kind: 'cancel', reason: (o.querySelector('#ncqWhy').value || '').trim() || null, requested_by: 'student' });
+      const { data, error } = await db.from('session_requests').insert({ student_id: x.student_id, tutor_id: x.tutor_id, scheduled_session_id: x.id, kind: 'cancel', reason: (o.querySelector('#ncqWhy').value || '').trim() || null, requested_by: 'student' }).select('id').single();
       if (error) { showToast('Error: ' + error.message, 'error'); return; }
+      notify('request_created', data && data.id);
       closeModal(); showToast('Request sent ✅', 'success'); refresh();
     };
   }
@@ -358,6 +377,20 @@
   /* ───────── public ───────── */
   window.NSCal = {
     close: closeModal,
+    reload() { render(); },
+    /* pending-request count shown on the tutor "My Calendar" button and the admin Calendar nav */
+    async badge(ctx) {
+      if (ctx) NSCal._ctx = ctx;
+      const c = NSCal._ctx; if (!c) return;
+      try {
+        let q = db.from('session_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+        if (c.studentIds) q = q.in('student_id', c.studentIds);
+        const { count } = await q;
+        const el = document.getElementById(c.el);
+        if (el) { el.textContent = count || ''; el.style.display = count ? 'inline-flex' : 'none'; }
+        
+      } catch (e) {}
+    },
     /* opts: { role, studentIds|null, students:[{id,name,tutor_id}], tutors:[{id,name}], tutorId, tutorName, defaultStudentId } */
     mount(el, opts) {
       injectCss();
