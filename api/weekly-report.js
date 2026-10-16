@@ -626,7 +626,7 @@ async function sendApprovalEmail(sbUrl, sbKey, report) {
     body: JSON.stringify({
       from: 'Northstar Academic Prep <reports@send.northstaracademicprep.com>',
       to: student.parent_email,
-      reply_to: 'sahibsidhu190@gmail.com',
+      reply_to: 'northstaracademicprep@gmail.com',
       subject,
       html,
     }),
