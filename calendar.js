@@ -18,7 +18,7 @@
   }
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  const S = { el: null, o: null, cursor: new Date(), view: 'month', filter: '', sessions: [], logged: [], requests: [], names: {}, tutorNames: {} };
+  const S = { oh: [], el: null, o: null, cursor: new Date(), view: 'month', filter: '', sessions: [], logged: [], requests: [], names: {}, tutorNames: {} };
 
   function injectCss() {
     if (document.getElementById('nsCalCss')) return;
@@ -50,6 +50,7 @@
 .nscal-chip{font-size:.66rem;font-weight:700;border-radius:5px;padding:.15rem .3rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#0f2044;color:#fff;border:1px solid #0f2044;text-align:left;font-family:inherit;width:100%}
 .nscal-chip.pend{background:#fef3c7;color:#92400e;border-color:#fcd34d}
 .nscal-chip.done{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+.nscal-chip.oh{background:#c9a03a;color:#0f2044;border-color:#c9a03a}
 .nscal-chip.cancel{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0;text-decoration:line-through}
 .nscal-more{font-size:.62rem;color:#64748b;font-weight:700;padding-left:.2rem}
 .nscal-panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem}
@@ -88,7 +89,9 @@
     let q3 = db.from('sessions').select('id, student_id, session_date, duration_hours, topic, approved')
       .gte('session_date', from.slice(0, 10)).lt('session_date', to.slice(0, 10));
     if (ids) { q1 = q1.in('student_id', ids); q2 = q2.in('student_id', ids); q3 = q3.in('student_id', ids); }
-    const [a, b, c] = await Promise.all([q1, q2, q3]);
+    const q4 = db.from('office_hours').select('*').eq('status', 'scheduled').gte('starts_at', from).lt('starts_at', to).order('starts_at');
+    const [a, b, c, d4] = await Promise.all([q1, q2, q3, q4]);
+    S.oh = d4.error ? [] : (d4.data || []);
     const bad = a.error || b.error || c.error; if (bad) throw new Error(bad.message);
     S.sessions = a.data || [];
     S.requests = b.data || [];
@@ -176,6 +179,7 @@
     const map = {};
     visible(S.sessions).forEach(x => { (map[dayKey(new Date(x.starts_at))] = map[dayKey(new Date(x.starts_at))] || []).push({ t: 's', x }); });
     visible(S.logged).forEach(x => { const k = x.session_date; (map[k] = map[k] || []).push({ t: 'l', x }); });
+    S.oh.forEach(x => { const k = dayKey(new Date(x.starts_at)); (map[k] = map[k] || []).push({ t: 'o', x }); });
     const todayK = dayKey(new Date());
     let cells = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="nscal-dow">${d}</div>`).join('');
     for (let i = 0; i < 42; i++) {
@@ -190,9 +194,11 @@
     }
     document.getElementById('nscalBody').innerHTML = `<div class="nscal-grid">${cells}</div>`;
     document.querySelectorAll('#nscalBody [data-sid]').forEach(b => { b.onclick = () => openDetail(b.dataset.sid); });
+    document.querySelectorAll('#nscalBody [data-oid]').forEach(b => { b.onclick = () => openOH(b.dataset.oid); });
   }
 
   function chip(e) {
+    if (e.t === 'o') return `<button class="nscal-chip oh" data-oid="${e.x.id}">${esc(fmtTime(new Date(e.x.starts_at)))} Office hours</button>`;
     if (e.t === 'l') {
       const nm = S.o.role === 'student' ? 'Session' : first(S.names[e.x.student_id]) || 'Session';
       return `<button class="nscal-chip done" title="Logged session" data-lid="${e.x.id}" onclick="event.stopPropagation()">✓ ${esc(nm)} · ${e.x.duration_hours || ''}h</button>`;
@@ -284,6 +290,14 @@
   function closeModal() { const o = document.getElementById('nscalOv'); if (o) o.remove(); }
 
   function durOptions(sel) { return [30, 45, 60, 75, 90, 120].map(n => `<option value="${n}" ${n === sel ? 'selected' : ''}>${n} min</option>`).join(''); }
+
+  function openOH(id) {
+    const x = S.oh.find(o => o.id === id); if (!x) return;
+    const d = new Date(x.starts_at), end = new Date(d.getTime() + x.duration_minutes * 60000);
+    modal('Office hours', `<div><div style="font-size:1.05rem;font-weight:800;color:#0f2044">${esc(fmtDay(d))} · ${esc(fmtTime(d))} to ${esc(fmtTime(end))}</div>
+      <div style="font-size:.82rem;color:#64748b;margin-top:.25rem">${x.host_name ? 'Hosted by ' + esc(x.host_name) + '. ' : ''}Open to every student. Drop in with any question.</div></div>
+      <div class="nscal-acts">${x.meeting_url ? `<a class="nscal-btn pri" style="text-decoration:none" href="${esc(x.meeting_url)}" target="_blank" rel="noopener">📹 Join meeting</a>` : '<span style="font-size:.8rem;color:#94a3b8">Meeting link coming soon</span>'}</div>`);
+  }
 
   function openForm() {
     const stu = S.o.students || [];
