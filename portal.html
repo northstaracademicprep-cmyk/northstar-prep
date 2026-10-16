@@ -2747,8 +2747,8 @@ async function buildGameplanPage(student, targetEl) {
       </div>
       <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:.6rem">
         <div style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
-          <div style="font-size:.85rem;font-weight:800;color:#34d399">${out.sessionsCompleted||0} / ${out.sessionsTotal||'—'}</div>
-          <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Sessions</div>
+          <div style="font-size:.85rem;font-weight:800;color:#34d399">${(s.stats&&s.stats.hoursLearned)||s.hours_used||0}h / ${((s.stats&&s.stats.hoursTotal)||s.hours_total)?(((s.stats&&s.stats.hoursTotal)||s.hours_total)+'h'):'—'}</div>
+          <div style="font-size:.63rem;color:rgba(255,255,255,.55)">Hours</div>
         </div>
         <div style="background:rgba(201,160,58,.15);border:1px solid rgba(201,160,58,.3);border-radius:10px;padding:.5rem .85rem;text-align:center">
           <div style="font-size:.85rem;font-weight:800;color:#c9a03a">${masteredCount} / ${units.length}</div>
