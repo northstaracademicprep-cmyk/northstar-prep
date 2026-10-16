@@ -378,12 +378,17 @@
   window.NSCal = {
     close: closeModal,
     reload() { render(); },
+    markSeen(studentId) { try { localStorage.setItem('nscal_seen_' + studentId, new Date().toISOString()); } catch (e) {} const el = document.getElementById('calNavBadge'); if (el) el.style.display = 'none'; },
     /* pending-request count shown on the tutor "My Calendar" button and the admin Calendar nav */
     async badge(ctx) {
       if (ctx) NSCal._ctx = ctx;
       const c = NSCal._ctx; if (!c) return;
       try {
-        let q = db.from('session_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+        let q = db.from('session_requests').select('id', { count: 'exact', head: true });
+        if (c.role === 'student') {
+          let seen = '1970-01-01T00:00:00Z'; try { seen = localStorage.getItem('nscal_seen_' + c.studentIds[0]) || seen; } catch (e) {}
+          q = q.neq('status', 'pending').gt('decided_at', seen);
+        } else q = q.eq('status', 'pending');
         if (c.studentIds) q = q.in('student_id', c.studentIds);
         const { count } = await q;
         const el = document.getElementById(c.el);

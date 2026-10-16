@@ -1637,6 +1637,7 @@ function bootPortal() {
   showNewItemsNotification();
   // Start background notification listener so student gets notified on other tabs
   if (s.studentId) _initBgNotifs([s.studentId], 'student');
+  if (s.studentId && window.NSCal) { NSCal.badge({ el: 'calNavBadge', role: 'student', studentIds: [s.studentId] }); setInterval(()=>NSCal.badge(), 60000); }
 }
 
 function showNewItemsNotification() {
@@ -1688,7 +1689,7 @@ const NAV_AP = [
     {id:'gameplan',icon:'🗺️',label:'Game Plan'},
   ]},
   {section:'schedule',items:[
-    {id:'calendar',icon:'🗓️',label:'Calendar'},
+    {id:'calendar',icon:'🗓️',label:'Calendar',badge:'calNavBadge'},
     {id:'sessions',icon:'📅',label:'Sessions',badge:'upcomingBadge'},
   ]},
   {section:'learning',items:[
@@ -1773,6 +1774,7 @@ function mountStudentCalendar() {
   const s = currentStudent;
   const el = document.getElementById('calendarBody');
   if (!s || !el || !window.NSCal) return;
+  NSCal.markSeen(s.studentId);
   NSCal.mount(el, {
     role: 'student',
     studentIds: [s.studentId],

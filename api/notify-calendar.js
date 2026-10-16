@@ -80,8 +80,8 @@ async function requestDecided(c, id) {
   const head = approved ? `Good news, your ${what} was approved` : `Your ${what} could not be approved`;
   const html = layout(approved ? '✅ Approved' : 'Request update', head, lines, 'Open your calendar →',
     approved ? '' : 'Your tutor may have a conflict at that time. Pick another time in the portal calendar and send a new request.');
-  const to = recipientsFor(student);
-  const sent = await sendAll(c, to, `${approved ? 'Approved' : 'Update'}: your ${what} · Northstar`, html);
+  const to = [...recipientsFor(student), ADMIN_EMAIL];
+  const sent = await sendAll(c, to, `${approved ? 'Approved' : 'Update'}: ${what} for ${student?.name || 'student'} · Northstar`, html);
   if (sent > 0) await sbPatch(c, `/rest/v1/session_requests?id=eq.${id}`, { decision_notified_at: new Date().toISOString() });
   return { ok: true, sent, to };
 }
@@ -96,8 +96,8 @@ async function sessionChanged(c, event, id) {
   if (s.topic) lines.push(['Topic', s.topic]);
   if (s.meeting_url && verb !== 'cancelled') lines.push(['Meeting link', s.meeting_url]);
   const html = layout(verb === 'cancelled' ? '❌ Session cancelled' : '📅 Session ' + verb, `A session for ${esc(student?.name || 'your student')} was ${verb}`, lines, 'Open your calendar →');
-  const to = recipientsFor(student);
-  const sent = await sendAll(c, to, `Session ${verb}: ${fmt(s.starts_at)} · Northstar`, html);
+  const to = [...recipientsFor(student), ADMIN_EMAIL, tutor?.email].filter(Boolean);
+  const sent = await sendAll(c, to, `Session ${verb} (${student?.name || 'student'}): ${fmt(s.starts_at)} · Northstar`, html);
   return { ok: true, sent, to };
 }
 
