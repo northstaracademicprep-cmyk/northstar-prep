@@ -15,7 +15,7 @@
 // the client-side call from portal.html:6638.
 // ============================================================
 
-const ADMIN_EMAIL   = 'sahibsidhu190@gmail.com';
+const ADMIN_EMAIL   = 'northstaracademicprep@gmail.com';
 const PORTAL_URL    = 'https://portal.northstaracademicprep.com';
 const RESEND_FROM   = 'Northstar Academic Prep <reports@send.northstaracademicprep.com>';
 const PREVIEW_CHARS = 200;
