@@ -11612,6 +11612,7 @@ function buildPracticeVault() {
           <p>Real AP World History free-response questions from the College Board.</p>
         </div>
       </div>
+      <div id="ftHubSlot"></div>
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2.5rem 2rem;text-align:center">
         <div style="font-size:2.5rem;margin-bottom:1rem">🌍</div>
         <div style="font-size:1.1rem;font-weight:700;color:#0f2044;margin-bottom:.6rem">2025 College Board AP World History FRQs</div>
@@ -11626,6 +11627,7 @@ function buildPracticeVault() {
           Opens in this tab. Your responses save automatically.
         </div>
       </div>`;
+    if (window.FullTest) FullTest.hub('ftHubSlot');
     return;
   }
 
@@ -11678,6 +11680,7 @@ function buildPracticeVault() {
         <p>${label} — auto-graded MCQ practice, unlimited rounds.</p>
       </div>
     </div>
+    <div id="ftHubSlot"></div>
     <div class="pv-grid">
       ${bank.map(b => {
         const best = sessionStorage.getItem('pv_best_'+b.key);
@@ -11692,6 +11695,7 @@ function buildPracticeVault() {
         </div>`;
       }).join('')}
     </div>`;
+  if (window.FullTest) FullTest.hub('ftHubSlot');
 }
 
 function findBankSection(key) {
@@ -16859,5 +16863,6 @@ Return ONLY the raw JSON. No text before or after.</pre>
   </div>
 </div>
 <script src="/calendar.js"></script>
+<script src="/fulltest.js"></script>
 </body>
 </html>
