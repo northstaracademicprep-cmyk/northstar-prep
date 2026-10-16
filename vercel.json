@@ -6,6 +6,10 @@
       "dest": "/portal.html"
     },
     {
+      "src": "^/onboarding/?$",
+      "dest": "/onboarding.html"
+    },
+    {
       "src": "^/api/(.*)",
       "dest": "/api/$1"
     },
