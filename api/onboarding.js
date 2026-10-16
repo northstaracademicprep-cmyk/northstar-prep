@@ -68,12 +68,15 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'Could not save your answers. Please try again in a minute.' });
   }
 
-  // Heads-up email to Sahib. Never blocks or fails the submission.
+  // Heads-up email to Sahib. Never blocks or fails the submission, but every
+  // outcome is logged so a missing email can be traced in Vercel logs.
   try {
     const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey) {
+    if (!resendKey) {
+      console.warn('[onboarding] RESEND_API_KEY not set, skipping notify email');
+    } else {
       const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-      await fetch('https://api.resend.com/emails', {
+      const er = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -84,6 +87,9 @@ export default async function handler(req, res) {
               + `<p>Subjects: ${esc(row.subjects || 'not given')}<br>Time zone: ${esc(row.timezone)}<br>Days: ${esc(row.preferred_days.join(', ') || 'not given')}</p>`,
         }),
       });
+      const detail = await er.text().catch(() => '');
+      if (er.ok) console.log(`[onboarding] notify email sent for ${row.student_name}: ${detail.slice(0, 120)}`);
+      else console.warn(`[onboarding] notify email rejected ${er.status}: ${detail.slice(0, 300)}`);
     }
   } catch (e) {
     console.warn(`[onboarding] notify email failed: ${e.message}`);
