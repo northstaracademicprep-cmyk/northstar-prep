@@ -876,6 +876,14 @@
         </div>
       </section>
 
+      <!-- CALENDAR -->
+      <section class="page-section" id="sec-calendar">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🗓️ Calendar</div></div>
+          <div class="card-body" id="calendarBody"></div>
+        </div>
+      </section>
+
       <!-- SESSIONS (all students) -->
       <section class="page-section" id="sec-sessions">
         <div class="card">
@@ -950,6 +958,10 @@
         <div class="t-tutor-name" id="tTutorName">Tutor</div>
         <div class="t-tutor-sub">Northstar Academic Prep</div>
       </div>
+      <button class="t-student-btn" onclick="showTutorCalendar()" style="margin:.25rem .75rem .5rem;width:calc(100% - 1.5rem)">
+        <div class="t-avatar" style="background:rgba(201,160,58,.25)">🗓️</div>
+        <div class="t-student-info"><div class="t-s-name">My Calendar</div><div class="t-s-course">Sessions &amp; requests</div></div>
+      </button>
       <div class="t-section-label" style="display:flex;align-items:center;justify-content:space-between;padding-right:1rem">
         <span>My Students</span>
         <button onclick="openEnrollModal()" title="Add new student" style="background:rgba(201,160,58,.18);border:1px solid rgba(201,160,58,.35);color:#c9a03a;border-radius:7px;font-size:.75rem;font-weight:700;padding:.2rem .55rem;cursor:pointer;transition:background .15s;line-height:1.4" onmouseover="this.style.background='rgba(201,160,58,.3)'" onmouseout="this.style.background='rgba(201,160,58,.18)'">+ Add</button>
@@ -1396,7 +1408,7 @@ let currentTutor   = null;
 async function loadFromSupabase(code) {
   try {
     const { data: student, error } = await db
-      .from('students').select('*, tutors(name)').eq('code', code).maybeSingle();
+      .from('students').select('*, tutors(id, name)').eq('code', code).maybeSingle();
     if (error || !student) return null;
 
     const today = new Date().toISOString().split('T')[0];
@@ -1453,9 +1465,13 @@ async function loadFromSupabase(code) {
         topic: s.topic || '',
         time: s.duration_hours ? s.duration_hours + ' hrs' : '',
         type: 'With ' + (student.tutors?.name?.split(' ')[0] || 'Tutor'),
-        notes: s.notes || ''
+        notes: s.notes || '',
+        dateISO: s.session_date,
+        hours: s.duration_hours,
+        approved: !!s.approved
       })),
       studentId: student.id,
+      tutorId: student.tutor_id || null,
       resources: files.map(f => ({
         id: f.id,
         icon: f.file_type === 'slide-deck' ? '📊' : f.file_type === 'notes' ? '📝' : f.file_type === 'worksheet' ? '📋' : '📄',
@@ -1671,6 +1687,7 @@ const NAV_AP = [
     {id:'gameplan',icon:'🗺️',label:'Game Plan'},
   ]},
   {section:'schedule',items:[
+    {id:'calendar',icon:'🗓️',label:'Calendar'},
     {id:'sessions',icon:'📅',label:'Sessions',badge:'upcomingBadge'},
   ]},
   {section:'learning',items:[
@@ -1742,13 +1759,54 @@ function showSection(id, navEl) {
     if (id === 'messages') sec.style.display = 'flex';
   }
   if (navEl) navEl.classList.add('active');
-  const titles = {dashboard:'Dashboard',progress:'My Progress',gameplan:'Game Plan',colleges:'College List',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault',messages:'Messages'};
+  const titles = {dashboard:'Dashboard',progress:'My Progress',gameplan:'Game Plan',colleges:'College List',calendar:'Calendar',sessions:'Sessions',essays:'Essay Tracker',ecplan:'EC Action Plan',resources:'Resources',assignments:'Assignments',announcements:'Announcements',practice:'Practice Vault',messages:'Messages'};
   document.getElementById('topbarTitle').textContent = titles[id]||id;
   if (id==='progress') { buildProgressPage(); setTimeout(animateAllBars,200); }
   if (id==='gameplan') { buildGameplanPage(); }
   if (id==='practice') buildPracticeVault();
+  if (id==='calendar') mountStudentCalendar();
   if (id==='messages') buildStudentMessages();
   closeSidebar();
+}
+function mountStudentCalendar() {
+  const s = currentStudent;
+  const el = document.getElementById('calendarBody');
+  if (!s || !el || !window.NSCal) return;
+  NSCal.mount(el, {
+    role: 'student',
+    studentIds: [s.studentId],
+    students: [{ id: s.studentId, name: s.name, tutor_id: s.tutorId }],
+    tutors: s.tutors ? [{ id: s.tutorId, name: s.tutors.name }] : [],
+    tutorId: s.tutorId,
+    defaultStudentId: s.studentId
+  });
+}
+function showTutorCalendar() {
+  selectedStudent = null;
+  document.getElementById('tTopbarTitle').textContent = 'My Calendar';
+  renderTutorStudentList();
+  const el = document.getElementById('tContent');
+  el.innerHTML = '<div class="t-card"><div id="tCalHost"></div></div>';
+  const stu = tutorStudents.filter(x => x.status !== 'completed');
+  NSCal.mount(document.getElementById('tCalHost'), {
+    role: 'tutor',
+    studentIds: stu.map(x => x.id),
+    students: stu.map(x => ({ id: x.id, name: x.name, tutor_id: x.tutor_id })),
+    tutorId: currentTutor.id,
+    tutorName: currentTutor.name
+  });
+  closeTutorSidebar && closeTutorSidebar();
+}
+async function mountAdminCalendar() {
+  const [st, tu] = await Promise.all([
+    db.from('students').select('id, name, tutor_id, status').order('name'),
+    db.from('tutors').select('id, name').order('name')
+  ]);
+  const students = (st.data || []).filter(x => x.status !== 'completed');
+  document.getElementById('admBody').innerHTML = '<div class="adm-card"><div id="admCalHost"></div></div>';
+  NSCal.mount(document.getElementById('admCalHost'), {
+    role: 'admin', studentIds: null, students, tutors: tu.data || []
+  });
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('open')}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open')}
@@ -12370,15 +12428,20 @@ function buildSessions() {
       html += `</div>`;
     }
     if (past.length) {
-      const recentPast = past.slice(0,3);
-      html += `<div class="section-subtitle" style="margin-top:1.5rem">Past Sessions${past.length>3?` <span style="font-size:.75rem;font-weight:500;color:var(--muted)">(showing 3 most recent)</span>`:''}
-      </div><div class="sessions-list">`;
-      html += recentPast.map((ses,i)=>`<div class="session-item anim-up" style="opacity:.85;animation-delay:${i*.05}s">
-        <div class="session-date-block" style="background:var(--muted)"><div class="session-month">${ses.month}</div><div class="session-day">${ses.day}</div></div>
-        <div class="session-info"><div class="session-subject">${ses.subject}</div><div class="session-topic">${ses.topic}</div>
-        <div class="session-meta"><span class="session-tag time">🕐 ${ses.time}</span><span class="session-tag done">✓ Completed</span></div>
-        ${ses.notes?`<div class="session-notes">💬 "${ses.notes}"</div>`:''}</div></div>`).join('');
-      html += `</div>`;
+      const totalHrs = past.reduce((a,x)=>a+(Number(x.hours)||0),0);
+      html += `<div class="section-subtitle" style="margin-top:1.5rem">Session history <span style="font-size:.75rem;font-weight:500;color:var(--muted)">(${past.length} session${past.length===1?'':'s'} · ${Math.round(totalHrs*10)/10} hrs)</span></div>`;
+      const groups = {};
+      past.forEach(x=>{ const k = x.dateISO ? x.dateISO.slice(0,7) : 'unknown'; (groups[k]=groups[k]||[]).push(x); });
+      Object.keys(groups).sort().reverse().forEach(k=>{
+        const label = k==='unknown' ? 'Earlier' : new Date(k+'-15T12:00:00Z').toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
+        html += `<div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:1rem 0 .5rem">${label}</div><div class="sessions-list">`;
+        html += groups[k].map((ses,i)=>`<div class="session-item" style="opacity:.92">
+          <div class="session-date-block" style="background:var(--muted)"><div class="session-month">${ses.month}</div><div class="session-day">${ses.day}</div></div>
+          <div class="session-info"><div class="session-subject">${ses.subject}</div><div class="session-topic">${escapeHtmlPortal(ses.topic||'Tutoring session')}</div>
+          <div class="session-meta"><span class="session-tag time">🕐 ${ses.time}</span><span class="session-tag done">${ses.approved===false?'Logged':'✓ Completed'}</span></div>
+          ${ses.notes?`<div class="session-notes">💬 "${escapeHtmlPortal(ses.notes)}"</div>`:''}</div></div>`).join('');
+        html += `</div>`;
+      });
     }
   }
   if (!html) html = `<div class="empty-state"><div class="empty-icon">📅</div><p>No sessions yet</p></div>`;
@@ -14137,7 +14200,7 @@ function showAdminSection(id) {
   if (id !== 'adm-messages' && _activeMsgCtx) _unsubscribeMessages();
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
-    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', review:'Review Queue', 'seed-bank':'Seed Bank', 'weekly-reports':'Weekly Reports', 'adm-messages':'Messages'}[id] || id;
+    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', review:'Review Queue', 'seed-bank':'Seed Bank', 'weekly-reports':'Weekly Reports', 'adm-messages':'Messages', calendar:'Calendar'}[id] || id;
   // Full-bleed layout for messages, restore padding for other sections
   const admContent = document.querySelector('.adm-content');
   if (admContent) admContent.style.padding = id === 'adm-messages' ? '0' : '';
@@ -14154,6 +14217,7 @@ function showAdminSection(id) {
   else if (id === 'seed-bank')    buildAdminSeedBank();
   else if (id === 'weekly-reports') buildAdminWeeklyReports();
   else if (id === 'adm-messages') buildAdminMessages();
+  else if (id === 'calendar')     mountAdminCalendar();
 }
 
 /* ── APPROVALS ── */
@@ -16213,6 +16277,7 @@ async function loadAdminConvo(studentId, studentName) {
         <div class="adm-nav-label">Actions</div>
         <div class="adm-nav-item active" data-id="approvals" onclick="showAdminSection('approvals')"><span class="adm-nav-icon">⏳</span> Pending Approvals</div>
         <div class="adm-nav-item" data-id="enrollments" onclick="showAdminSection('enrollments')"><span class="adm-nav-icon">📋</span> Enrollment Requests <span id="admEnrBadge" style="display:none;margin-left:auto;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;padding:.1rem .45rem;border-radius:99px"></span></div>
+        <div class="adm-nav-item" data-id="calendar" onclick="showAdminSection('calendar')"><span class="adm-nav-icon">🗓️</span> Calendar</div>
         <div class="adm-nav-label">People</div>
         <div class="adm-nav-item" data-id="students" onclick="showAdminSection('students')"><span class="adm-nav-icon">🎓</span> My Students</div>
         <div class="adm-nav-item" data-id="tutors" onclick="showAdminSection('tutors')"><span class="adm-nav-icon">👨‍🏫</span> My Tutors</div>
@@ -16569,5 +16634,6 @@ Return ONLY the raw JSON. No text before or after.</pre>
     </div>
   </div>
 </div>
+<script src="/calendar.js"></script>
 </body>
 </html>
