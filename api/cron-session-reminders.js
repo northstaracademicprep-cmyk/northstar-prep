@@ -6,6 +6,7 @@
 // Auth: Vercel sends `Authorization: Bearer ${CRON_SECRET}`.
 // ============================================================
 import { sbGet, sbPatch, sendReminderEmail, layout, fmt } from './notify-calendar.js';
+import { adaptAll } from './adapt-plans.js';
 
 const ADMIN_EMAIL = 'northstaracademicprep@gmail.com';
 const RESEND_FROM = 'Northstar Academic Prep <reports@send.northstaracademicprep.com>';
@@ -58,8 +59,11 @@ export default async function handler(req, res) {
         if (ok > 0) { await sbPatch(c, `/rest/v1/office_hours?id=eq.${o.id}`, { announced_at: new Date().toISOString() }); ohSent += ok; }
       }
     }
-    console.log('[cron-session-reminders]', JSON.stringify({ found: sessions.length, sent, skipped, officeHoursEmails: ohSent }));
-    return res.status(200).json({ found: sessions.length, sent, skipped, officeHoursEmails: ohSent });
+    // Adaptive game plans: isolated so a failure here can never block reminders
+    let plansAdapted = 0;
+    try { plansAdapted = (await adaptAll(c)).length; } catch (e) { console.error('[adapt-plans] failed', e.message); }
+    console.log('[cron-session-reminders]', JSON.stringify({ found: sessions.length, sent, skipped, officeHoursEmails: ohSent, plansAdapted }));
+    return res.status(200).json({ found: sessions.length, sent, skipped, officeHoursEmails: ohSent, plansAdapted });
   } catch (e) {
     console.error('[cron-session-reminders] failed', e.message);
     return res.status(502).json({ error: e.message });
