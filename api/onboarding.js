@@ -83,8 +83,21 @@ export default async function handler(req, res) {
           from: RESEND_FROM,
           to: ADMIN_EMAIL,
           subject: `New onboarding form: ${row.student_name}`,
-          html: `<p><b>${esc(row.student_name)}</b> (parent: ${esc(row.parent1_name)}, ${esc(row.parent1_email)}) just submitted the onboarding form.</p>`
-              + `<p>Subjects: ${esc(row.subjects || 'not given')}<br>Time zone: ${esc(row.timezone)}<br>Days: ${esc(row.preferred_days.join(', ') || 'not given')}</p>`,
+          html: `<p><b>${esc(row.student_name)}</b> just submitted the onboarding form. Full answers below.</p>`
+              + `<table cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">`
+              + [
+                ['Student', row.student_name], ['Student email', row.student_email], ['Student phone', row.student_phone],
+                ['Grade', row.student_grade], ['School', row.school],
+                ['Parent 1', row.parent1_name], ['Parent 1 email', row.parent1_email], ['Parent 1 phone', row.parent1_phone],
+                ['Parent 2', row.parent2_name], ['Parent 2 email', row.parent2_email], ['Parent 2 phone', row.parent2_phone],
+                ['Preferred contact', row.preferred_contact], ['Contact notes', row.contact_notes],
+                ['Time zone', row.timezone], ['Preferred days', row.preferred_days.join(', ')], ['Preferred times', row.preferred_times],
+                ['Scheduling notes', row.scheduling_notes],
+                ['Subjects', row.subjects], ['Teacher', row.teacher_name], ['Current grade', row.current_grade],
+                ['Target grade', row.target_grade], ['Next test date', row.next_test_date],
+                ['Struggles', row.struggles], ['Heard about us', row.heard_about], ['Other notes', row.notes],
+              ].map(([k, v]) => `<tr><td style="border-bottom:1px solid #eee;color:#666;vertical-align:top"><b>${esc(k)}</b></td><td style="border-bottom:1px solid #eee">${esc(v || 'not given')}</td></tr>`).join('')
+              + `</table>`,
         }),
       });
       const detail = await er.text().catch(() => '');
