@@ -14481,6 +14481,8 @@ async function buildAdminApprovals() {
     totals[key].hours += p.hrs;
     if (p.pay == null) totals[key].missingRate = true; else totals[key].pay += p.pay;
   });
+  Object.keys(totals).forEach(k => { totals[k].key = k; });
+  window._pendingSessions = sessions;
   const totalRows = Object.values(totals).sort((a, b) => b.pay - a.pay);
   const grandTotal = totalRows.reduce((t, r) => t + r.pay, 0);
   const payPanel = `
@@ -14489,10 +14491,12 @@ async function buildAdminApprovals() {
         <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b7280">Tutor pay if you approve everything</div>
         <div style="font-size:1.15rem;font-weight:800;color:#0f2044">${money(grandTotal)}</div>
       </div>
+      <button class="adm-btn adm-btn-approve" style="width:100%;margin-bottom:.4rem" onclick="adminApproveBulk('all')">✓ Approve all ${sessions.length} session${sessions.length>1?'s':''}</button>
       ${totalRows.map(r => `
         <div style="display:flex;justify-content:space-between;gap:.75rem;padding:.4rem 0;border-top:1px solid #f1f5f9;font-size:.86rem">
           <span><b>${r.name}</b> <span style="color:#6b7280">· ${r.sessions} session${r.sessions>1?'s':''} · ${r.hours}h${r.rate!=null?' · '+money(r.rate)+'/hr':''}</span></span>
-          <span style="font-weight:700;color:${r.missingRate?'#b45309':'#065f46'}">${r.missingRate?'No rate set':money(r.pay)}</span>
+          <span style="display:flex;align-items:center;gap:.5rem;font-weight:700;color:${r.missingRate?'#b45309':'#065f46'}">${r.missingRate?'No rate set':money(r.pay)}
+            <button class="adm-btn adm-btn-approve" style="padding:.25rem .6rem;font-size:.72rem" onclick="adminApproveBulk('${r.key}')">✓ Approve all</button></span>
         </div>`).join('')}
     </div>`;
 
@@ -14567,6 +14571,25 @@ async function adminApproveSession(sessionId, studentId, hours) {
   const newHours = ((stu?.hours_used||0) + hours);
   await db.from('students').update({hours_used: newHours}).eq('id', studentId);
   showToast(`Session approved! +${hours}h added to student. ✅`,'success');
+  buildAdminApprovals();
+}
+
+// Approve every pending session (key 'all') or every pending session for one tutor (tutor id, or 'none')
+async function adminApproveBulk(key) {
+  const list = (window._pendingSessions || []).filter(x => key === 'all' || (x.tutor_id || 'none') === key);
+  if (!list.length) return;
+  const hrs = list.reduce((t, x) => t + (Number(x.duration_hours) || 0), 0);
+  if (!confirm(`Approve ${list.length} session${list.length>1?'s':''} (${hrs}h) and add the hours to the students?`)) return;
+  const ids = list.map(x => x.id);
+  const { data: done, error } = await db.from('sessions').update({ approved: true }).in('id', ids).eq('approved', false).select('id, student_id, duration_hours');
+  if (error) { showToast('Error approving: ' + error.message, 'error'); return; }
+  const perStudent = {};
+  (done || []).forEach(x => { perStudent[x.student_id] = (perStudent[x.student_id] || 0) + (Number(x.duration_hours) || 0); });
+  for (const [sid, h] of Object.entries(perStudent)) {
+    const { data: stu } = await db.from('students').select('hours_used').eq('id', sid).maybeSingle();
+    await db.from('students').update({ hours_used: (stu?.hours_used || 0) + h }).eq('id', sid);
+  }
+  showToast(`Approved ${(done || []).length} session${(done||[]).length>1?'s':''}. Hours added. ✅`, 'success');
   buildAdminApprovals();
 }
 
