@@ -24,16 +24,21 @@ export default async function handler(req, res) {
     const sessions = await sbGet(c, `/rest/v1/scheduled_sessions?select=*&status=eq.scheduled&reminder_sent_at=is.null&starts_at=gte.${now.toISOString()}&starts_at=lt.${until.toISOString()}&order=starts_at`);
     let sent = 0, skipped = 0;
     for (const s of sessions) {
-      const student = (await sbGet(c, `/rest/v1/students?select=name,email,parent_email,tutor_id&id=eq.${s.student_id}`))[0];
+      const student = (await sbGet(c, `/rest/v1/students?select=name,email,parent_email,tutor_id,timezone&id=eq.${s.student_id}`))[0];
       const tid = s.tutor_id || student?.tutor_id;
-      const tutor = tid ? (await sbGet(c, `/rest/v1/tutors?select=name,email&id=eq.${tid}`))[0] : null;
-      const to = [student?.email, student?.parent_email, tutor?.email].filter(Boolean).map(x => x.toLowerCase());
-      if (!to.length) { skipped++; continue; }
-      const n = await sendReminderEmail(c, {
-        to, subject: `Reminder: tutoring session for ${student?.name || 'your student'} · Northstar`,
+      const tutor = tid ? (await sbGet(c, `/rest/v1/tutors?select=name,email,timezone&id=eq.${tid}`))[0] : null;
+      const stuTo = [student?.email, student?.parent_email].filter(Boolean).map(x => x.toLowerCase());
+      const tutTo = [tutor?.email].filter(Boolean).map(x => x.toLowerCase()).filter(x => !stuTo.includes(x));
+      if (!stuTo.length && !tutTo.length) { skipped++; continue; }
+      const base = {
+        subject: `Reminder: tutoring session for ${student?.name || 'your student'} · Northstar`,
         studentName: student?.name, whenIso: s.starts_at, minutes: s.duration_minutes,
         tutorName: tutor?.name, meetingUrl: s.meeting_url, topic: s.topic
-      });
+      };
+      // each side sees the time in their own zone
+      let n = 0;
+      if (stuTo.length) n += await sendReminderEmail(c, { ...base, to: stuTo, tz: student?.timezone });
+      if (tutTo.length) n += await sendReminderEmail(c, { ...base, to: tutTo, tz: tutor?.timezone });
       if (n > 0) { await sbPatch(c, `/rest/v1/scheduled_sessions?id=eq.${s.id}`, { reminder_sent_at: new Date().toISOString() }); sent++; }
       else skipped++;
     }

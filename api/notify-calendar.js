@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   const sbUrl = process.env.SUPABASE_URL, sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY, resendKey = process.env.RESEND_API_KEY;
   if (!sbUrl || !sbKey || !resendKey) return res.status(500).json({ error: 'server not configured' });
 
-  const { event, id } = req.body || {};
+  const { event, id, series } = req.body || {};
   if (!event || typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ error: 'bad request' });
 
   try {
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     let out;
     if (event === 'request_created') out = await requestCreated(ctx, id);
     else if (event === 'request_decided') out = await requestDecided(ctx, id);
-    else if (['session_scheduled', 'session_rescheduled', 'session_cancelled'].includes(event)) out = await sessionChanged(ctx, event, id);
+    else if (['session_scheduled', 'session_rescheduled', 'session_cancelled'].includes(event)) out = await sessionChanged(ctx, event, id, Number(series) || 0);
     else return res.status(400).json({ error: 'unknown event' });
     console.log('[notify-calendar]', event, id, JSON.stringify(out));
     return res.status(200).json(out);
@@ -52,16 +52,17 @@ async function requestCreated(c, id) {
   if (r.notified_at) return { ok: true, skipped: true };
   const { student, tutor } = await people(c, r.student_id, r.tutor_id);
   const kind = r.kind === 'new' ? 'a new session' : r.kind === 'reschedule' ? 'a new time for a session' : 'to cancel a session';
-  const lines = [];
-  if (r.proposed_starts_at) lines.push(['Requested time', fmt(r.proposed_starts_at)]);
-  if (r.scheduled_session_id) {
-    const s = (await sbGet(c, `/rest/v1/scheduled_sessions?select=starts_at&id=eq.${r.scheduled_session_id}`))[0];
-    if (s) lines.push(['Current time', fmt(s.starts_at)]);
-  }
-  if (r.reason) lines.push(['Note', r.reason]);
-  const html = layout('📅 Session request', `${esc(student?.name || 'A student')} is asking for ${kind}`, lines, 'Review in the portal →');
-  const to = [ADMIN_EMAIL, tutor?.email].filter(Boolean);
-  const sent = await sendAll(c, to, `Session request from ${student?.name || 'a student'} · Northstar`, html);
+  const cur = r.scheduled_session_id ? (await sbGet(c, `/rest/v1/scheduled_sessions?select=starts_at&id=eq.${r.scheduled_session_id}`))[0] : null;
+  const build = tz => {
+    const lines = [];
+    if (r.proposed_starts_at) lines.push(['Requested time', fmt(r.proposed_starts_at, tz)]);
+    if (cur) lines.push(['Current time', fmt(cur.starts_at, tz)]);
+    if (r.reason) lines.push(['Note', r.reason]);
+    return layout('📅 Session request', `${esc(student?.name || 'A student')} is asking for ${kind}`, lines, 'Review in the portal →', '', tz);
+  };
+  const groups = [{ to: [ADMIN_EMAIL], tz: TZ }, { to: [tutor?.email], tz: tutor?.timezone || TZ }];
+  const to = groups.flatMap(g => g.to).filter(Boolean);
+  const sent = await sendGroups(c, groups, `Session request from ${student?.name || 'a student'} · Northstar`, build);
   if (sent > 0) await sbPatch(c, `/rest/v1/session_requests?id=eq.${id}`, { notified_at: new Date().toISOString() });
   return { ok: true, sent, to };
 }
@@ -74,40 +75,52 @@ async function requestDecided(c, id) {
   const { student, tutor } = await people(c, r.student_id, r.tutor_id);
   const approved = r.status === 'approved';
   const what = r.kind === 'new' ? 'session request' : r.kind === 'reschedule' ? 'reschedule request' : 'cancel request';
-  const lines = [];
-  if (approved && r.proposed_starts_at) lines.push(['Time', fmt(r.proposed_starts_at)]);
-  if (tutor?.name) lines.push(['Tutor', tutor.name]);
   const head = approved ? `Good news, your ${what} was approved` : `Your ${what} could not be approved`;
-  const html = layout(approved ? '✅ Approved' : 'Request update', head, lines, 'Open your calendar →',
-    approved ? '' : 'Your tutor may have a conflict at that time. Pick another time in the portal calendar and send a new request.');
-  const to = [...recipientsFor(student), ADMIN_EMAIL];
-  const sent = await sendAll(c, to, `${approved ? 'Approved' : 'Update'}: ${what} for ${student?.name || 'student'} · Northstar`, html);
+  const build = tz => {
+    const lines = [];
+    if (approved && r.proposed_starts_at) lines.push(['Time', fmt(r.proposed_starts_at, tz)]);
+    if (tutor?.name) lines.push(['Tutor', tutor.name]);
+    return layout(approved ? '✅ Approved' : 'Request update', head, lines, 'Open your calendar →',
+      approved ? '' : 'Your tutor may have a conflict at that time. Pick another time in the portal calendar and send a new request.', tz);
+  };
+  const groups = [{ to: recipientsFor(student), tz: student?.timezone || TZ }, { to: [ADMIN_EMAIL], tz: TZ }];
+  const to = groups.flatMap(g => g.to);
+  const sent = await sendGroups(c, groups, `${approved ? 'Approved' : 'Update'}: ${what} for ${student?.name || 'student'} · Northstar`, build);
   if (sent > 0) await sbPatch(c, `/rest/v1/session_requests?id=eq.${id}`, { decision_notified_at: new Date().toISOString() });
   return { ok: true, sent, to };
 }
 
-async function sessionChanged(c, event, id) {
+async function sessionChanged(c, event, id, series) {
   const s = (await sbGet(c, `/rest/v1/scheduled_sessions?select=*&id=eq.${id}`))[0];
   if (!s) return { ok: false, reason: 'not found' };
   const { student, tutor } = await people(c, s.student_id, s.tutor_id);
   const verb = event === 'session_scheduled' ? 'scheduled' : event === 'session_rescheduled' ? 'moved' : 'cancelled';
-  const lines = [['Time', fmt(s.starts_at)], ['Length', `${s.duration_minutes} min`]];
-  if (tutor?.name) lines.push(['Tutor', tutor.name]);
-  if (s.topic) lines.push(['Topic', s.topic]);
-  if (s.meeting_url && verb !== 'cancelled') lines.push(['Meeting link', s.meeting_url]);
-  const html = layout(verb === 'cancelled' ? '❌ Session cancelled' : '📅 Session ' + verb, `A session for ${esc(student?.name || 'your student')} was ${verb}`, lines, 'Open your calendar →');
-  const to = [...recipientsFor(student), ADMIN_EMAIL, tutor?.email].filter(Boolean);
-  const sent = await sendAll(c, to, `Session ${verb} (${student?.name || 'student'}): ${fmt(s.starts_at)} · Northstar`, html);
+  const build = tz => {
+    const lines = [[series > 1 ? 'First session' : 'Time', fmt(s.starts_at, tz)], ['Length', `${s.duration_minutes} min`]];
+    if (series > 1) lines.push(['Repeats', verb === 'cancelled' ? `${series} sessions cancelled (this one and every later one in the weekly series)` : `Weekly, ${series} sessions in total`]);
+    if (tutor?.name) lines.push(['Tutor', tutor.name]);
+    if (s.topic) lines.push(['Topic', s.topic]);
+    if (s.meeting_url && verb !== 'cancelled') lines.push(['Meeting link', s.meeting_url]);
+    return layout(verb === 'cancelled' ? '❌ Session cancelled' : '📅 Session ' + verb, `${series > 1 ? 'Weekly sessions' : 'A session'} for ${esc(student?.name || 'your student')} ${series > 1 ? 'were' : 'was'} ${verb}`, lines, 'Open your calendar →', '', tz);
+  };
+  const groups = [
+    { to: recipientsFor(student), tz: student?.timezone || TZ },
+    { to: [tutor?.email], tz: tutor?.timezone || TZ },
+    { to: [ADMIN_EMAIL], tz: TZ }
+  ];
+  const to = groups.flatMap(g => g.to).filter(Boolean);
+  const subjTz = student?.timezone || TZ;
+  const sent = await sendGroups(c, groups, `${series > 1 ? 'Weekly sessions' : 'Session'} ${verb} (${student?.name || 'student'}): ${fmt(s.starts_at, subjTz)} · Northstar`, build);
   return { ok: true, sent, to };
 }
 
 /* ───── exported for the reminder cron ───── */
-export async function sendReminderEmail(c, { to, subject, studentName, whenIso, minutes, tutorName, meetingUrl, topic }) {
-  const lines = [['Time', fmt(whenIso)], ['Length', `${minutes} min`]];
+export async function sendReminderEmail(c, { to, subject, studentName, whenIso, minutes, tutorName, meetingUrl, topic, tz }) {
+  const lines = [['Time', fmt(whenIso, tz || TZ)], ['Length', `${minutes} min`]];
   if (tutorName) lines.push(['Tutor', tutorName]);
   if (topic) lines.push(['Topic', topic]);
   if (meetingUrl) lines.push(['Meeting link', meetingUrl]);
-  return sendAll(c, to, subject, layout('⏰ Session reminder', `Upcoming session for ${esc(studentName || 'your student')}`, lines, 'Open your calendar →'));
+  return sendAll(c, to, subject, layout('⏰ Session reminder', `Upcoming session for ${esc(studentName || 'your student')}`, lines, 'Open your calendar →', '', tz || TZ));
 }
 
 /* ───── helpers ───── */
@@ -115,17 +128,21 @@ function recipientsFor(student) {
   return [...new Set([student?.email, student?.parent_email].filter(Boolean).map(x => x.toLowerCase()))];
 }
 async function people(c, studentId, tutorId) {
-  const student = (await sbGet(c, `/rest/v1/students?select=id,name,email,parent_email,tutor_id&id=eq.${studentId}`))[0] || null;
+  const student = (await sbGet(c, `/rest/v1/students?select=id,name,email,parent_email,tutor_id,timezone&id=eq.${studentId}`))[0] || null;
   const tid = tutorId || student?.tutor_id;
-  const tutor = tid ? (await sbGet(c, `/rest/v1/tutors?select=id,name,email&id=eq.${tid}`))[0] || null : null;
+  const tutor = tid ? (await sbGet(c, `/rest/v1/tutors?select=id,name,email,timezone&id=eq.${tid}`))[0] || null : null;
   return { student, tutor };
 }
-export function fmt(iso) {
-  return new Date(iso).toLocaleString('en-US', { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+export function fmt(iso, tz) {
+  return new Date(iso).toLocaleString('en-US', { timeZone: tz || TZ, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+}
+// "Central Time", "Pacific Time" etc. for the email footer
+function tzName(tz) {
+  try { const p = new Intl.DateTimeFormat('en-US', { timeZone: tz || TZ, timeZoneName: 'longGeneric' }).formatToParts(new Date()).find(x => x.type === 'timeZoneName'); return p ? p.value : 'Pacific Time'; } catch (e) { return 'Pacific Time'; }
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
 
-export function layout(kicker, headline, lines, cta, footnote) {
+export function layout(kicker, headline, lines, cta, footnote, tz) {
   const NAVY = '#1B2A4A', GOLD = '#C9A84C';
   const rows = lines.map(([k, v]) => `<tr><td style="padding:6px 0;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;width:120px;vertical-align:top">${esc(k)}</td><td style="padding:6px 0;font-size:14px;color:#0f172a">${/^https?:\/\//.test(v) ? `<a href="${esc(v)}" style="color:#1a73e8">${esc(v)}</a>` : esc(v)}</td></tr>`).join('');
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0f172a">
@@ -135,7 +152,19 @@ export function layout(kicker, headline, lines, cta, footnote) {
     <div style="padding:20px 24px"><table style="width:100%;border-collapse:collapse">${rows}</table>
       ${footnote ? `<div style="margin-top:14px;font-size:13px;color:#475569;line-height:1.5">${esc(footnote)}</div>` : ''}
       <div style="margin-top:22px;text-align:center"><a href="${PORTAL_URL}" style="display:inline-block;background:${NAVY};color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:8px">${esc(cta)}</a></div>
-    </div></div><div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:14px">Northstar Academic Prep · Times shown in Pacific Time</div></div></body></html>`;
+    </div></div><div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:14px">Northstar Academic Prep · Times shown in ${esc(tzName(tz))}</div></div></body></html>`;
+}
+
+// Same email, but each group of recipients sees times in their own zone
+export async function sendGroups(c, groups, subject, build) {
+  const done = new Set(); let sent = 0;
+  for (const g of groups) {
+    const list = [...new Set((g.to || []).filter(Boolean).map(x => x.toLowerCase()))].filter(x => !done.has(x));
+    if (!list.length) continue;
+    list.forEach(x => done.add(x));
+    sent += await sendAll(c, list, subject, build(g.tz));
+  }
+  return sent;
 }
 
 export async function sendAll(c, to, subject, html) {

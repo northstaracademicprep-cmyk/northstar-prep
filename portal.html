@@ -1508,6 +1508,7 @@ async function loadFromSupabase(code) {
         message: a.message || ''
       })),
       tutors:          student.tutors          || null,
+      timezone:        student.timezone        || null,
       progress_config: student.progress_config || null
     };
   } catch (err) {
@@ -1795,16 +1796,17 @@ function showTutorCalendar() {
   NSCal.mount(document.getElementById('tCalHost'), {
     role: 'tutor',
     studentIds: stu.map(x => x.id),
-    students: stu.map(x => ({ id: x.id, name: x.name, tutor_id: x.tutor_id })),
+    students: stu.map(x => ({ id: x.id, name: x.name, tutor_id: x.tutor_id, timezone: x.timezone || null })),
     tutorId: currentTutor.id,
-    tutorName: currentTutor.name
+    tutorName: currentTutor.name,
+    tutorTimezone: currentTutor.timezone || null
   });
   closeTutorSidebar && closeTutorSidebar();
 }
 async function mountAdminCalendar() {
   const [st, tu] = await Promise.all([
-    db.from('students').select('id, name, tutor_id, status').order('name'),
-    db.from('tutors').select('id, name').order('name')
+    db.from('students').select('id, name, tutor_id, status, timezone').order('name'),
+    db.from('tutors').select('id, name, timezone').order('name')
   ]);
   const students = (st.data || []).filter(x => x.status !== 'completed');
   document.getElementById('admBody').innerHTML = '<div class="adm-card"><div id="admCalHost"></div></div>';
