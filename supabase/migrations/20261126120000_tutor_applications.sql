@@ -4,7 +4,7 @@
 create table if not exists public.tutor_applications (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
-  token text not null unique default encode(gen_random_bytes(16), 'hex'),
+  token text not null unique default replace(gen_random_uuid()::text, '-', ''),
   -- applied | dq | audition_pending | audition_submitted | quiz_pending | quiz_failed
   -- | review | call_pending | approved | rejected
   status text not null default 'applied',
