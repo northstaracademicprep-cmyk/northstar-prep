@@ -37,7 +37,7 @@ Applicants come from referrals or ads. Send them **portal.northstaracademicprep.
    - Approve emails them (copying the Northstar Gmail) a link to the Tutor Hub and the quiz. If the email fails you get a prompt to text or email them yourself; their phone number is on the card.
 4. **Quiz.** 20 questions covering the whole Hub (approach, lesson planning, session prep, running a session, scheduling, communication, portal). 18 of 20 (90%) passes. You get an email when someone passes. A failed quiz can be reopened with **Allow a quiz retake**.
 5. **5 minute check-in call** with people who passed: confirm what they wrote is true and the energy holds up. Tick it done.
-6. Set the hourly rate (max $30) and click **Approve and create tutor**. It creates their tutor login. Send the tutor welcome email from Gmail: Tutor Hub link (https://gamma.app/docs/Northstar-Tutor-Hub-Your-Complete-Onboarding-Guide-vmvwl4l8iyxyg9s), portal link and access key together. Do not mention pay.
+6. Set the hourly rate (max $30) and click **Approve and create tutor**. It creates their tutor login and automatically emails them the welcome (Tutor Hub, portal link and access key together, no pay mentioned; you are copied). It then jumps to **Match Students** so you can assign their first student. The check-in call is the only human step before they are hired.
 
 ## 5. Changing tutor pay
 Update the rate in **Tutor Management**, then ask Sahib if he wants the raise email sent.
