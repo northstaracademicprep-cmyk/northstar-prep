@@ -51,3 +51,10 @@ Update the rate in **Tutor Management**, then ask Sahib if he wants the raise em
 - Never delete rows. Never touch other students.
 - Tutors never take payment off platform. If a parent asks, decline politely and tell Sahib.
 - Code changes go on a branch and a pull request for Sahib to merge.
+
+## Team Portal (/manage) for a CSM or VA
+- Separate site at portal.northstaracademicprep.com/manage. Sidebar shows only Tutor Hiring, Match Students, Student Status, My Students, My Tutors.
+- Server enforced: a team key can never read sessions, hours, billing, tutor pay or admin sections.
+- Make a key: portal admin > Staff Access > add name. Key looks like MGR-XXXXXX. One per person. Turn it off there any time.
+- When a team member approves a tutor, the hourly rate is left blank. Set the rate yourself in the admin portal afterward.
+- The delegate still needs access to the Northstar Gmail for family welcome emails and group chats.

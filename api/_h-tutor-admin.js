@@ -5,6 +5,7 @@ import { RUBRIC, rubricSummary, qualifiedSubjects, HOURS_PER_STUDENT, scoreMatch
 import { sb, sbEnv, cors, sendMail, esc, ADMIN_EMAIL } from './_sb.js';
 
 const HUB_URL = 'https://gamma.app/docs/Northstar-Tutor-Hub-Your-Complete-Onboarding-Guide-vmvwl4l8iyxyg9s';
+const MANAGER_ACTIONS = ['login', 'list', 'set_status', 'score', 'call', 'video_decision', 'approve', 'matches', 'assign', 'set_gender', 'board', 'board_set', 'students', 'tutors', 'email_tutor_form'];
 const STATUSES = ['applied', 'dq', 'audition_pending', 'quiz_pending', 'quiz_failed', 'video_review', 'call_pending', 'approved', 'rejected'];
 
 export default async function handler(req, res) {
@@ -13,15 +14,41 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const env = sbEnv();
   if (!env) return res.status(500).json({ error: 'Server not configured' });
-  const expected = process.env.ADMIN_CODE || 'NAP-ADMIN';
-  if (req.headers['x-admin-code'] !== expected) return res.status(401).json({ error: 'Not authorized' });
-
   const { action } = req.body || {};
   const b = req.body || {};
+  // Two roles. admin: the NAP-ADMIN code. manager: an active key from staff_access.
+  // Managers get a fixed set of actions and never receive pay, billing or session data.
+  const code = String(req.headers['x-admin-code'] || '');
+  let role = null, staff = null;
+  if (code && code === (process.env.ADMIN_CODE || 'NAP-ADMIN')) role = 'admin';
+  else if (/^[A-Za-z0-9-]{6,40}$/.test(code)) {
+    try {
+      const r = await sb(env, 'GET', `staff_access?code=eq.${encodeURIComponent(code)}&active=eq.true&select=id,name,role`);
+      if (r?.[0]) { role = 'manager'; staff = r[0]; }
+    } catch (e) { console.error('[tutor-admin] staff lookup', e.message); }
+  }
+  if (!role) return res.status(401).json({ error: 'Not authorized' });
+  if (role === 'manager' && !MANAGER_ACTIONS.includes(action)) return res.status(403).json({ error: 'Not allowed' });
+  const isMgr = role === 'manager';
   try {
+    if (action === 'login') {
+      if (staff) await sb(env, 'PATCH', `staff_access?id=eq.${staff.id}`, { last_login: new Date().toISOString() }, 'return=minimal');
+      return res.status(200).json({ ok: true, role, name: staff?.name || 'Admin' });
+    }
+    if (action === 'staff_list' || action === 'staff_add' || action === 'staff_set_active') {
+      if (isMgr) return res.status(403).json({ error: 'Not allowed' });
+      return res.status(200).json(await staffAdmin(env, action, b));
+    }
+    if (action === 'students') return res.status(200).json(await mgrStudents(env));
+    if (action === 'tutors') return res.status(200).json(await mgrTutors(env));
+    if (action === 'email_tutor_form') return res.status(200).json(await emailTutorForm(env, b));
     if (action === 'list') {
       const rows = await sb(env, 'GET', 'tutor_applications?select=*&order=created_at.desc&limit=300');
-      return res.status(200).json({ apps: rows.map(a => ({ ...a, rubric_summary: rubricSummary(a.rubric) })), rubric: RUBRIC });
+      return res.status(200).json({ role, apps: rows.map(a => {
+        const o = { ...a, rubric_summary: rubricSummary(a.rubric) };
+        if (isMgr) { delete o.pay_expectation; delete o.pay_text; }
+        return o;
+      }), rubric: RUBRIC });
     }
     if (action === 'set_status') {
       if (!STATUSES.includes(b.status)) return res.status(400).json({ error: 'Bad status' });
@@ -59,7 +86,7 @@ export default async function handler(req, res) {
       await sb(env, 'PATCH', `tutor_applications?id=eq.${enc(b.id)}`, { call_done: !!b.done, call_notes: String(b.notes || '').slice(0, 1500) }, 'return=minimal');
       return res.status(200).json({ ok: true });
     }
-    if (action === 'approve') return res.status(200).json(await approve(env, b));
+    if (action === 'approve') return res.status(200).json(await approve(env, b, isMgr));
     if (action === 'board') return res.status(200).json(await board(env));
     if (action === 'board_set') {
       if (!['welcome_sent', 'trimmed_form_sent', 'group_chat'].includes(b.field)) return res.status(400).json({ error: 'Bad field' });
@@ -83,7 +110,7 @@ export default async function handler(req, res) {
 
 const enc = v => encodeURIComponent(String(v ?? ''));
 
-async function approve(env, b) {
+async function approve(env, b, isMgr) {
   const rows = await sb(env, 'GET', `tutor_applications?id=eq.${enc(b.id)}&select=*`);
   const a = rows?.[0];
   if (!a) throw new Error('Application not found');
@@ -91,8 +118,9 @@ async function approve(env, b) {
   if (a.status === 'dq') throw new Error('This applicant was auto-disqualified');
   if (!a.quiz_passed) throw new Error('Quiz not passed');
   if (!a.call_done) throw new Error('Mark the 5 minute check-in call done first');
-  const rate = Number(b.hourly_rate);
-  if (!(rate > 0 && rate <= 30)) throw new Error('Set an hourly rate up to $30');
+  // Managers never see or set pay; the rate stays blank for Sahib to fill in.
+  let rate = null;
+  if (!isMgr) { rate = Number(b.hourly_rate); if (!(rate > 0 && rate <= 30)) throw new Error('Set an hourly rate up to $30'); }
 
   // Unique access code: FIRSTNAME26, then FIRSTNAME + last initial, then numbered.
   const parts = a.name.trim().split(/\s+/);
@@ -207,4 +235,80 @@ async function board(env) {
     };
   });
   return { rows };
+}
+
+// ---- Staff keys (admin only) ----
+async function staffAdmin(env, action, b) {
+  if (action === 'staff_add') {
+    const name = String(b.name || '').trim().slice(0, 80);
+    if (!name) throw new Error('Add a name');
+    const code = 'MGR-' + Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+    await sb(env, 'POST', 'staff_access', { name, code, role: 'manager', active: true });
+    return { ok: true, code };
+  }
+  if (action === 'staff_set_active') {
+    await sb(env, 'PATCH', `staff_access?id=eq.${enc(b.id)}`, { active: !!b.active }, 'return=minimal');
+    return { ok: true };
+  }
+  return { staff: await sb(env, 'GET', 'staff_access?select=id,name,code,role,active,created_at,last_login&order=created_at.desc') };
+}
+
+// ---- Manager views: whitelisted fields only (no pay, hours, billing or session counts) ----
+async function mgrStudents(env) {
+  const [students, tutors, onboard] = await Promise.all([
+    sb(env, 'GET', 'students?select=id,name,grade,school,subjects,tutor_id,status,gender,timezone,parent_email&order=name'),
+    sb(env, 'GET', 'tutors?select=id,name'),
+    sb(env, 'GET', 'onboarding_responses?select=*&order=created_at.desc'),
+  ]);
+  const tn = Object.fromEntries(tutors.map(t => [t.id, t.name]));
+  const intake = {};
+  for (const o of onboard) { const k = o.student_id || ('n:' + (o.student_name || '').toLowerCase()); if (!intake[k]) intake[k] = o; }
+  return { students: students.filter(s => s.status !== 'inactive').map(s => {
+    const o = intake[s.id] || intake['n:' + (s.name || '').toLowerCase()] || null;
+    return { id: s.id, name: s.name, grade: s.grade, school: s.school, subjects: s.subjects, gender: s.gender, timezone: s.timezone,
+      tutor: tn[s.tutor_id] || null, tutor_id: s.tutor_id,
+      intake: o ? { parent1_name: o.parent1_name, parent1_email: o.parent1_email, parent1_phone: o.parent1_phone,
+        parent2_name: o.parent2_name, parent2_email: o.parent2_email, parent2_phone: o.parent2_phone,
+        student_email: o.student_email, student_phone: o.student_phone, preferred_contact: o.preferred_contact, contact_notes: o.contact_notes,
+        student_grade: o.student_grade, school: o.school, timezone: o.timezone, preferred_days: o.preferred_days, preferred_times: o.preferred_times,
+        scheduling_notes: o.scheduling_notes, subjects: o.subjects, teacher_name: o.teacher_name, current_grade: o.current_grade,
+        target_grade: o.target_grade, next_test_date: o.next_test_date, struggles: o.struggles } : null };
+  }) };
+}
+
+async function mgrTutors(env) {
+  const [tutors, students] = await Promise.all([
+    sb(env, 'GET', 'tutors?select=id,name,email,school,major,gender,subjects_can_teach,ap_scores,availability_days,availability_schedule,max_students,weekly_hours,timezone&order=name'),
+    sb(env, 'GET', 'students?select=id,name,tutor_id,status'),
+  ]);
+  return { tutors: tutors.map(t => {
+    const mine = students.filter(s => s.tutor_id === t.id && s.status !== 'inactive');
+    return { id: t.id, name: t.name, email: t.email, school: t.school, major: t.major, gender: t.gender, subjects_can_teach: t.subjects_can_teach,
+      ap_scores: t.ap_scores, availability_days: t.availability_days, availability_schedule: t.availability_schedule, max_students: t.max_students,
+      students: mine.map(s => s.name), active: mine.length, slots_left: t.max_students == null ? null : Math.max(0, t.max_students - mine.length) };
+  }) };
+}
+
+// Trimmed family form for a matched tutor. Never parent info, student email or phone, heard-about or notes.
+async function emailTutorForm(env, b) {
+  const [st] = await sb(env, 'GET', `students?id=eq.${enc(b.student_id)}&select=id,name,tutor_id,grade,school,subjects`);
+  if (!st) throw new Error('Student not found');
+  if (!st.tutor_id) throw new Error('Assign a tutor first');
+  const [tu] = await sb(env, 'GET', `tutors?id=eq.${st.tutor_id}&select=id,name,email`);
+  if (!tu?.email) throw new Error('This tutor has no email on file');
+  const ob = await sb(env, 'GET', `onboarding_responses?student_id=eq.${st.id}&select=*&order=created_at.desc&limit=1`)
+    .then(r => r?.length ? r : sb(env, 'GET', `onboarding_responses?student_name=ilike.${enc(st.name)}&select=*&order=created_at.desc&limit=1`));
+  const o = ob?.[0];
+  if (!o) throw new Error('The family has not submitted the intake form yet');
+  const v = x => (Array.isArray(x) ? x.join(', ') : x) || 'not given';
+  const rows = [['Student', o.student_name || st.name], ['Grade', o.student_grade || st.grade], ['School', o.school || st.school],
+    ['Preferred contact', o.preferred_contact], ['Contact notes', o.contact_notes], ['Time zone', o.timezone],
+    ['Preferred days', o.preferred_days], ['Preferred times', o.preferred_times], ['Scheduling notes', o.scheduling_notes],
+    ['Subjects', o.subjects], ['Teacher', o.teacher_name], ['Current grade', o.current_grade], ['Target grade', o.target_grade],
+    ['Next test date', o.next_test_date], ['Struggles', o.struggles]];
+  const emailed = await sendMail({ to: tu.email, bcc: ADMIN_EMAIL, subject: `Onboarding form: ${st.name}`,
+    html: `<p>Here is the family's onboarding form so you can gauge where your student is at. We will start a group chat with you and the family for intros.</p><table cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">`
+      + rows.map(([k, x]) => `<tr><td style="border-bottom:1px solid #eee;color:#666;vertical-align:top"><b>${esc(k)}</b></td><td style="border-bottom:1px solid #eee">${esc(v(x))}</td></tr>`).join('') + `</table>` });
+  if (emailed) await sb(env, 'POST', 'student_checklist?on_conflict=student_id', { student_id: st.id, trimmed_form_sent: true, updated_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal');
+  return { ok: true, emailed, tutor: tu.name };
 }
