@@ -76,7 +76,7 @@
     <div class="grid">
       <div class="full"><label class="f" for="name">Full name</label><input type="text" id="name" name="name" autocomplete="name" /></div>
       <div><label class="f" for="email">Email</label><input type="email" id="email" name="email" autocomplete="email" /></div>
-      <div><label class="f" for="phone">Phone <small>(optional)</small></label><input type="tel" id="phone" name="phone" autocomplete="tel" /></div>
+      <div><label class="f" for="phone">Phone</label><input type="tel" id="phone" name="phone" autocomplete="tel" /></div>
       <div><label class="f" for="school">College / university</label><input type="text" id="school" name="school" /></div>
       <div><label class="f" for="major">Major</label><input type="text" id="major" name="major" /></div>
       <div><label class="f" for="grad_year">Expected graduation year</label><input type="text" id="grad_year" name="grad_year" placeholder="e.g. 2028" /></div>
@@ -188,6 +188,7 @@
     data.availability_schedule=[].map.call(document.querySelectorAll('#schedRows .row2'),function(r){return{day:r.querySelector('.sd').value,from:r.querySelector('.sf').value,to:r.querySelector('.st').value}});
     var m=[];
     if(!data.name)m.push('your name');
+    if(data.phone.replace(/\D/g,'').length<10)m.push('a phone number');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))m.push('a valid email');
     if(!data.commit_months)m.push('your commitment');
     if(!data.has_ipad)m.push('whether you have an iPad');
