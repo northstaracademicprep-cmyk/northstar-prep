@@ -1,7 +1,7 @@
 // /api/onboarding?r=tutor-admin : admin-only actions for the tutor pipeline and match suggestions.
 // Header x-admin-code must equal ADMIN_CODE (env) or the portal's NAP-ADMIN code.
 // Never deletes rows. Never edits existing tutors; only new tutors created via approve carry a cap.
-import { RUBRIC, rubricSummary, HOURS_PER_STUDENT, scoreMatch, slotsLeft } from './_tutor-rules.js';
+import { RUBRIC, rubricSummary, qualifiedSubjects, HOURS_PER_STUDENT, scoreMatch, slotsLeft } from './_tutor-rules.js';
 import { sb, sbEnv, cors } from './_sb.js';
 
 const STATUSES = ['applied', 'dq', 'audition_pending', 'quiz_pending', 'quiz_failed', 'review', 'call_pending', 'approved', 'rejected'];
@@ -89,7 +89,7 @@ async function approve(env, b) {
   if (taken.has(code) && last) code = `${first}${last}26`;
   for (let i = 2; taken.has(code); i++) code = `${first}${i}26`;
 
-  const qualified = (a.ap_can_tutor || []).filter(c => (a.ap_taken || []).some(t => t.course === c && Number(t.score) >= 4));
+  const qualified = qualifiedSubjects(a.ap_can_tutor, a.ap_taken);
   const schedule = a.availability_schedule || [];
   const tutor = {
     name: a.name, code, email: a.email, school: a.school, major: a.major, gender: a.gender, timezone: a.timezone,

@@ -94,7 +94,7 @@
   </fieldset>
 
   <fieldset><legend>What you want to tutor</legend>
-    <p class="hint" style="margin-bottom:.6rem">Pick the courses you are comfortable teaching. You need a 4 or 5 on the AP exam for any you pick.</p>
+    <p class="hint" style="margin-bottom:.6rem">Pick every course you are comfortable teaching. A 4 or 5 on an AP exam covers that course and the ones below it, for example Calculus BC covers Calculus AB, Precalculus, Algebra 2, Geometry and Algebra 1.</p>
     <div class="chips" id="canTutor"></div>
     <div style="margin-top:.9rem"><label class="f" for="other_subjects">Other subjects you could tutor <small>(optional)</small></label><input type="text" id="other_subjects" name="other_subjects" placeholder="e.g. Algebra 2, SAT Math" /></div>
   </fieldset>
@@ -158,7 +158,10 @@
   radio('whiteboard_ok',[['yes','Yes'],['no','No']]);
 
   var canEl=$('canTutor');
-  AP.forEach(function(c){var l=document.createElement('label');l.className='chip';l.innerHTML='<input type="checkbox" value="'+c+'"><span>'+c+'</span>';canEl.appendChild(l)});
+  var WANTED=["AP Calculus AB","AP Calculus BC","AP Precalculus","AP Statistics","AP Physics 1","AP Physics 2","AP Physics C: Mechanics","AP Physics C: E&M","AP Chemistry","AP Biology","AP Environmental Science","AP Computer Science A","AP Computer Science Principles","AP English Language","AP English Literature","AP US History","AP World History","AP European History","AP US Government","AP Comparative Government","AP Macroeconomics","AP Microeconomics","AP Psychology","AP Human Geography","AP Spanish Language","AP Art History","Honors Precalculus","Precalculus","Honors Algebra 2","Algebra 2","Trigonometry","Honors Geometry","Geometry","Algebra 1","Pre-Algebra","Statistics","Honors Statistics","Probability","Honors Physics","Physics","Honors Chemistry","Chemistry","Honors Biology","Biology","Honors Environmental Science","Environmental Science","Computer Science","Intro to Programming","Honors English","English","Writing","Honors US History","US History","Honors World History","World History","Honors European History","European History","Honors Government","Government","Civics","Economics","Honors Economics","Honors Psychology","Psychology","Honors Human Geography","Human Geography","Geography","Spanish 1","Spanish 2","Spanish 3","Spanish 4","Art History"];
+  WANTED.forEach(function(c,i){
+    if(i===AP.length){var h=document.createElement('div');h.style.cssText='flex-basis:100%;font-size:.78rem;color:#6b7280;margin-top:.6rem';h.textContent='Lower-level courses (covered by the AP courses above)';canEl.appendChild(h)}
+    var l=document.createElement('label');l.className='chip';l.innerHTML='<input type="checkbox" value="'+c+'"><span>'+c+'</span>';canEl.appendChild(l)});
 
   function apRow(){
     var d=document.createElement('div');d.className='row';

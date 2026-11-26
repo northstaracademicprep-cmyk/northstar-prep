@@ -15,6 +15,39 @@ export const AP_COURSES = [
   'AP Human Geography', 'AP Spanish Language', 'AP Art History',
 ];
 
+// Teaching ladder: a 4 or 5 on the AP course covers everything listed under it.
+const MATH_LOW = ['Honors Precalculus', 'Precalculus', 'Honors Algebra 2', 'Algebra 2', 'Trigonometry', 'Honors Geometry', 'Geometry', 'Algebra 1', 'Pre-Algebra'];
+export const LADDER = {
+  'AP Calculus BC': ['AP Calculus AB', 'AP Precalculus', ...MATH_LOW],
+  'AP Calculus AB': ['AP Precalculus', ...MATH_LOW],
+  'AP Precalculus': MATH_LOW,
+  'AP Statistics': ['Statistics', 'Honors Statistics', 'Probability'],
+  'AP Physics C: Mechanics': ['AP Physics 1', 'Honors Physics', 'Physics'],
+  'AP Physics C: E&M': ['AP Physics 2', 'Honors Physics', 'Physics'],
+  'AP Physics 2': ['AP Physics 1', 'Honors Physics', 'Physics'],
+  'AP Physics 1': ['Honors Physics', 'Physics'],
+  'AP Chemistry': ['Honors Chemistry', 'Chemistry'],
+  'AP Biology': ['Honors Biology', 'Biology'],
+  'AP Environmental Science': ['Honors Environmental Science', 'Environmental Science'],
+  'AP Computer Science A': ['AP Computer Science Principles', 'Computer Science', 'Intro to Programming'],
+  'AP Computer Science Principles': ['Computer Science', 'Intro to Programming'],
+  'AP English Language': ['AP English Literature', 'Honors English', 'English', 'Writing'],
+  'AP English Literature': ['AP English Language', 'Honors English', 'English', 'Writing'],
+  'AP US History': ['Honors US History', 'US History'],
+  'AP World History': ['Honors World History', 'World History'],
+  'AP European History': ['Honors European History', 'European History', 'Honors World History', 'World History'],
+  'AP US Government': ['Honors Government', 'Government', 'Civics'],
+  'AP Comparative Government': ['Honors Government', 'Government', 'Civics'],
+  'AP Macroeconomics': ['AP Microeconomics', 'Economics', 'Honors Economics'],
+  'AP Microeconomics': ['AP Macroeconomics', 'Economics', 'Honors Economics'],
+  'AP Psychology': ['Honors Psychology', 'Psychology'],
+  'AP Human Geography': ['Honors Human Geography', 'Human Geography', 'Geography'],
+  'AP Spanish Language': ['Spanish 1', 'Spanish 2', 'Spanish 3', 'Spanish 4'],
+  'AP Art History': ['Art History'],
+};
+// Everything a tutor can pick as "wanted": the AP courses first, then each lower course once.
+export const WANTED_COURSES = [...AP_COURSES, ...[...new Set(Object.values(LADDER).flat())].filter(c => !AP_COURSES.includes(c))];
+
 export const STEM_RE = /(calc|precalc|statistic|physics|chem|bio|environmental|computer|algebra|geometry|trig|math)/i;
 
 export const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -24,6 +57,8 @@ export const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' 
 export function subjectCovers(course, studentSubject) {
   const c = norm(course).replace(/^ap /, ''), s = norm(studentSubject).replace(/^(ap|honors|ib) /, '');
   if (!c || !s) return false;
+  const lower = (LADDER[course] || []).map(x => norm(x).replace(/^(ap|honors) /, ''));
+  if (lower.some(x => x === s || (s.length > 3 && x.includes(s)))) return true;
   if (c === s || c.includes(s) || s.includes(c)) return true;
   if (/calculus bc/.test(c) && /calculus( ab)?$|calc( ab)?$/.test(s)) return true;
   if (/calculus/.test(c) && /precalc/.test(s) === false && /calc/.test(s) && !/(ab|bc)/.test(s)) return true;
@@ -36,6 +71,13 @@ export function subjectCovers(course, studentSubject) {
 const num = v => (v === '' || v == null || isNaN(Number(v)) ? null : Number(v));
 const yn = v => (v === true || v === 'yes' || v === 'true' ? true : (v === false || v === 'no' || v === 'false' ? false : null));
 
+// A wanted course qualifies when they scored 4+ on that AP, or on a harder one that covers it
+// (a BC 5 covers AB; an AB 5 does not cover BC).
+export function qualifiedSubjects(wanted, taken) {
+  return (wanted || []).filter(c => (taken || []).some(t =>
+    Number(t.score) >= MIN_AP_SCORE && (norm(t.course) === norm(c) || (LADDER[t.course] || []).some(x => norm(x) === norm(c)))));
+}
+
 // Auto-DQ. Returns { reasons: string[], qualified: string[] }.
 export function evaluate(a) {
   const reasons = [];
@@ -44,8 +86,7 @@ export function evaluate(a) {
   if (a.weekly_hours == null || a.weekly_hours < MIN_WEEKLY_HOURS) reasons.push('Under 4 hours per week');
   if (a.pay_expectation == null || a.pay_expectation > MAX_PAY) reasons.push('Pay expectation above $30/hr');
   const taken = Array.isArray(a.ap_taken) ? a.ap_taken : [];
-  const qualified = (a.ap_can_tutor || []).filter(c =>
-    taken.some(t => norm(t.course) === norm(c) && Number(t.score) >= MIN_AP_SCORE));
+  const qualified = qualifiedSubjects(a.ap_can_tutor, taken);
   if (!qualified.length) reasons.push('No AP score of 4 or 5 in a subject they want to tutor');
   return { reasons, qualified };
 }
