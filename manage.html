@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Northstar | Team Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#1a1a2e}
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f2044;padding:1rem}
+.lbox{background:#fff;border-radius:14px;padding:2rem 1.6rem;width:100%;max-width:360px;text-align:center}
+.lbrand{font-family:'Josefin Sans',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#c9a03a;margin-bottom:.4rem}
+.lbox h1{font-family:'Josefin Sans',sans-serif;font-size:1.3rem;color:#0f2044;margin-bottom:1.1rem}
+.lbox input{width:100%;padding:.75rem .9rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.95rem;text-align:center;outline:none;margin-bottom:.8rem}
+.lbox input:focus{border-color:#c9a03a}
+.lbox button{width:100%;padding:.85rem;background:linear-gradient(135deg,#c9a03a,#e0b84a);color:#0f2044;font-weight:700;border:0;border-radius:10px;cursor:pointer;font-size:.9rem}
+.lerr{color:#b42318;font-size:.85rem;margin-bottom:.6rem;display:none}
+#adminShell{display:none;min-height:100vh;background:#f1f5f9;font-family:'Inter',sans-serif}
+.adm-layout{display:flex;min-height:100vh}
+.adm-sidebar{width:240px;background:#0f2044;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+.adm-sidebar-brand{padding:1.5rem;border-bottom:1px solid rgba(255,255,255,.08)}
+.adm-sidebar-logo{font-family:'Josefin Sans',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#c9a03a;margin-bottom:.2rem}
+.adm-sidebar-title{font-size:1rem;font-weight:700;color:#fff}
+.adm-sidebar-sub{font-size:.72rem;color:rgba(255,255,255,.4);margin-top:.15rem}
+.adm-nav{flex:1;padding:1rem 0}
+.adm-nav-label{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);padding:.75rem 1.25rem .3rem}
+.adm-nav-item{display:flex;align-items:center;gap:.7rem;padding:.6rem 1.25rem;font-size:.85rem;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border-left:3px solid transparent;transition:all .18s;user-select:none;position:relative;overflow:visible}
+.adm-nav-item:hover{color:#fff;background:rgba(255,255,255,.05)}
+.adm-nav-item.active{color:#c9a03a;background:rgba(201,160,58,.1);border-left-color:#c9a03a}
+.adm-nav-item.has-unread:not(.active){border-left-color:#ef4444;background:rgba(239,68,68,.08)}
+.adm-nav-icon{font-size:1.05rem;width:20px;text-align:center;flex-shrink:0}
+.adm-sidebar-footer{padding:1rem 1.25rem;border-top:1px solid rgba(255,255,255,.07)}
+.adm-logout{display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:rgba(255,255,255,.35);cursor:pointer;background:none;border:none;width:100%}
+.adm-logout:hover{color:rgba(255,255,255,.7)}
+.adm-main{margin-left:240px;display:flex;flex-direction:column;min-height:100vh}
+.adm-topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:.9rem 1.75rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.adm-topbar-title{font-size:1rem;font-weight:700;color:#0f2044}
+.adm-topbar-tag{font-size:.72rem;font-weight:700;padding:.25rem .7rem;border-radius:99px;background:rgba(201,160,58,.15);color:#92400e;border:1px solid rgba(201,160,58,.3)}
+.adm-content{padding:1.75rem;flex:1}
+/* cards & list */
+.adm-list{display:flex;flex-direction:column;gap:.85rem}
+.adm-students-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.adm-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;box-shadow:0 1px 8px rgba(15,32,68,.06)}
+.adm-card-top{display:flex;align-items:center;gap:.85rem}
+.adm-card-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#c9a03a,#e0b84a);color:#0f2044;font-family:'Josefin Sans',sans-serif;font-size:.9rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.adm-card-info{flex:1}
+.adm-card-name{font-size:.92rem;font-weight:700;color:#0f2044;margin-bottom:.1rem}
+.adm-card-meta{font-size:.74rem;color:#64748b}
+.adm-card-right{text-align:right}
+.adm-card-detail{margin-top:.85rem;display:flex;flex-direction:column;gap:.35rem}
+.adm-detail-row{display:flex;gap:.75rem;font-size:.8rem;color:#374151}
+.adm-detail-label{font-weight:700;color:#64748b;min-width:48px}
+.adm-card-actions{display:flex;gap:.6rem;margin-top:1rem}
+.adm-btn{padding:.5rem 1.1rem;border-radius:8px;font-size:.8rem;font-weight:700;border:none;cursor:pointer;transition:opacity .15s}
+.adm-btn:hover{opacity:.85}
+.adm-btn-approve{background:#10b981;color:#fff}
+.adm-btn-reject{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.adm-hours-badge{background:#0f2044;color:#c9a03a;font-size:1.1rem;font-weight:800;padding:.3rem .8rem;border-radius:8px;font-family:'Josefin Sans',sans-serif}
+.adm-section-header{font-size:.82rem;font-weight:700;color:#64748b;margin-bottom:1rem;padding-bottom:.65rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:.5rem}
+.adm-badge-count{background:#ef4444;color:#fff;font-size:.7rem;font-weight:800;padding:.15rem .5rem;border-radius:99px}
+.adm-student-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;box-shadow:0 1px 8px rgba(15,32,68,.06)}
+.adm-stat-chip{font-size:.72rem;font-weight:700;padding:.25rem .65rem;border-radius:99px}
+.adm-empty{text-align:center;padding:3.5rem 1rem;color:#64748b;font-size:.9rem;line-height:2}
+.adm-error{padding:1.5rem;background:#fef2f2;color:#dc2626;border-radius:12px;font-size:.85rem}
+@media(max-width:768px){
+  .adm-sidebar{transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);z-index:200}
+  .adm-sidebar.open{transform:translateX(0)}
+  #admMenuBtn{display:block!important}
+  .adm-main{margin-left:0}
+  .adm-students-grid{grid-template-columns:1fr}
+  .adm-topbar{padding:.75rem 1rem;gap:.5rem}
+  .adm-content{padding:1rem}
+  /* Messages: stack sidebar + chat vertically on mobile */
+  #admBody [style*="display:flex"][style*="gap:1.25rem"]{flex-direction:column;height:auto!important}
+  #admBody [style*="width:210px"]{width:100%!important;flex-direction:row!important;overflow-x:auto;gap:.5rem;flex-wrap:nowrap;padding-bottom:.5rem}
+  #admBody [style*="flex:1"][style*="border-radius:16px"]{height:calc(100vh - 340px)}
+  .msg-input{font-size:16px!important}
+}
+@media(max-width:480px){
+  .adm-content{padding:.7rem}
+  .adm-card{padding:1rem}
+  .adm-card-actions{flex-wrap:wrap}
+  .adm-btn{font-size:.75rem;padding:.4rem .8rem}
+  .adm-topbar-title{font-size:.9rem}
+}
+
+.adm-input{border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.82rem;color:#0f2044;background:#fff}
+</style>
+</head>
+<body>
+<div id="login">
+  <form class="lbox" id="lform">
+    <div class="lbrand">Northstar Academic Prep</div>
+    <h1>Team Portal</h1>
+    <div class="lerr" id="lerr">That key did not work.</div>
+    <input type="text" id="lkey" placeholder="Access key" autocomplete="off" autocapitalize="characters" />
+    <button type="submit">Enter</button>
+  </form>
+</div>
+<div id="adminShell">
+  <div class="adm-layout">
+    <aside class="adm-sidebar" id="admSidebar">
+      <div class="adm-sidebar-brand"><div class="adm-sidebar-logo">Northstar Academic Prep</div><div class="adm-sidebar-title">Team Portal</div><div class="adm-sidebar-sub" id="who"></div></div>
+      <nav class="adm-nav">
+        <div class="adm-nav-label">Hiring</div>
+        <div class="adm-nav-item active" data-id="tutor-pipeline" onclick="showAdminSection('tutor-pipeline')"><span class="adm-nav-icon">🧭</span> Tutor Hiring</div>
+        <div class="adm-nav-label">Matching</div>
+        <div class="adm-nav-item" data-id="match-students" onclick="showAdminSection('match-students')"><span class="adm-nav-icon">🤝</span> Match Students</div>
+        <div class="adm-nav-item" data-id="status-board" onclick="showAdminSection('status-board')"><span class="adm-nav-icon">✅</span> Student Status</div>
+        <div class="adm-nav-label">People</div>
+        <div class="adm-nav-item" data-id="students" onclick="showAdminSection('students')"><span class="adm-nav-icon">🎓</span> My Students</div>
+        <div class="adm-nav-item" data-id="tutors" onclick="showAdminSection('tutors')"><span class="adm-nav-icon">👨‍🏫</span> My Tutors</div>
+      </nav>
+      <div class="adm-sidebar-footer"><button class="adm-logout" onclick="logout()">↩ Sign Out</button></div>
+    </aside>
+    <div class="adm-main">
+      <header class="adm-topbar">
+        <button onclick="document.getElementById('admSidebar').classList.toggle('open')" style="display:none;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#0f2044;padding:0;margin-right:.5rem" id="admMenuBtn">☰</button>
+        <div class="adm-topbar-title" id="admTopbarTitle">Tutor Hiring</div>
+        <div class="adm-topbar-tag">Team</div>
+      </header>
+      <div class="adm-content"><div id="admBody"></div></div>
+    </div>
+  </div>
+</div>
+<script src="/tutor-admin-ui.js"></script>
+<script>
+(function(){
+  var TITLES={'tutor-pipeline':'Tutor Hiring','match-students':'Match Students','status-board':'Student Status','students':'My Students','tutors':'My Tutors'};
+  window.TA_ROLE='manager';
+  function boot(name){
+    document.getElementById('login').style.display='none';
+    document.getElementById('adminShell').style.display='block';
+    document.getElementById('who').textContent=name||'';
+    window.showAdminSection('tutor-pipeline');
+  }
+  window.showAdminSection=function(id){
+    document.querySelectorAll('.adm-nav-item').forEach(function(n){n.classList.toggle('active',n.dataset.id===id)});
+    document.getElementById('admTopbarTitle').textContent=TITLES[id]||id;
+    document.getElementById('admSidebar').classList.remove('open');
+    var body=document.getElementById('admBody');body.innerHTML='<div style="text-align:center;padding:3rem;color:#64748b">Loading...</div>';
+    if(id==='tutor-pipeline')buildAdminTutorPipeline();
+    else if(id==='match-students')buildAdminMatchStudents();
+    else if(id==='status-board')buildAdminStatusBoard();
+    else if(id==='students')buildMgrStudents();
+    else if(id==='tutors')buildMgrTutors();
+  };
+  window.logout=function(){try{sessionStorage.removeItem('manageCode')}catch(e){}window.TA_CODE='';location.reload()};
+  function tryLogin(key,silent){
+    window.TA_CODE=key;
+    return fetch('/api/onboarding?r=tutor-admin',{method:'POST',headers:{'Content-Type':'application/json','x-admin-code':key},body:JSON.stringify({action:'login'})})
+      .then(function(r){return r.json().catch(function(){return{}}).then(function(j){return{ok:r.ok,j:j}})})
+      .then(function(x){
+        if(!x.ok||x.j.role!=='manager'){window.TA_CODE='';try{sessionStorage.removeItem('manageCode')}catch(e){}if(!silent)document.getElementById('lerr').style.display='block';return}
+        try{sessionStorage.setItem('manageCode',key)}catch(e){}
+        boot(x.j.name);
+      });
+  }
+  document.getElementById('lform').addEventListener('submit',function(e){e.preventDefault();tryLogin(document.getElementById('lkey').value.trim().toUpperCase(),false)});
+  var saved='';try{saved=sessionStorage.getItem('manageCode')||''}catch(e){}
+  if(saved)tryLogin(saved,true);
+})();
+</script>
+</body>
+</html>

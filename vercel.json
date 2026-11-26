@@ -10,6 +10,10 @@
       "dest": "/onboarding.html"
     },
     {
+      "src": "^/manage/?$",
+      "dest": "/manage.html"
+    },
+    {
       "src": "^/tutor-apply/?$",
       "dest": "/tutor-apply.html"
     },
