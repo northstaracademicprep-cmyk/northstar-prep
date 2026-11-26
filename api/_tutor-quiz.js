@@ -12,12 +12,15 @@ export const QUIZ = [
     o: ['The right answer is only half the game; formatting and structuring answers to the AP rubric to earn maximum points is the other half', 'Students only need the final answer', 'It lets you skip practice problems', 'It is only for the last week before the exam'], a: 0 },
   { id: 'a5', q: 'How should the "Practice" step work?',
     o: ['The tutor solves everything while the student watches', 'The student walks you through problems and explains the content back, and it bleeds into targeted homework', 'The student works silently with the camera off', 'It is skipped if time runs short'], a: 1 },
-  { id: 'a6', q: 'A student bombs a practice test. What does Northstar say to do?',
-    o: ['Move on, the next unit matters more', 'Reinforce the weak topics before moving forward', 'Tell the parent the test was too hard', 'Cancel the next test'], a: 1 },
   { id: 'a7', q: 'How often should students take tests, and why?',
     o: ['Never, it stresses them out', 'Bi-weekly, to verify real understanding and build hands-on testing experience', 'Only the week of the AP exam', 'Once at the very end of the program'], a: 1 },
-  { id: 'a8', q: 'A student says, "I just want to go over whatever I am confused about today." What is the right response?',
-    o: ['Let them pick topics all session', 'Lead politely: Northstar is proactive, so you planned the lesson from their game plan, and you check for questions along the way', 'Cancel the session', 'Give them a worksheet and stay quiet'], a: 1 },
+  // Communication channel
+  { id: 'g1', q: 'Where must all communication between you, the student, the parent and Northstar happen?',
+    o: ['Wherever is easiest, including direct texts and calls', 'In the group chat we set up (iMessage or WhatsApp) and nowhere else', 'In the group chat, plus direct texts for anything quick', 'By email with the parent only'], a: 1 },
+  { id: 'g2', q: 'A student texts you privately asking a homework question. What do you do?',
+    o: ['Answer it privately, it is faster', 'Reply that you will answer it in the group chat, and keep all communication there', 'Ignore it', 'Answer privately but tell no one'], a: 1 },
+  { id: 'g3', q: 'A parent calls or texts you directly to discuss their student. What do you do?',
+    o: ['Take the call, parents like that', 'Politely move the conversation to the group chat; there is no direct texting or dialing with families', 'Give the parent your personal email too', 'Block the number'], a: 1 },
   // Lesson planning and session prep
   { id: 'p1', q: 'When should the full lesson plan (topics, slide deck, practice problems) be drafted?',
     o: ['2 days before the session', 'An hour before', 'During the session', 'The week after'], a: 0 },
@@ -30,8 +33,6 @@ export const QUIZ = [
   // Running a session
   { id: 's1', q: 'How should you open a session?',
     o: ['Jump straight into new material', 'Check homework and clear any confusion from last session, then lay out the agenda with specific time splits', 'Ask the student what they want to do', 'Start with a quiz'], a: 1 },
-  { id: 's2', q: 'Your student is lost on a topic but the agenda says to move on. What do you do?',
-    o: ['Stick to the agenda no matter what', 'Slow down until they get it and adjust the plan; never rush past a topic to hit the agenda', 'Assign it as homework and move on', 'Tell them they should have studied'], a: 1 },
   { id: 's3', q: 'How should you close a session?',
     o: ['Just end the call', 'Recap what was covered, answer questions, schedule the next session ON the call (even a rough time), and share next session\'s game plan', 'Tell them you will message about scheduling later', 'Ask the parent to schedule it'], a: 1 },
   // Communication and scheduling

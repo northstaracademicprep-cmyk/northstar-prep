@@ -96,6 +96,7 @@
       <button type="submit" id="quizBtn">Submit quiz</button>
     </fieldset>
   </form>
+  <div class="done show" id="retry" style="display:none"><div class="tick" style="background:#b45309" aria-hidden="true">!</div><h2>Not quite yet</h2><p id="rs"></p><p style="margin-top:1rem"><a href="#" id="hubLink2" target="_blank" rel="noopener" style="font-weight:600;color:var(--navy)">Reopen the Tutor Hub</a></p><div style="margin-top:1rem"><button type="button" id="again">Retake the quiz</button></div></div>
   <div class="done show" id="msg" style="display:none"><div class="tick" id="tick" aria-hidden="true">&#10003;</div><h2 id="mh"></h2><p id="mp"></p></div>
 </div>
 </main>
@@ -106,7 +107,7 @@
   var token=new URLSearchParams(location.search).get('t')||'';
   function api(body){body.token=token;return fetch('/api/onboarding?r=tutor-app',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.error||'Something went wrong.');return j})})}
   function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
-  function only(id){['vidCard','hubCard','quizCard','msg'].forEach(function(x){$(x).style.display=x===id?'block':'none'})}
+  function only(id){['vidCard','hubCard','quizCard','msg','retry'].forEach(function(x){$(x).style.display=x===id?'block':'none'})}
   function msg(h,p,ok){only('msg');$('mh').textContent=h;$('mp').textContent=p;$('tick').style.background=ok===false?'#b42318':'#10b981';$('tick').innerHTML=ok===false?'!':'&#10003;'}
   function render(s){
     $('loading').style.display='none';$('view').style.display='block';
@@ -115,8 +116,8 @@
     if(st==='video_review'){msg('Thank you, we have your video.','Your application is pending. Someone on our team will watch your audition and reach out soon. You can close this page.');return}
     if(st==='quiz_pending'){
       $('lede').textContent='Your audition was approved. Two steps to finish.';
-      $('hubLink').href=s.hubUrl;
-      $('quizHint').textContent=s.quiz.length+' questions covering the whole Hub: our approach, lesson planning, session prep, running a session, scheduling and communication. You need '+s.needed+' correct to pass.';
+      $('hubLink').href=s.hubUrl;$('hubLink2').href=s.hubUrl;
+      $('quizHint').textContent=s.quiz.length+' questions covering the whole Hub: our approach, lesson planning, session prep, running a session, scheduling and communication. You need '+s.needed+' correct to pass. If you miss it, rewatch the Hub and try again.';
       var box=$('qs');box.innerHTML='';
       s.quiz.forEach(function(q,n){var d=document.createElement('div');d.className='q';var h='<p>'+(n+1)+'. '+q.q.replace(/</g,'&lt;')+'</p>';
         shuffle(q.o.map(function(t,i){return[i,t]})).forEach(function(o){h+='<label><input type="radio" name="'+q.id+'" value="'+o[0]+'">'+String(o[1]).replace(/</g,'&lt;')+'</label>'});
@@ -139,8 +140,9 @@
     var b=$('quizBtn');b.disabled=true;b.textContent='Grading...';
     api({action:'quiz',answers:ans}).then(function(r){
       if(r.passed)msg('You passed.','Score: '+r.score+' of '+r.total+'. Someone from Northstar will reach out soon to talk through next steps and get you started.');
-      else msg('Thanks for taking the quiz.','You scored '+r.score+' of '+r.total+' and needed '+r.needed+'. We will reach out about next steps.',false);
+      else{only('retry');$('rs').textContent='You scored '+r.score+' of '+r.total+' and needed '+r.needed+'. Go back through the Tutor Hub and rewatch the videos, then retake the quiz.'}
     }).catch(function(x){$('err2').textContent=x.message;$('err2').classList.add('show');b.disabled=false;b.textContent='Submit quiz'})});
+  $('again').onclick=function(){load()};
   load();
 })();
 </script>

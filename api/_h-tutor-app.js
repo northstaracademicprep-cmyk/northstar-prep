@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       const g = gradeQuiz(answers);
       await sb(env, 'PATCH', `tutor_applications?id=eq.${app.id}`, {
         quiz_answers: answers || {}, quiz_score: g.score, quiz_total: g.total, quiz_passed: g.passed,
-        quiz_submitted_at: new Date().toISOString(), status: g.passed ? 'call_pending' : 'quiz_failed',
+        quiz_submitted_at: new Date().toISOString(), status: g.passed ? 'call_pending' : 'quiz_pending',
       }, 'return=minimal');
       if (g.passed) await sendMail({ to: ADMIN_EMAIL, subject: `Tutor passed the quiz: ${app.name} (${g.score}/${g.total})`,
         html: `<p><b>${esc(app.name)}</b> passed the tutor quiz with ${g.score} of ${g.total}. Next: the 5 minute check-in call, then Approve in Tutor Hiring.</p>` });
