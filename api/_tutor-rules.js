@@ -36,6 +36,13 @@ export function subjectCovers(course, studentSubject) {
 const num = v => (v === '' || v == null || isNaN(Number(v)) ? null : Number(v));
 const yn = v => (v === true || v === 'yes' || v === 'true' ? true : (v === false || v === 'no' || v === 'false' ? false : null));
 
+// A wanted course qualifies when they scored 4+ on that AP, or on a harder one that covers it
+// (a BC 5 covers AB; an AB 5 does not cover BC).
+export function qualifiedSubjects(wanted, taken) {
+  return (wanted || []).filter(c => (taken || []).some(t =>
+    Number(t.score) >= MIN_AP_SCORE && (norm(t.course) === norm(c) || subjectCovers(t.course, c))));
+}
+
 // Auto-DQ. Returns { reasons: string[], qualified: string[] }.
 export function evaluate(a) {
   const reasons = [];
@@ -44,8 +51,7 @@ export function evaluate(a) {
   if (a.weekly_hours == null || a.weekly_hours < MIN_WEEKLY_HOURS) reasons.push('Under 4 hours per week');
   if (a.pay_expectation == null || a.pay_expectation > MAX_PAY) reasons.push('Pay expectation above $30/hr');
   const taken = Array.isArray(a.ap_taken) ? a.ap_taken : [];
-  const qualified = (a.ap_can_tutor || []).filter(c =>
-    taken.some(t => norm(t.course) === norm(c) && Number(t.score) >= MIN_AP_SCORE));
+  const qualified = qualifiedSubjects(a.ap_can_tutor, taken);
   if (!qualified.length) reasons.push('No AP score of 4 or 5 in a subject they want to tutor');
   return { reasons, qualified };
 }
