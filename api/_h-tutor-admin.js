@@ -119,9 +119,9 @@ async function approve(env, b) {
   const created = (await sb(env, 'POST', 'tutors', tutor))[0];
   await sb(env, 'PATCH', `tutor_applications?id=eq.${a.id}`, { status: 'approved', tutor_id: created.id }, 'return=minimal');
   // Welcome email: Tutor Hub, portal link and login code together in one message. No pay mentioned.
-  const first = esc(a.name.trim().split(/\s+/)[0]);
+  const firstName = esc(a.name.trim().split(/\s+/)[0]);
   const emailed = await sendMail({ to: a.email, bcc: ADMIN_EMAIL, subject: 'Welcome to Northstar, your tutor access',
-    html: `<p>Hey ${first},</p><p>Welcome to the Northstar team. We are super excited to work with you.</p>`
+    html: `<p>Hey ${firstName},</p><p>Welcome to the Northstar team. We are super excited to work with you.</p>`
       + `<p><b>Your tutor portal:</b> <a href="https://portal.northstaracademicprep.com">portal.northstaracademicprep.com</a><br><b>Your access key:</b> ${esc(created.code)}</p>`
       + `<p><b>Tutor Hub</b> (keep this handy, it covers everything): <a href="${HUB_URL}">${HUB_URL}</a></p>`
       + `<p>Next, we will match you with your first student and start a group chat with you, the student and their family. All communication stays in that group chat.</p><p>Northstar Academic Prep</p>` });
