@@ -52,6 +52,12 @@
   @media (max-width:520px){.grid{grid-template-columns:1fr}h1{font-size:1.4rem}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
+  .grp{border:1.5px solid var(--border);border-radius:10px;margin-bottom:.6rem;padding:0 .9rem;background:#fff}
+  .grp summary{cursor:pointer;padding:.7rem 0;font-weight:600;color:var(--navy);font-size:.92rem;display:flex;justify-content:space-between;list-style:none}
+  .grp summary::-webkit-details-marker{display:none}
+  .grp summary::after{content:'+';color:var(--muted);margin-left:.6rem}
+  .grp[open] summary::after{content:'\2212'}
+  .grp .cnt{margin-left:auto;font-style:normal;font-size:.78rem;color:var(--gold);font-weight:700}
   .row{display:grid;grid-template-columns:1.6fr .8fr auto;gap:.5rem;margin-bottom:.5rem;align-items:center}
   .row2{display:grid;grid-template-columns:1fr .8fr .8fr auto;gap:.5rem;margin-bottom:.5rem;align-items:center}
   .mini{width:auto;padding:.45rem .7rem;background:#fff;border:1.5px solid var(--border);color:var(--navy);font-family:var(--font-body);font-size:.8rem;letter-spacing:0;text-transform:none;font-weight:600;border-radius:8px}
@@ -95,7 +101,7 @@
 
   <fieldset><legend>What you want to tutor</legend>
     <p class="hint" style="margin-bottom:.6rem">Pick every course you are comfortable teaching. A 4 or 5 on an AP exam covers that course and the ones below it, for example Calculus BC covers Calculus AB, Precalculus, Algebra 2, Geometry and Algebra 1.</p>
-    <div class="chips" id="canTutor"></div>
+    <div id="canTutor"></div>
     <div style="margin-top:.9rem"><label class="f" for="other_subjects">Other subjects you could tutor <small>(optional)</small></label><input type="text" id="other_subjects" name="other_subjects" placeholder="e.g. Algebra 2, SAT Math" /></div>
   </fieldset>
 
@@ -159,9 +165,17 @@
 
   var canEl=$('canTutor');
   var WANTED=["AP Calculus AB","AP Calculus BC","AP Precalculus","AP Statistics","AP Physics 1","AP Physics 2","AP Physics C: Mechanics","AP Physics C: E&M","AP Chemistry","AP Biology","AP Environmental Science","AP Computer Science A","AP Computer Science Principles","AP English Language","AP English Literature","AP US History","AP World History","AP European History","AP US Government","AP Comparative Government","AP Macroeconomics","AP Microeconomics","AP Psychology","AP Human Geography","AP Spanish Language","AP Art History","Honors Precalculus","Precalculus","Honors Algebra 2","Algebra 2","Trigonometry","Honors Geometry","Geometry","Algebra 1","Pre-Algebra","Statistics","Honors Statistics","Probability","Honors Physics","Physics","Honors Chemistry","Chemistry","Honors Biology","Biology","Honors Environmental Science","Environmental Science","Computer Science","Intro to Programming","Honors English","English","Writing","Honors US History","US History","Honors World History","World History","Honors European History","European History","Honors Government","Government","Civics","Economics","Honors Economics","Honors Psychology","Psychology","Honors Human Geography","Human Geography","Geography","Spanish 1","Spanish 2","Spanish 3","Spanish 4","Art History"];
-  WANTED.forEach(function(c,i){
-    if(i===AP.length){var h=document.createElement('div');h.style.cssText='flex-basis:100%;font-size:.78rem;color:#6b7280;margin-top:.6rem';h.textContent='Lower-level courses (covered by the AP courses above)';canEl.appendChild(h)}
-    var l=document.createElement('label');l.className='chip';l.innerHTML='<input type="checkbox" value="'+c+'"><span>'+c+'</span>';canEl.appendChild(l)});
+  var GROUPS=[['Math',/calc|precalc|algebra|geometry|trig|statistic|probab/i],['Science',/physics|chem|bio|environmental/i],['Computer Science',/computer|programming/i],['English',/english|writing/i],['Languages and Arts',/spanish|art history/i],['History and Social Science',/history|government|civics|econom|psych|geograph/i]];
+  GROUPS.forEach(function(g){
+    var list=WANTED.filter(function(c){return GROUPS.filter(function(x){return x[1].test(c)})[0]===g});if(!list.length)return;
+    var det=document.createElement('details');det.className='grp';
+    var sm=document.createElement('summary');sm.innerHTML='<span>'+g[0]+'</span><em class="cnt"></em>';det.appendChild(sm);
+    var box=document.createElement('div');box.className='chips';box.style.padding='.6rem 0 .3rem';
+    list.forEach(function(c){var l=document.createElement('label');l.className='chip';l.innerHTML='<input type="checkbox" value="'+c+'"><span>'+c+'</span>';box.appendChild(l)});
+    det.appendChild(box);canEl.appendChild(det);
+    function upd(){var n=box.querySelectorAll('input:checked').length;sm.querySelector('.cnt').textContent=n?n+' selected':''}
+    box.addEventListener('change',upd);
+  });
 
   function apRow(){
     var d=document.createElement('div');d.className='row';
