@@ -196,7 +196,7 @@
     if(m.length){showErr('Please add '+m.join(', ')+'.');return}
     data.pay_expectation=data.pay_expectation.replace('$','');
     btn.disabled=true;btn.textContent='Sending...';
-    fetch('/api/tutor-apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+    fetch('/api/onboarding?r=tutor-apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
       .then(function(r){return r.json().catch(function(){return{}}).then(function(j){return{ok:r.ok,j:j}})})
       .then(function(x){
         if(!x.ok)throw new Error(x.j.error||'Something went wrong. Please try again.');

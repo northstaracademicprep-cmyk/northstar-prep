@@ -1,4 +1,4 @@
-// /api/tutor-app : applicant-facing steps, keyed by the private token from the apply step.
+// /api/onboarding?r=tutor-app : applicant-facing steps, keyed by the private token from the apply step.
 //   POST { token, action: 'get' }                      -> status + quiz questions (no answers)
 //   POST { token, action: 'audition', url }            -> saves the audition video link
 //   POST { token, action: 'quiz', answers: {id: idx} } -> grades server-side

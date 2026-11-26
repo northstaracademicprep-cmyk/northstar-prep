@@ -1,4 +1,4 @@
-// POST /api/tutor-apply : public tutor application. Runs the auto-DQ rules and stores the row.
+// POST /api/onboarding?r=tutor-apply : public tutor application. Runs the auto-DQ rules and stores the row.
 // Returns { ok, qualified, token? }. A DQ'd applicant gets a polite close and no token.
 import { evaluate, parseApplication } from './_tutor-rules.js';
 import { sb, sbEnv, cors } from './_sb.js';

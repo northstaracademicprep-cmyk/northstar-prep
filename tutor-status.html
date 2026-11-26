@@ -95,7 +95,7 @@
 (function(){
   var $=function(i){return document.getElementById(i)};
   var token=new URLSearchParams(location.search).get('t')||'';
-  function api(body){body.token=token;return fetch('/api/tutor-app',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.error||'Something went wrong.');return j})})}
+  function api(body){body.token=token;return fetch('/api/onboarding?r=tutor-app',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.error||'Something went wrong.');return j})})}
   function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
   function msg(h,p,ok){$('vidCard').style.display='none';$('quizCard').style.display='none';var m=$('msg');m.style.display='block';$('mh').textContent=h;$('mp').textContent=p;if(ok===false)$('tick').style.background='#b42318',$('tick').innerHTML='!'}
   function render(s){

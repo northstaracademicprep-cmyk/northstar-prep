@@ -16159,7 +16159,7 @@ function _tutorCanTeach(tutor, req) {
 
 /* ── ADMIN: TUTOR HIRING PIPELINE + MATCH STUDENTS ── */
 async function tutorAdminApi(body) {
-  const r = await fetch('/api/tutor-admin', { method:'POST', headers:{'Content-Type':'application/json','x-admin-code': sessionStorage.getItem('portalCode')||''}, body: JSON.stringify(body) });
+  const r = await fetch('/api/onboarding?r=tutor-admin', { method:'POST', headers:{'Content-Type':'application/json','x-admin-code': sessionStorage.getItem('portalCode')||''}, body: JSON.stringify(body) });
   const j = await r.json().catch(()=>({}));
   if (!r.ok) throw new Error(j.error || ('Request failed ('+r.status+')'));
   return j;

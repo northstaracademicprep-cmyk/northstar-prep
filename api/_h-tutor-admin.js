@@ -1,4 +1,4 @@
-// /api/tutor-admin : admin-only actions for the tutor pipeline and match suggestions.
+// /api/onboarding?r=tutor-admin : admin-only actions for the tutor pipeline and match suggestions.
 // Header x-admin-code must equal ADMIN_CODE (env) or the portal's NAP-ADMIN code.
 // Never deletes rows. Never edits existing tutors; only new tutors created via approve carry a cap.
 import { RUBRIC, rubricSummary, HOURS_PER_STUDENT, scoreMatch, slotsLeft } from './_tutor-rules.js';
