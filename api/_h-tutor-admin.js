@@ -167,7 +167,7 @@ async function matches(env) {
   const ob = r => (r.student_id ? 'id:' + r.student_id : 'name:' + (r.student_name || '').toLowerCase());
   const obMap = {};
   for (const r of onboard) { if (!obMap[ob(r)]) obMap[ob(r)] = r; }
-  const unassigned = students.filter(s => !s.tutor_id && s.status !== 'inactive' && Number(s.hours_total) > 0);
+  const unassigned = students.filter(s => !s.tutor_id && s.status !== 'inactive' && s.status !== 'completed' && Number(s.hours_total) > 0);
   const out = unassigned.map(s => {
     const o = obMap['id:' + s.id] || obMap['name:' + s.name.toLowerCase()] || null;
     const prefDays = o?.preferred_days || [];
