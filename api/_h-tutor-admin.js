@@ -4,6 +4,7 @@
 import { RUBRIC, rubricSummary, qualifiedSubjects, HOURS_PER_STUDENT, scoreMatch, slotsLeft } from './_tutor-rules.js';
 import { sb, sbEnv, cors, sendMail, esc, ADMIN_EMAIL } from './_sb.js';
 
+const HUB_URL = 'https://gamma.app/docs/Northstar-Tutor-Hub-Your-Complete-Onboarding-Guide-vmvwl4l8iyxyg9s';
 const STATUSES = ['applied', 'dq', 'audition_pending', 'quiz_pending', 'quiz_failed', 'video_review', 'call_pending', 'approved', 'rejected'];
 
 export default async function handler(req, res) {
@@ -117,7 +118,14 @@ async function approve(env, b) {
   };
   const created = (await sb(env, 'POST', 'tutors', tutor))[0];
   await sb(env, 'PATCH', `tutor_applications?id=eq.${a.id}`, { status: 'approved', tutor_id: created.id }, 'return=minimal');
-  return { ok: true, tutor: { id: created.id, name: created.name, code: created.code, max_students: created.max_students } };
+  // Welcome email: Tutor Hub, portal link and login code together in one message. No pay mentioned.
+  const firstName = esc(a.name.trim().split(/\s+/)[0]);
+  const emailed = await sendMail({ to: a.email, bcc: ADMIN_EMAIL, subject: 'Welcome to Northstar, your tutor access',
+    html: `<p>Hey ${firstName},</p><p>Welcome to the Northstar team. We are super excited to work with you.</p>`
+      + `<p><b>Your tutor portal:</b> <a href="https://portal.northstaracademicprep.com">portal.northstaracademicprep.com</a><br><b>Your access key:</b> ${esc(created.code)}</p>`
+      + `<p><b>Tutor Hub</b> (keep this handy, it covers everything): <a href="${HUB_URL}">${HUB_URL}</a></p>`
+      + `<p>Next, we will match you with your first student and start a group chat with you, the student and their family. All communication stays in that group chat.</p><p>Northstar Academic Prep</p>` });
+  return { ok: true, emailed, tutor: { id: created.id, name: created.name, code: created.code, max_students: created.max_students } };
 }
 
 async function matches(env) {

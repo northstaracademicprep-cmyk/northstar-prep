@@ -16262,8 +16262,8 @@ async function tpApprove(id) {
   try {
     await tpCall(id);
     const j = await tutorAdminApi({action:'approve', id, hourly_rate: rate});
-    alert(`Created tutor ${j.tutor.name}. Access key: ${j.tutor.code}. Cap: ${j.tutor.max_students} students. Send the welcome email from your Gmail.`);
-    buildAdminTutorPipeline();
+    alert(`Created tutor ${j.tutor.name}. Access key: ${j.tutor.code}. Cap: ${j.tutor.max_students} students. ` + (j.emailed ? 'Welcome email sent (you are copied).' : 'The welcome email did NOT send, so send it yourself.') + ' Next: match them to a student.');
+    showAdminSection('match-students');
   } catch (e) { alert(e.message); }
 }
 
