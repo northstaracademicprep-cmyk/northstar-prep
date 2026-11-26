@@ -4,6 +4,7 @@ export const MIN_COMMIT_MONTHS = 4;
 export const MIN_WEEKLY_HOURS = 4;
 export const MAX_PAY = 30;
 export const MIN_AP_SCORE = 4;
+export const OK_START = ['asap', '1_week', '2_weeks'];   // 3 weeks or more is an instant DQ
 export const HOURS_PER_STUDENT = 4;   // 2 sessions/week + a complimentary exam-week session + prep
 
 export const AP_COURSES = [
@@ -85,6 +86,7 @@ export function evaluate(a) {
   if (a.has_ipad !== true) reasons.push('No iPad');
   if (a.weekly_hours == null || a.weekly_hours < MIN_WEEKLY_HOURS) reasons.push('Under 4 hours per week');
   if (a.pay_expectation == null || a.pay_expectation > MAX_PAY) reasons.push('Pay expectation above $30/hr');
+  if (!OK_START.includes(a.start_timing)) reasons.push('Cannot start within 2 weeks');
   const taken = Array.isArray(a.ap_taken) ? a.ap_taken : [];
   const qualified = qualifiedSubjects(a.ap_can_tutor, taken);
   if (!qualified.length) reasons.push('No AP score of 4 or 5 in a subject they want to tutor');
@@ -101,10 +103,11 @@ export function parseApplication(b) {
     name: t('name', 120), email: t('email', 160), phone: t('phone', 40), gender: t('gender', 20),
     school: t('school', 160), major: t('major', 160), grad_year: t('grad_year', 20), timezone: t('timezone', 60),
     other_subjects: t('other_subjects', 500), next_semester_classes: t('next_semester_classes', 800),
-    referral: t('referral', 200), source: t('source', 40) || 'referral', pay_text: t('pay_text', 80),
+    referral: t('referral', 200), start_timing: t('start_timing', 20), source: t('source', 40) || 'referral', pay_text: t('pay_text', 80),
   };
   if (!row.name) return { error: 'Please add your name.' };
   if (!row.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) return { error: 'Please add a valid email.' };
+  if (!['asap', '1_week', '2_weeks', '3_4_weeks', 'later'].includes(row.start_timing)) return { error: 'Please tell us how soon you can start.' };
   if (!['female', 'male', 'other'].includes(row.gender)) return { error: 'Please select your gender.' };
   if (!row.phone || row.phone.replace(/\D/g, '').length < 10) return { error: 'Please add a phone number.' };
   row.ap_taken = (Array.isArray(b.ap_taken) ? b.ap_taken : [])

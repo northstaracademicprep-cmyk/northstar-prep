@@ -31,12 +31,13 @@ Existing tutors are untouched by capacity rules. Only tutors hired through the n
 
 ## 4. Hiring a tutor
 Applicants come from referrals or ads. Send them **portal.northstaracademicprep.com/tutor-apply**.
-1. They apply. Auto-DQ if: cannot commit 4+ months, no iPad, under 4 hrs/week, pay ask above $30, or no AP 4 or 5 in a subject they want to tutor. DQ'd applicants get a polite close. Nothing for you to do.
-2. Qualified applicants land on a page for their audition video (about 6 minutes: short intro, then a mini lesson with a live practice problem) and a 12 question quiz (7 scenarios, 5 on the Tutor Hub). Pass is 10 of 12.
-3. Open **Tutor Hiring**. Applicants who passed the quiz are under **Ready to score**. Watch the video and score the rubric 1 to 5: charisma, energy, clarity, analogies, easy to absorb, confidence, expertise. Average 4.0 or higher with nothing under 3 recommends advancing; click Save and advance.
-4. Do the **5 minute check-in call**: confirm what they wrote is true and the energy holds up. Tick it done.
-5. Set the hourly rate (max $30) and click **Approve and create tutor**. It creates their tutor login. Send the tutor welcome email from Gmail: Tutor Hub link (https://gamma.app/docs/Northstar-Tutor-Hub-Your-Complete-Onboarding-Guide-vmvwl4l8iyxyg9s), portal link and access key together. Do not mention pay.
-6. Quiz fails can be reopened with **Allow a quiz retake** if Sahib wants to give a second chance.
+1. **Application.** Auto-DQ if: cannot commit 4+ months, no iPad, under 4 hrs/week, pay ask above $30, cannot start within 2 weeks, or no AP 4 or 5 covering a subject they want to tutor (a higher AP covers the courses below it, e.g. Calc BC covers AB, Precalc, Algebra 2, Geometry, Algebra 1). DQ'd applicants get a polite close. Nothing for you to do.
+2. **Audition video.** Qualified applicants land on one step: record a mini lesson on an iPad (screen share and camera on): 1 minute intro, then about 5 minutes teaching a topic of their choice with a live practice problem. They paste a link. After that they see a thank-you and sit on pending. You get an email.
+3. **Review the video** in **Tutor Hiring > Videos to review**. Optionally score the rubric 1 to 5 (charisma, energy, clarity, analogies, easy to absorb, confidence, expertise; average 4.0 with nothing under 3 is a good sign). Then **Approve video** or **Decline**.
+   - Approve emails them (copying the Northstar Gmail) a link to the Tutor Hub and the quiz. If the email fails you get a prompt to text or email them yourself; their phone number is on the card.
+4. **Quiz.** 20 questions covering the whole Hub (approach, lesson planning, session prep, running a session, scheduling, communication, portal). 18 of 20 (90%) passes. You get an email when someone passes. A failed quiz can be reopened with **Allow a quiz retake**.
+5. **5 minute check-in call** with people who passed: confirm what they wrote is true and the energy holds up. Tick it done.
+6. Set the hourly rate (max $30) and click **Approve and create tutor**. It creates their tutor login. Send the tutor welcome email from Gmail: Tutor Hub link (https://gamma.app/docs/Northstar-Tutor-Hub-Your-Complete-Onboarding-Guide-vmvwl4l8iyxyg9s), portal link and access key together. Do not mention pay.
 
 ## 5. Changing tutor pay
 Update the rate in **Tutor Management**, then ask Sahib if he wants the raise email sent.
