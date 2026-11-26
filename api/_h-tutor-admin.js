@@ -2,9 +2,9 @@
 // Header x-admin-code must equal ADMIN_CODE (env) or the portal's NAP-ADMIN code.
 // Never deletes rows. Never edits existing tutors; only new tutors created via approve carry a cap.
 import { RUBRIC, rubricSummary, qualifiedSubjects, HOURS_PER_STUDENT, scoreMatch, slotsLeft } from './_tutor-rules.js';
-import { sb, sbEnv, cors } from './_sb.js';
+import { sb, sbEnv, cors, sendMail, esc, ADMIN_EMAIL } from './_sb.js';
 
-const STATUSES = ['applied', 'dq', 'audition_pending', 'quiz_pending', 'quiz_failed', 'review', 'call_pending', 'approved', 'rejected'];
+const STATUSES = ['applied', 'dq', 'audition_pending', 'quiz_pending', 'quiz_failed', 'video_review', 'call_pending', 'approved', 'rejected'];
 
 export default async function handler(req, res) {
   cors(res, 'POST, OPTIONS');
@@ -34,9 +34,25 @@ export default async function handler(req, res) {
       for (const [k] of RUBRIC) { const v = Number(b.rubric?.[k]); if (!(v >= 1 && v <= 5)) return res.status(400).json({ error: 'Score every criterion 1 to 5.' }); rubric[k] = v; }
       const s = rubricSummary(rubric);
       const patch = { rubric, rubric_notes: String(b.notes || '').slice(0, 1500) };
-      if (b.advance && s.pass) patch.status = 'call_pending';
       await sb(env, 'PATCH', `tutor_applications?id=eq.${enc(b.id)}`, patch, 'return=minimal');
       return res.status(200).json({ ok: true, summary: s });
+    }
+    if (action === 'video_decision') {
+      const [a] = await sb(env, 'GET', `tutor_applications?id=eq.${enc(b.id)}&select=id,name,email,token,status`);
+      if (!a) throw new Error('Application not found');
+      if (a.status !== 'video_review') throw new Error('This video is not waiting for review');
+      if (!b.approve) {
+        await sb(env, 'PATCH', `tutor_applications?id=eq.${a.id}`, { status: 'rejected' }, 'return=minimal');
+        return res.status(200).json({ ok: true, emailed: false });
+      }
+      await sb(env, 'PATCH', `tutor_applications?id=eq.${a.id}`, { status: 'quiz_pending' }, 'return=minimal');
+      const link = `https://portal.northstaracademicprep.com/tutor-status?t=${a.token}`;
+      const first = esc(a.name.trim().split(/\s+/)[0]);
+      const emailed = await sendMail({ to: a.email, bcc: ADMIN_EMAIL, subject: 'You are through to the next step at Northstar',
+        html: `<p>Hey ${first},</p><p>We watched your audition and loved it. You are through to the next step.</p>`
+          + `<p><b>Next:</b> read the Northstar Tutor Hub, then take a 20 question quiz on how we run sessions. You need 18 correct to pass. Both are on your link:</p>`
+          + `<p><a href="${link}">${link}</a></p><p>Once you pass, we will reach out to talk through next steps and get you started.</p><p>Northstar Academic Prep</p>` });
+      return res.status(200).json({ ok: true, emailed });
     }
     if (action === 'call') {
       await sb(env, 'PATCH', `tutor_applications?id=eq.${enc(b.id)}`, { call_done: !!b.done, call_notes: String(b.notes || '').slice(0, 1500) }, 'return=minimal');
@@ -73,7 +89,6 @@ async function approve(env, b) {
   if (a.tutor_id) throw new Error('Already approved');
   if (a.status === 'dq') throw new Error('This applicant was auto-disqualified');
   if (!a.quiz_passed) throw new Error('Quiz not passed');
-  if (!a.rubric || !rubricSummary(a.rubric)) throw new Error('Score the audition first');
   if (!a.call_done) throw new Error('Mark the 5 minute check-in call done first');
   const rate = Number(b.hourly_rate);
   if (!(rate > 0 && rate <= 30)) throw new Error('Set an hourly rate up to $30');

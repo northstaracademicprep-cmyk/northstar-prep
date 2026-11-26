@@ -72,7 +72,7 @@
 <header>
   <div class="brand">Northstar Academic Prep</div>
   <h1>Apply to tutor with Northstar</h1>
-  <p class="lede">Takes about 5 minutes. If you are a fit, the next step is a short video and a quick quiz, and there is no hiring call before that.</p>
+  <p class="lede">Takes about 5 minutes. If you are a fit, your next step is a short audition video. No hiring call first.</p>
 </header>
 <main>
 <form id="form" novalidate>
@@ -122,6 +122,8 @@
         <div class="radio" id="commit"></div></div>
       <div class="full"><span class="f" style="display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem">I understand the structure above and can stick with a student through the whole program</span>
         <div class="radio" id="understands"></div></div>
+      <div class="full"><span class="f" style="display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem">How soon can you start tutoring?</span>
+        <div class="radio" id="start_timing"></div></div>
       <div class="full"><label class="f" for="pay_expectation">Hourly pay you expect ($)</label><input type="text" inputmode="decimal" id="pay_expectation" name="pay_expectation" placeholder="e.g. 25" /></div>
     </div>
   </fieldset>
@@ -158,6 +160,7 @@
   function radio(id,opts){var el=$(id);opts.forEach(function(o){var l=document.createElement('label');l.innerHTML='<input type="radio" name="'+id+'" value="'+o[0]+'"> '+o[1];el.appendChild(l)})}
   function val(name){var c=document.querySelector('input[name='+name+']:checked');return c?c.value:''}
   radio('commit',[['3','Less than 4 months'],['4','4 months'],['5','5 months'],['6','6 months or more']]);
+  radio('start_timing',[['asap','As soon as possible'],['1_week','Within 1 week'],['2_weeks','Within 2 weeks'],['3_4_weeks','3 to 4 weeks'],['later','More than 4 weeks']]);
   radio('understands',[['yes','Yes'],['no','No']]);
   radio('has_ipad',[['yes','Yes'],['no','No']]);
   radio('has_stylus',[['yes','Yes'],['no','No']]);
@@ -199,7 +202,7 @@
     var data={website:$('website').value};
     ['name','email','phone','gender','school','major','grad_year','timezone','other_subjects','next_semester_classes','referral','weekly_hours','pay_expectation'].forEach(function(k){data[k]=$(k).value.trim()});
     data.commit_months=val('commit');data.understands_program=val('understands');
-    data.has_ipad=val('has_ipad');data.has_stylus=val('has_stylus');data.whiteboard_ok=val('whiteboard_ok');
+    data.start_timing=val('start_timing');data.has_ipad=val('has_ipad');data.has_stylus=val('has_stylus');data.whiteboard_ok=val('whiteboard_ok');
     data.can_screenshare=val('whiteboard_ok');
     data.ap_taken=[].map.call(document.querySelectorAll('#apRows .row'),function(r){return{course:r.querySelector('.apc').value,score:r.querySelector('.aps').value}}).filter(function(x){return x.course&&x.score});
     data.ap_can_tutor=[].map.call(canEl.querySelectorAll('input:checked'),function(c){return c.value});
@@ -210,6 +213,7 @@
     if(data.phone.replace(/\D/g,'').length<10)m.push('a phone number');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))m.push('a valid email');
     if(!data.commit_months)m.push('your commitment');
+    if(!data.start_timing)m.push('how soon you can start');
     if(!data.has_ipad)m.push('whether you have an iPad');
     if(!data.weekly_hours||isNaN(Number(data.weekly_hours)))m.push('your weekly hours as a number');
     if(!data.pay_expectation||isNaN(Number(data.pay_expectation.replace('$',''))))m.push('your pay expectation as a number');

@@ -64,24 +64,33 @@
 </style>
 </head>
 <body>
-<header><div class="brand">Northstar Academic Prep</div><h1 id="h">Your next steps</h1><p class="lede" id="lede">Two quick things and you are through: a short video and a quiz.</p></header>
+<header><div class="brand">Northstar Academic Prep</div><h1 id="h">Your next step</h1><p class="lede" id="lede"></p></header>
 <main>
 <div class="done show" id="loading" style="display:block">Loading...</div>
 <div id="view" style="display:none">
-  <form id="vidCard" style="margin-bottom:1rem" novalidate>
+  <form id="vidCard" novalidate>
     <div class="err" id="err1" role="alert"></div>
-    <fieldset class="step"><legend>Step 1: Audition video</legend>
-      <p style="font-size:.9rem;margin-bottom:.7rem">Record <b>one video, about 6 minutes</b>, in this order:</p>
-      <ol class="n"><li><b>Intro (under 1 minute):</b> your name, school, and major.</li>
-      <li><b>Mini lesson (about 5 minutes):</b> teach a topic of your choice from a course you want to tutor, as if to a high schooler. Work a live practice problem on your iPad or whiteboard while you talk it through.</li></ol>
-      <p class="hint" style="margin:.6rem 0 .9rem">We watch for energy, clarity, good analogies, and how confident you sound. Upbeat and conversational beats polished and stiff. Upload to Google Drive, Loom or YouTube (unlisted) and make sure anyone with the link can view it.</p>
+    <fieldset class="step"><legend>Record your audition</legend>
+      <p style="font-size:.92rem;margin-bottom:.8rem">This is a quick mini lesson on your iPad. Think of it as a live session, with nobody on the other end.</p>
+      <ol class="n">
+        <li><b>Set up:</b> share your iPad screen and keep your camera on, so we see both you and your whiteboard.</li>
+        <li><b>Intro (about 1 minute):</b> your name, school, major, and a little about you.</li>
+        <li><b>Mini lesson (about 5 minutes):</b> pick any quick topic from a course you want to tutor. Walk through what the concept is and how to work with it, then do a practice problem live, talking it through the way you would with a student.</li>
+      </ol>
+      <p class="hint" style="margin:.7rem 0 .9rem">We watch for energy, clarity, good analogies and confidence. Upbeat and conversational beats polished and stiff. Upload to Loom, Google Drive or YouTube (unlisted) and make sure anyone with the link can view it, then paste the link below.</p>
       <label class="f" for="url">Link to your video</label><input type="text" id="url" placeholder="https://..." />
       <div style="margin-top:.8rem"><button type="submit" id="vidBtn">Submit video</button></div>
     </fieldset>
   </form>
+  <div id="hubCard" style="display:none">
+    <fieldset class="step"><legend>Step 1: Read the Tutor Hub</legend>
+      <p style="font-size:.92rem;margin-bottom:.8rem">Work through the whole Hub first. The quiz covers everything in it.</p>
+      <a href="#" id="hubLink" target="_blank" rel="noopener" style="display:block;text-align:center;padding:.85rem;background:var(--navy);color:#fff;border-radius:10px;font-weight:600;text-decoration:none">Open the Tutor Hub</a>
+    </fieldset>
+  </div>
   <form id="quizCard" novalidate>
     <div class="err" id="err2" role="alert"></div>
-    <fieldset class="step"><legend>Step 2: Quick quiz</legend>
+    <fieldset class="step"><legend>Step 2: Quiz</legend>
       <p class="hint" style="margin-bottom:.9rem" id="quizHint"></p>
       <div id="qs"></div>
       <button type="submit" id="quizBtn">Submit quiz</button>
@@ -97,21 +106,25 @@
   var token=new URLSearchParams(location.search).get('t')||'';
   function api(body){body.token=token;return fetch('/api/onboarding?r=tutor-app',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.error||'Something went wrong.');return j})})}
   function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
-  function msg(h,p,ok){$('vidCard').style.display='none';$('quizCard').style.display='none';var m=$('msg');m.style.display='block';$('mh').textContent=h;$('mp').textContent=p;if(ok===false)$('tick').style.background='#b42318',$('tick').innerHTML='!'}
+  function only(id){['vidCard','hubCard','quizCard','msg'].forEach(function(x){$(x).style.display=x===id?'block':'none'})}
+  function msg(h,p,ok){only('msg');$('mh').textContent=h;$('mp').textContent=p;$('tick').style.background=ok===false?'#b42318':'#10b981';$('tick').innerHTML=ok===false?'!':'&#10003;'}
   function render(s){
     $('loading').style.display='none';$('view').style.display='block';
     var st=s.status;
-    if(st==='audition_pending'){$('quizCard').style.display='none';return}
-    if(st==='quiz_pending'){$('vidCard').style.display='none';$('quizCard').style.display='block';
-      $('quizHint').textContent='Your video is in. Last step: '+s.quiz.length+' questions on how we run things. You need '+s.needed+' correct to pass. Passing means you are hired, no hiring call.';
+    if(st==='audition_pending'){$('lede').textContent='Hi '+s.name.split(' ')[0]+', you are through the application. One step left to be considered.';only('vidCard');return}
+    if(st==='video_review'){msg('Thank you, we have your video.','Your application is pending. Someone on our team will watch your audition and reach out soon. You can close this page.');return}
+    if(st==='quiz_pending'){
+      $('lede').textContent='Your audition was approved. Two steps to finish.';
+      $('hubLink').href=s.hubUrl;
+      $('quizHint').textContent=s.quiz.length+' questions covering the whole Hub: our approach, lesson planning, session prep, running a session, scheduling and communication. You need '+s.needed+' correct to pass.';
       var box=$('qs');box.innerHTML='';
       s.quiz.forEach(function(q,n){var d=document.createElement('div');d.className='q';var h='<p>'+(n+1)+'. '+q.q.replace(/</g,'&lt;')+'</p>';
         shuffle(q.o.map(function(t,i){return[i,t]})).forEach(function(o){h+='<label><input type="radio" name="'+q.id+'" value="'+o[0]+'">'+String(o[1]).replace(/</g,'&lt;')+'</label>'});
         d.innerHTML=h;box.appendChild(d)});
-      return}
-    if(st==='review'||st==='call_pending'){msg('You are all set.','We have your video and quiz. We will review and be in touch very soon.');return}
+      $('vidCard').style.display='none';$('hubCard').style.display='block';$('quizCard').style.display='block';$('msg').style.display='none';return}
+    if(st==='call_pending'){msg('You passed.','Great work. Someone from Northstar will reach out soon to talk through next steps and get you started.');return}
     if(st==='approved'){msg('Welcome to Northstar.','You are approved. Check your email for your onboarding details.');return}
-    if(st==='quiz_failed'){msg('Thanks for taking the quiz.','You did not reach the passing score this time ('+s.score+' of '+s.total+'). We will reach out about next steps.',false);return}
+    if(st==='quiz_failed'){msg('Thanks for taking the quiz.','You scored '+s.score+' of '+s.total+' and did not reach the passing score. We will reach out about next steps.',false);return}
     if(st==='rejected'||st==='dq'){msg('Thank you for applying.','We are not able to move forward right now. We appreciate your time.',false);return}
     msg('Thanks.','We will be in touch.');
   }
@@ -125,7 +138,7 @@
     if(!all){$('err2').textContent='Please answer every question.';$('err2').classList.add('show');return}
     var b=$('quizBtn');b.disabled=true;b.textContent='Grading...';
     api({action:'quiz',answers:ans}).then(function(r){
-      if(r.passed)msg('You passed.','Score: '+r.score+' of '+r.total+'. We will review your video and be in touch very soon.');
+      if(r.passed)msg('You passed.','Score: '+r.score+' of '+r.total+'. Someone from Northstar will reach out soon to talk through next steps and get you started.');
       else msg('Thanks for taking the quiz.','You scored '+r.score+' of '+r.total+' and needed '+r.needed+'. We will reach out about next steps.',false);
     }).catch(function(x){$('err2').textContent=x.message;$('err2').classList.add('show');b.disabled=false;b.textContent='Submit quiz'})});
   load();
