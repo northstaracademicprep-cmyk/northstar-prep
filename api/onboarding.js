@@ -23,7 +23,20 @@ const TEXT_FIELDS = {
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// The Hobby plan caps a deployment at 12 serverless functions, so the tutor hiring
+// routes live in underscore modules and are reached through this function with ?r=.
+const TUTOR_ROUTES = {
+  'tutor-apply': () => import('./_h-tutor-apply.js'),
+  'tutor-app': () => import('./_h-tutor-app.js'),
+  'tutor-admin': () => import('./_h-tutor-admin.js'),
+};
+
 export default async function handler(req, res) {
+  const route = req.query && req.query.r;
+  if (route) {
+    if (!TUTOR_ROUTES[route]) return res.status(404).json({ error: 'Not found' });
+    return (await TUTOR_ROUTES[route]()).default(req, res);
+  }
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

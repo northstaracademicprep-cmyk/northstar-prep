@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Northstar Academic Prep | Tutor Next Steps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy:#0f2044;--navy-mid:#1a3260;--gold:#c9a03a;--gold-light:#e0b84a;
+    --off-white:#f7f8fc;--text:#1a1a2e;--muted:#6b7280;--border:#e2e8f0;--red:#b42318;--red-bg:#fef2f2;--green:#10b981;
+    --font-arch:'Josefin Sans',sans-serif;--font-body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--off-white);color:var(--text);min-height:100vh;line-height:1.5}
+  header{background:var(--navy);color:#fff;padding:2rem 1rem 2.4rem;text-align:center}
+  .brand{font-family:var(--font-arch);font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem}
+  h1{font-family:var(--font-arch);font-size:1.7rem;font-weight:700;line-height:1.25;text-wrap:balance}
+  .lede{max-width:34rem;margin:.7rem auto 0;color:#c9d1e3;font-size:.95rem}
+  main{max-width:40rem;margin:-1.2rem auto 3rem;padding:0 1rem}
+  form,.done{background:#fff;border-radius:14px;box-shadow:0 2px 16px rgba(15,32,68,.10);padding:1.5rem 1.25rem}
+  fieldset{border:0;margin-bottom:1.9rem}
+  legend{font-family:var(--font-arch);font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:.9rem;padding:0;width:100%;border-bottom:1px solid var(--border);padding-bottom:.4rem}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+  .full{grid-column:1/-1}
+  label.f{display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem}
+  label.f small{font-weight:400;color:var(--muted)}
+  input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:8px;font:inherit;font-size:.92rem;color:var(--text);background:#fff;outline:none;transition:border-color .15s,box-shadow .15s}
+  textarea{resize:vertical;min-height:84px}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,160,58,.18)}
+  .chips{display:flex;flex-wrap:wrap;gap:.5rem}
+  .chip{position:relative}
+  .chip input{position:absolute;opacity:0;inset:0;cursor:pointer}
+  .chip span{display:inline-block;padding:.5rem .85rem;border:1.5px solid var(--border);border-radius:999px;font-size:.85rem;font-weight:500;color:var(--navy);background:#fff;transition:all .15s}
+  .chip input:checked + span{background:var(--navy);border-color:var(--navy);color:#fff}
+  .chip input:focus-visible + span{box-shadow:0 0 0 3px rgba(201,160,58,.4)}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:.3rem}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  button{width:100%;padding:.95rem;background:linear-gradient(135deg,var(--gold) 0%,var(--gold-light) 100%);color:var(--navy);font-family:var(--font-arch);font-size:.9rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border:0;border-radius:10px;cursor:pointer}
+  button:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+  button[disabled]{opacity:.6;cursor:default}
+  .err{display:none;background:var(--red-bg);color:var(--red);border-radius:8px;padding:.7rem .9rem;font-size:.88rem;margin-bottom:1rem}
+  .err.show{display:block}
+  .done{display:none;text-align:center;padding:2.5rem 1.5rem}
+  .done.show{display:block}
+  .done h2{font-family:var(--font-arch);color:var(--navy);font-size:1.4rem;margin-bottom:.6rem}
+  .done p{color:var(--muted);max-width:28rem;margin:0 auto}
+  .tick{width:52px;height:52px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 1rem}
+  footer{text-align:center;color:var(--muted);font-size:.78rem;padding-bottom:2rem}
+  @media (max-width:520px){.grid{grid-template-columns:1fr}h1{font-size:1.4rem}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  .row{display:grid;grid-template-columns:1.6fr .8fr auto;gap:.5rem;margin-bottom:.5rem;align-items:center}
+  .row2{display:grid;grid-template-columns:1fr .8fr .8fr auto;gap:.5rem;margin-bottom:.5rem;align-items:center}
+  .mini{width:auto;padding:.45rem .7rem;background:#fff;border:1.5px solid var(--border);color:var(--navy);font-family:var(--font-body);font-size:.8rem;letter-spacing:0;text-transform:none;font-weight:600;border-radius:8px}
+  .radio{display:flex;gap:.6rem;flex-wrap:wrap}
+  .radio label{display:flex;align-items:center;gap:.4rem;font-size:.9rem;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .8rem;cursor:pointer;background:#fff}
+  .radio input{accent-color:var(--navy)}
+  .box{background:var(--off-white);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;font-size:.88rem;color:var(--text);margin-bottom:1rem}
+  @media (max-width:520px){.row,.row2{grid-template-columns:1fr 1fr}}
+  .q{border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;margin-bottom:.8rem}.q p{font-weight:600;color:var(--navy);margin-bottom:.5rem;font-size:.92rem}.q label{display:block;padding:.35rem 0;font-size:.9rem;cursor:pointer}.q input{accent-color:var(--navy);margin-right:.5rem}.step{margin-bottom:1.6rem}ol.n{padding-left:1.2rem;font-size:.9rem}ol.n li{margin-bottom:.35rem}
+</style>
+</head>
+<body>
+<header><div class="brand">Northstar Academic Prep</div><h1 id="h">Your next steps</h1><p class="lede" id="lede">Two quick things and you are through: a short video and a quiz.</p></header>
+<main>
+<div class="done show" id="loading" style="display:block">Loading...</div>
+<div id="view" style="display:none">
+  <form id="vidCard" style="margin-bottom:1rem" novalidate>
+    <div class="err" id="err1" role="alert"></div>
+    <fieldset class="step"><legend>Step 1: Audition video</legend>
+      <p style="font-size:.9rem;margin-bottom:.7rem">Record <b>one video, about 6 minutes</b>, in this order:</p>
+      <ol class="n"><li><b>Intro (under 1 minute):</b> your name, school, and major.</li>
+      <li><b>Mini lesson (about 5 minutes):</b> teach a topic of your choice from a course you want to tutor, as if to a high schooler. Work a live practice problem on your iPad or whiteboard while you talk it through.</li></ol>
+      <p class="hint" style="margin:.6rem 0 .9rem">We watch for energy, clarity, good analogies, and how confident you sound. Upbeat and conversational beats polished and stiff. Upload to Google Drive, Loom or YouTube (unlisted) and make sure anyone with the link can view it.</p>
+      <label class="f" for="url">Link to your video</label><input type="text" id="url" placeholder="https://..." />
+      <div style="margin-top:.8rem"><button type="submit" id="vidBtn">Submit video</button></div>
+    </fieldset>
+  </form>
+  <form id="quizCard" novalidate>
+    <div class="err" id="err2" role="alert"></div>
+    <fieldset class="step"><legend>Step 2: Quick quiz</legend>
+      <p class="hint" style="margin-bottom:.9rem" id="quizHint"></p>
+      <div id="qs"></div>
+      <button type="submit" id="quizBtn">Submit quiz</button>
+    </fieldset>
+  </form>
+  <div class="done show" id="msg" style="display:none"><div class="tick" id="tick" aria-hidden="true">&#10003;</div><h2 id="mh"></h2><p id="mp"></p></div>
+</div>
+</main>
+<footer>Northstar Academic Prep</footer>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var token=new URLSearchParams(location.search).get('t')||'';
+  function api(body){body.token=token;return fetch('/api/onboarding?r=tutor-app',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.error||'Something went wrong.');return j})})}
+  function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+  function msg(h,p,ok){$('vidCard').style.display='none';$('quizCard').style.display='none';var m=$('msg');m.style.display='block';$('mh').textContent=h;$('mp').textContent=p;if(ok===false)$('tick').style.background='#b42318',$('tick').innerHTML='!'}
+  function render(s){
+    $('loading').style.display='none';$('view').style.display='block';
+    var st=s.status;
+    if(st==='audition_pending'){$('quizCard').style.display='none';return}
+    if(st==='quiz_pending'){$('vidCard').style.display='none';$('quizCard').style.display='block';
+      $('quizHint').textContent='Your video is in. Last step: '+s.quiz.length+' questions on how we run things. You need '+s.needed+' correct to pass. Passing means you are hired, no hiring call.';
+      var box=$('qs');box.innerHTML='';
+      s.quiz.forEach(function(q,n){var d=document.createElement('div');d.className='q';var h='<p>'+(n+1)+'. '+q.q.replace(/</g,'&lt;')+'</p>';
+        shuffle(q.o.map(function(t,i){return[i,t]})).forEach(function(o){h+='<label><input type="radio" name="'+q.id+'" value="'+o[0]+'">'+String(o[1]).replace(/</g,'&lt;')+'</label>'});
+        d.innerHTML=h;box.appendChild(d)});
+      return}
+    if(st==='review'||st==='call_pending'){msg('You are all set.','We have your video and quiz. We will review and be in touch very soon.');return}
+    if(st==='approved'){msg('Welcome to Northstar.','You are approved. Check your email for your onboarding details.');return}
+    if(st==='quiz_failed'){msg('Thanks for taking the quiz.','You did not reach the passing score this time ('+s.score+' of '+s.total+'). We will reach out about next steps.',false);return}
+    if(st==='rejected'||st==='dq'){msg('Thank you for applying.','We are not able to move forward right now. We appreciate your time.',false);return}
+    msg('Thanks.','We will be in touch.');
+  }
+  function load(){api({action:'get'}).then(render).catch(function(e){$('loading').textContent=e.message||'This link is not valid.'})}
+  $('vidCard').addEventListener('submit',function(e){e.preventDefault();$('err1').classList.remove('show');
+    var b=$('vidBtn');b.disabled=true;
+    api({action:'audition',url:$('url').value}).then(function(){load()}).catch(function(x){$('err1').textContent=x.message;$('err1').classList.add('show');b.disabled=false})});
+  $('quizCard').addEventListener('submit',function(e){e.preventDefault();$('err2').classList.remove('show');
+    var ans={},qs=document.querySelectorAll('#qs .q'),all=true;
+    qs.forEach(function(q){var c=q.querySelector('input:checked');if(!c)all=false;else ans[c.name]=Number(c.value)});
+    if(!all){$('err2').textContent='Please answer every question.';$('err2').classList.add('show');return}
+    var b=$('quizBtn');b.disabled=true;b.textContent='Grading...';
+    api({action:'quiz',answers:ans}).then(function(r){
+      if(r.passed)msg('You passed.','Score: '+r.score+' of '+r.total+'. We will review your video and be in touch very soon.');
+      else msg('Thanks for taking the quiz.','You scored '+r.score+' of '+r.total+' and needed '+r.needed+'. We will reach out about next steps.',false);
+    }).catch(function(x){$('err2').textContent=x.message;$('err2').classList.add('show');b.disabled=false;b.textContent='Submit quiz'})});
+  load();
+})();
+</script>
+</body>
+</html>

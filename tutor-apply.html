@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Northstar Academic Prep | Tutor Application</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy:#0f2044;--navy-mid:#1a3260;--gold:#c9a03a;--gold-light:#e0b84a;
+    --off-white:#f7f8fc;--text:#1a1a2e;--muted:#6b7280;--border:#e2e8f0;--red:#b42318;--red-bg:#fef2f2;--green:#10b981;
+    --font-arch:'Josefin Sans',sans-serif;--font-body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-body);background:var(--off-white);color:var(--text);min-height:100vh;line-height:1.5}
+  header{background:var(--navy);color:#fff;padding:2rem 1rem 2.4rem;text-align:center}
+  .brand{font-family:var(--font-arch);font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem}
+  h1{font-family:var(--font-arch);font-size:1.7rem;font-weight:700;line-height:1.25;text-wrap:balance}
+  .lede{max-width:34rem;margin:.7rem auto 0;color:#c9d1e3;font-size:.95rem}
+  main{max-width:40rem;margin:-1.2rem auto 3rem;padding:0 1rem}
+  form,.done{background:#fff;border-radius:14px;box-shadow:0 2px 16px rgba(15,32,68,.10);padding:1.5rem 1.25rem}
+  fieldset{border:0;margin-bottom:1.9rem}
+  legend{font-family:var(--font-arch);font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:.9rem;padding:0;width:100%;border-bottom:1px solid var(--border);padding-bottom:.4rem}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+  .full{grid-column:1/-1}
+  label.f{display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem}
+  label.f small{font-weight:400;color:var(--muted)}
+  input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:8px;font:inherit;font-size:.92rem;color:var(--text);background:#fff;outline:none;transition:border-color .15s,box-shadow .15s}
+  textarea{resize:vertical;min-height:84px}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,160,58,.18)}
+  .chips{display:flex;flex-wrap:wrap;gap:.5rem}
+  .chip{position:relative}
+  .chip input{position:absolute;opacity:0;inset:0;cursor:pointer}
+  .chip span{display:inline-block;padding:.5rem .85rem;border:1.5px solid var(--border);border-radius:999px;font-size:.85rem;font-weight:500;color:var(--navy);background:#fff;transition:all .15s}
+  .chip input:checked + span{background:var(--navy);border-color:var(--navy);color:#fff}
+  .chip input:focus-visible + span{box-shadow:0 0 0 3px rgba(201,160,58,.4)}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:.3rem}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  button{width:100%;padding:.95rem;background:linear-gradient(135deg,var(--gold) 0%,var(--gold-light) 100%);color:var(--navy);font-family:var(--font-arch);font-size:.9rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border:0;border-radius:10px;cursor:pointer}
+  button:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+  button[disabled]{opacity:.6;cursor:default}
+  .err{display:none;background:var(--red-bg);color:var(--red);border-radius:8px;padding:.7rem .9rem;font-size:.88rem;margin-bottom:1rem}
+  .err.show{display:block}
+  .done{display:none;text-align:center;padding:2.5rem 1.5rem}
+  .done.show{display:block}
+  .done h2{font-family:var(--font-arch);color:var(--navy);font-size:1.4rem;margin-bottom:.6rem}
+  .done p{color:var(--muted);max-width:28rem;margin:0 auto}
+  .tick{width:52px;height:52px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 1rem}
+  footer{text-align:center;color:var(--muted);font-size:.78rem;padding-bottom:2rem}
+  @media (max-width:520px){.grid{grid-template-columns:1fr}h1{font-size:1.4rem}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  .row{display:grid;grid-template-columns:1.6fr .8fr auto;gap:.5rem;margin-bottom:.5rem;align-items:center}
+  .row2{display:grid;grid-template-columns:1fr .8fr .8fr auto;gap:.5rem;margin-bottom:.5rem;align-items:center}
+  .mini{width:auto;padding:.45rem .7rem;background:#fff;border:1.5px solid var(--border);color:var(--navy);font-family:var(--font-body);font-size:.8rem;letter-spacing:0;text-transform:none;font-weight:600;border-radius:8px}
+  .radio{display:flex;gap:.6rem;flex-wrap:wrap}
+  .radio label{display:flex;align-items:center;gap:.4rem;font-size:.9rem;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .8rem;cursor:pointer;background:#fff}
+  .radio input{accent-color:var(--navy)}
+  .box{background:var(--off-white);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;font-size:.88rem;color:var(--text);margin-bottom:1rem}
+  @media (max-width:520px){.row,.row2{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Northstar Academic Prep</div>
+  <h1>Apply to tutor with Northstar</h1>
+  <p class="lede">Takes about 5 minutes. If you are a fit, the next step is a short video and a quick quiz, and there is no hiring call before that.</p>
+</header>
+<main>
+<form id="form" novalidate>
+  <div class="err" id="err" role="alert"></div>
+
+  <fieldset><legend>About you</legend>
+    <div class="grid">
+      <div class="full"><label class="f" for="name">Full name</label><input type="text" id="name" name="name" autocomplete="name" /></div>
+      <div><label class="f" for="email">Email</label><input type="email" id="email" name="email" autocomplete="email" /></div>
+      <div><label class="f" for="phone">Phone <small>(optional)</small></label><input type="tel" id="phone" name="phone" autocomplete="tel" /></div>
+      <div><label class="f" for="school">College / university</label><input type="text" id="school" name="school" /></div>
+      <div><label class="f" for="major">Major</label><input type="text" id="major" name="major" /></div>
+      <div><label class="f" for="grad_year">Expected graduation year</label><input type="text" id="grad_year" name="grad_year" placeholder="e.g. 2028" /></div>
+      <div><label class="f" for="gender">Gender <small>(optional)</small></label>
+        <select id="gender" name="gender"><option value="">Prefer not to say</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select></div>
+      <div class="full"><label class="f" for="timezone">Time zone</label>
+        <select id="timezone" name="timezone"><option value="">Select</option><option>Pacific (PT)</option><option>Mountain (MT)</option><option>Central (CT)</option><option>Eastern (ET)</option><option>Other</option></select></div>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>AP exams you took in high school</legend>
+    <p class="hint" style="margin-bottom:.6rem">Add each AP exam and your score. We look for 4s and 5s.</p>
+    <div id="apRows"></div>
+    <button type="button" class="mini" id="addAp">+ Add an AP exam</button>
+  </fieldset>
+
+  <fieldset><legend>What you want to tutor</legend>
+    <p class="hint" style="margin-bottom:.6rem">Pick the courses you are comfortable teaching. You need a 4 or 5 on the AP exam for any you pick.</p>
+    <div class="chips" id="canTutor"></div>
+    <div style="margin-top:.9rem"><label class="f" for="other_subjects">Other subjects you could tutor <small>(optional)</small></label><input type="text" id="other_subjects" name="other_subjects" placeholder="e.g. Algebra 2, SAT Math" /></div>
+  </fieldset>
+
+  <fieldset><legend>Your schedule</legend>
+    <p class="hint" style="margin-bottom:.6rem">Add the windows you could regularly tutor, in your time zone.</p>
+    <div id="schedRows"></div>
+    <button type="button" class="mini" id="addSched">+ Add a time window</button>
+    <div class="grid" style="margin-top:1rem">
+      <div><label class="f" for="weekly_hours">Hours per week you can give to Northstar</label><input type="text" inputmode="numeric" id="weekly_hours" name="weekly_hours" placeholder="e.g. 8" /></div>
+      <div class="full"><label class="f" for="next_semester_classes">Your classes and commitments next semester</label><textarea id="next_semester_classes" name="next_semester_classes" placeholder="Courses, labs, work, sports, anything that eats time"></textarea></div>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>How the program works</legend>
+    <div class="box">Families sign up for a <b>30 to 60 hour</b> program that runs <b>4 to 6 months</b>. A 60 hour program runs through May 2027. Your student stays with you the whole way, so reliability matters more than anything. Plan on about <b>4 hours a week per student</b>: two sessions a week (1 to 1.5 hours each), a complimentary extra session in exam weeks, and prep time.</div>
+    <div class="grid">
+      <div class="full"><span class="f" style="display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem">Can you commit for at least 4 months?</span>
+        <div class="radio" id="commit"></div></div>
+      <div class="full"><span class="f" style="display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem">I understand the structure above and can stick with a student through the whole program</span>
+        <div class="radio" id="understands"></div></div>
+      <div class="full"><label class="f" for="pay_expectation">Hourly pay you expect ($)</label><input type="text" inputmode="decimal" id="pay_expectation" name="pay_expectation" placeholder="e.g. 25" /></div>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>Your setup</legend>
+    <div class="grid">
+      <div class="full"><span class="f" style="display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem">Do you have an iPad?</span><div class="radio" id="has_ipad"></div></div>
+      <div class="full"><span class="f" style="display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem">Do you have a stylus (Apple Pencil or similar)?</span><div class="radio" id="has_stylus"></div></div>
+      <div class="full"><span class="f" style="display:block;font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.3rem">Can you screen share and write on a digital whiteboard during a session?</span><div class="radio" id="whiteboard_ok"></div></div>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>One last thing</legend>
+    <div class="grid"><div class="full"><label class="f" for="referral">How did you hear about us? <small>(a name if someone referred you)</small></label><input type="text" id="referral" name="referral" /></div></div>
+  </fieldset>
+
+  <div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off" /></div>
+  <button type="submit" id="submit">Submit application</button>
+</form>
+
+<section class="done" id="done" aria-live="polite">
+  <div class="tick" aria-hidden="true">&#10003;</div>
+  <h2 id="doneH">Thank you.</h2>
+  <p id="doneP"></p>
+</section>
+</main>
+<footer>Northstar Academic Prep</footer>
+
+<script>
+(function(){
+  var AP=["AP Calculus AB","AP Calculus BC","AP Precalculus","AP Statistics","AP Physics 1","AP Physics 2","AP Physics C: Mechanics","AP Physics C: E&M","AP Chemistry","AP Biology","AP Environmental Science","AP Computer Science A","AP Computer Science Principles","AP English Language","AP English Literature","AP US History","AP World History","AP European History","AP US Government","AP Comparative Government","AP Macroeconomics","AP Microeconomics","AP Psychology","AP Human Geography","AP Spanish Language","AP Art History"];
+  var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var $=function(id){return document.getElementById(id)};
+  function radio(id,opts){var el=$(id);opts.forEach(function(o){var l=document.createElement('label');l.innerHTML='<input type="radio" name="'+id+'" value="'+o[0]+'"> '+o[1];el.appendChild(l)})}
+  function val(name){var c=document.querySelector('input[name='+name+']:checked');return c?c.value:''}
+  radio('commit',[['3','Less than 4 months'],['4','4 months'],['5','5 months'],['6','6 months or more']]);
+  radio('understands',[['yes','Yes'],['no','No']]);
+  radio('has_ipad',[['yes','Yes'],['no','No']]);
+  radio('has_stylus',[['yes','Yes'],['no','No']]);
+  radio('whiteboard_ok',[['yes','Yes'],['no','No']]);
+
+  var canEl=$('canTutor');
+  AP.forEach(function(c){var l=document.createElement('label');l.className='chip';l.innerHTML='<input type="checkbox" value="'+c+'"><span>'+c+'</span>';canEl.appendChild(l)});
+
+  function apRow(){
+    var d=document.createElement('div');d.className='row';
+    var s='<select class="apc"><option value="">Course</option>'+AP.map(function(c){return '<option>'+c+'</option>'}).join('')+'</select>';
+    s+='<select class="aps"><option value="">Score</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select>';
+    s+='<button type="button" class="mini rm">Remove</button>';
+    d.innerHTML=s;d.querySelector('.rm').onclick=function(){d.remove()};$('apRows').appendChild(d);
+  }
+  function schedRow(){
+    var d=document.createElement('div');d.className='row2';
+    d.innerHTML='<select class="sd">'+DAYS.map(function(x){return '<option>'+x+'</option>'}).join('')+'</select><input type="time" class="sf" value="16:00"><input type="time" class="st" value="20:00"><button type="button" class="mini rm">Remove</button>';
+    d.querySelector('.rm').onclick=function(){d.remove()};$('schedRows').appendChild(d);
+  }
+  $('addAp').onclick=apRow;$('addSched').onclick=schedRow;apRow();schedRow();
+
+  var form=$('form'),err=$('err'),btn=$('submit');
+  function showErr(m){err.textContent=m;err.classList.add('show');err.scrollIntoView({behavior:'smooth',block:'center'})}
+  form.addEventListener('submit',function(e){
+    e.preventDefault();err.classList.remove('show');
+    var data={website:$('website').value};
+    ['name','email','phone','gender','school','major','grad_year','timezone','other_subjects','next_semester_classes','referral','weekly_hours','pay_expectation'].forEach(function(k){data[k]=$(k).value.trim()});
+    data.commit_months=val('commit');data.understands_program=val('understands');
+    data.has_ipad=val('has_ipad');data.has_stylus=val('has_stylus');data.whiteboard_ok=val('whiteboard_ok');
+    data.can_screenshare=val('whiteboard_ok');
+    data.ap_taken=[].map.call(document.querySelectorAll('#apRows .row'),function(r){return{course:r.querySelector('.apc').value,score:r.querySelector('.aps').value}}).filter(function(x){return x.course&&x.score});
+    data.ap_can_tutor=[].map.call(canEl.querySelectorAll('input:checked'),function(c){return c.value});
+    data.availability_schedule=[].map.call(document.querySelectorAll('#schedRows .row2'),function(r){return{day:r.querySelector('.sd').value,from:r.querySelector('.sf').value,to:r.querySelector('.st').value}});
+    var m=[];
+    if(!data.name)m.push('your name');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))m.push('a valid email');
+    if(!data.commit_months)m.push('your commitment');
+    if(!data.has_ipad)m.push('whether you have an iPad');
+    if(!data.weekly_hours||isNaN(Number(data.weekly_hours)))m.push('your weekly hours as a number');
+    if(!data.pay_expectation||isNaN(Number(data.pay_expectation.replace('$',''))))m.push('your pay expectation as a number');
+    if(m.length){showErr('Please add '+m.join(', ')+'.');return}
+    data.pay_expectation=data.pay_expectation.replace('$','');
+    btn.disabled=true;btn.textContent='Sending...';
+    fetch('/api/onboarding?r=tutor-apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+      .then(function(r){return r.json().catch(function(){return{}}).then(function(j){return{ok:r.ok,j:j}})})
+      .then(function(x){
+        if(!x.ok)throw new Error(x.j.error||'Something went wrong. Please try again.');
+        if(x.j.qualified&&x.j.token){location.href='/tutor-status?t='+x.j.token;return}
+        form.style.display='none';var d=$('done');d.classList.add('show');
+        $('doneH').textContent='Thank you for applying.';
+        $('doneP').textContent='Based on what you shared, we are not able to move forward right now, mostly because of schedule, equipment or the commitment length. We appreciate your time and will reach out if something opens up.';
+        d.scrollIntoView({behavior:'smooth',block:'start'});
+      })
+      .catch(function(ex){showErr(ex.message||'Something went wrong. Please try again.');btn.disabled=false;btn.textContent='Submit application'});
+  });
+})();
+</script>
+</body>
+</html>
