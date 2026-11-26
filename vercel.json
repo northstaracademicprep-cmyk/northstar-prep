@@ -10,6 +10,14 @@
       "dest": "/onboarding.html"
     },
     {
+      "src": "^/tutor-apply/?$",
+      "dest": "/tutor-apply.html"
+    },
+    {
+      "src": "^/tutor-status/?$",
+      "dest": "/tutor-status.html"
+    },
+    {
       "src": "^/api/(.*)",
       "dest": "/api/$1"
     },
