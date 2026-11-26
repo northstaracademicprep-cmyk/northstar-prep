@@ -60,3 +60,13 @@ alter table public.tutors add column if not exists gender text;
 alter table public.tutors add column if not exists major text;
 alter table public.tutors add column if not exists application_id uuid;
 alter table public.students add column if not exists gender text;
+
+-- Manual steps on the per-student status board (the rest is computed from existing data).
+create table if not exists public.student_checklist (
+  student_id uuid primary key references public.students(id) on delete cascade,
+  welcome_sent boolean not null default false,
+  trimmed_form_sent boolean not null default false,
+  group_chat boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+alter table public.student_checklist enable row level security;

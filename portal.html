@@ -14426,7 +14426,7 @@ function showAdminSection(id) {
   if (id !== 'adm-messages' && _activeMsgCtx) _unsubscribeMessages();
   document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.toggle('active', n.dataset.id === id));
   document.getElementById('admTopbarTitle').textContent =
-    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', 'tutor-pipeline':'Tutor Hiring', 'match-students':'Match Students', review:'Review Queue', 'seed-bank':'Seed Bank', 'weekly-reports':'Weekly Reports', 'adm-messages':'Messages', calendar:'Calendar', 'office-hours':'Office Hours'}[id] || id;
+    {approvals:'Pending Approvals', enrollments:'Enrollment Requests', students:'My Students', tutors:'My Tutors', billing:'Hours & Billing', 'tutor-mgmt':'Tutor Management', 'tutor-pipeline':'Tutor Hiring', 'match-students':'Match Students', 'status-board':'Student Status', review:'Review Queue', 'seed-bank':'Seed Bank', 'weekly-reports':'Weekly Reports', 'adm-messages':'Messages', calendar:'Calendar', 'office-hours':'Office Hours'}[id] || id;
   // Full-bleed layout for messages, restore padding for other sections
   const admContent = document.querySelector('.adm-content');
   if (admContent) admContent.style.padding = id === 'adm-messages' ? '0' : '';
@@ -14441,6 +14441,7 @@ function showAdminSection(id) {
   else if (id === 'tutor-mgmt')   buildAdminTutorMgmt();
   else if (id === 'tutor-pipeline') buildAdminTutorPipeline();
   else if (id === 'match-students') buildAdminMatchStudents();
+  else if (id === 'status-board') buildAdminStatusBoard();
   else if (id === 'review')       buildAdminReviewQueue();
   else if (id === 'seed-bank')    buildAdminSeedBank();
   else if (id === 'weekly-reports') buildAdminWeeklyReports();
@@ -16271,6 +16272,23 @@ async function tpAssign(studentId, tutorId, sName, tName) {
   try { await tutorAdminApi({action:'assign', student_id: studentId, tutor_id: tutorId}); buildAdminMatchStudents(); } catch (e) { alert(e.message); }
 }
 
+
+const SB_STEPS = [['portal_ready','Portal ready'],['welcome_sent','Welcome sent'],['form_in','Form in'],['tutor_matched','Tutor matched'],['trimmed_form_sent','Tutor got form'],['group_chat','Group chat'],['diagnostic_done','Diagnostic done'],['first_session','First session']];
+const SB_MANUAL = ['welcome_sent','trimmed_form_sent','group_chat'];
+async function buildAdminStatusBoard() {
+  const body = document.getElementById('admBody');
+  let j;
+  try { j = await tutorAdminApi({action:'board'}); } catch (e) { body.innerHTML = `<div class="adm-error">${_tpEsc(e.message)}</div>`; return; }
+  const open = j.rows.filter(r => Object.values(r.steps).some(v => !v));
+  body.innerHTML = `<div class="adm-section-header">${open.length} of ${j.rows.length} paid students still have steps open. Green is done. Tap a dashed step to check it off after you do it.</div>
+    <div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:.76rem;width:100%"><thead><tr><th style="text-align:left;padding:.4rem">Student</th><th style="text-align:left;padding:.4rem">Tutor</th>${SB_STEPS.map(s=>`<th style="padding:.4rem;font-weight:600;color:#64748b">${s[1]}</th>`).join('')}</tr></thead><tbody>
+    ${j.rows.sort((a,b)=>Object.values(a.steps).filter(v=>!v).length<Object.values(b.steps).filter(v=>!v).length?1:-1).map(r=>`<tr style="border-top:1px solid #e5e7eb"><td style="padding:.4rem;font-weight:700">${_tpEsc(r.name)}</td><td style="padding:.4rem">${_tpEsc(r.tutor||'—')}</td>${SB_STEPS.map(([k])=>{
+      const done = r.steps[k], manual = SB_MANUAL.includes(k);
+      return `<td style="padding:.3rem;text-align:center"><span ${manual?`onclick="sbToggle('${r.id}','${k}',${!done})"`:''} style="display:inline-block;min-width:26px;padding:.2rem .4rem;border-radius:6px;${done?'background:#d1fae5;color:#065f46':'background:#fff;color:#94a3b8;border:1px '+(manual?'dashed':'solid')+' #cbd5e1'};${manual?'cursor:pointer':''}">${done?'✓':'·'}</span></td>`}).join('')}</tr>`).join('')}
+    </tbody></table></div>`;
+}
+async function sbToggle(id, field, value) { try { await tutorAdminApi({action:'board_set', student_id:id, field, value}); buildAdminStatusBoard(); } catch (e) { alert(e.message); } }
+
 /* ── ADMIN: TUTOR MANAGEMENT ── */
 async function buildAdminTutorMgmt() {
   const body = document.getElementById('admBody');
@@ -16658,6 +16676,7 @@ async function loadAdminConvo(studentId, studentName) {
         <div class="adm-nav-item" data-id="tutor-mgmt" onclick="showAdminSection('tutor-mgmt')"><span class="adm-nav-icon">🎓</span> Tutor Management</div>
         <div class="adm-nav-item" data-id="tutor-pipeline" onclick="showAdminSection('tutor-pipeline')"><span class="adm-nav-icon">🧭</span> Tutor Hiring</div>
         <div class="adm-nav-item" data-id="match-students" onclick="showAdminSection('match-students')"><span class="adm-nav-icon">🤝</span> Match Students</div>
+        <div class="adm-nav-item" data-id="status-board" onclick="showAdminSection('status-board')"><span class="adm-nav-icon">✅</span> Student Status</div>
         <div class="adm-nav-item" data-id="review" onclick="showAdminSection('review')"><span class="adm-nav-icon">🔍</span> Review Queue</div>
         <div class="adm-nav-item" data-id="seed-bank" onclick="showAdminSection('seed-bank')"><span class="adm-nav-icon">🌱</span> Seed Bank</div>
         <div class="adm-nav-item" data-id="weekly-reports" onclick="showAdminSection('weekly-reports')"><span class="adm-nav-icon">📬</span> Weekly Reports</div>

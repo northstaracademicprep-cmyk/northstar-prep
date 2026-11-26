@@ -43,6 +43,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
     if (action === 'approve') return res.status(200).json(await approve(env, b));
+    if (action === 'board') return res.status(200).json(await board(env));
+    if (action === 'board_set') {
+      if (!['welcome_sent', 'trimmed_form_sent', 'group_chat'].includes(b.field)) return res.status(400).json({ error: 'Bad field' });
+      await sb(env, 'POST', 'student_checklist?on_conflict=student_id', { student_id: b.student_id, [b.field]: !!b.value, updated_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal');
+      return res.status(200).json({ ok: true });
+    }
     if (action === 'matches') return res.status(200).json(await matches(env));
     if (action === 'assign') return res.status(200).json(await assign(env, b));
     if (action === 'set_gender') {
@@ -140,4 +146,42 @@ async function assign(env, b) {
   await sb(env, 'PATCH', `students?id=eq.${st.id}`, { tutor_id: tu.id }, 'return=minimal');
   await sb(env, 'PATCH', `homework?student_id=eq.${st.id}`, { tutor_id: tu.id }, 'return=minimal');
   return { ok: true, student: st.name, tutor: tu.name };
+}
+
+// Per-student status board: computed where the data exists, manual for emails and group chats.
+async function board(env) {
+  const [students, tutors, onboard, hw, sess, chk] = await Promise.all([
+    sb(env, 'GET', 'students?select=id,name,subjects,tutor_id,status,hours_total,hours_used,payment_status,progress_config&order=name'),
+    sb(env, 'GET', 'tutors?select=id,name'),
+    sb(env, 'GET', 'onboarding_responses?select=student_id,student_name'),
+    sb(env, 'GET', 'homework?select=student_id,title,status&title=ilike.*diagnostic*'),
+    sb(env, 'GET', 'sessions?select=student_id'),
+    sb(env, 'GET', 'student_checklist?select=*'),
+  ]);
+  const tn = Object.fromEntries(tutors.map(t => [t.id, t.name]));
+  const obIds = new Set(onboard.map(o => o.student_id).filter(Boolean));
+  const obNames = new Set(onboard.map(o => (o.student_name || '').toLowerCase()));
+  const sessCount = {};
+  for (const s of sess) sessCount[s.student_id] = (sessCount[s.student_id] || 0) + 1;
+  const diag = {};
+  for (const h of hw) { const d = diag[h.student_id] || (diag[h.student_id] = { assigned: true, done: false }); if (h.status && h.status !== 'pending') d.done = true; }
+  const ck = Object.fromEntries(chk.map(c => [c.student_id, c]));
+  const rows = students.filter(s => s.status !== 'inactive' && s.payment_status === 'paid' && Number(s.hours_total) > 0).map(s => {
+    const c = ck[s.id] || {};
+    return {
+      id: s.id, name: s.name, subjects: s.subjects, tutor: tn[s.tutor_id] || null,
+      steps: {
+        closed: true,
+        portal_ready: !!s.progress_config && !!s.progress_config.phases,
+        welcome_sent: !!c.welcome_sent,
+        form_in: obIds.has(s.id) || obNames.has((s.name || '').toLowerCase()),
+        tutor_matched: !!s.tutor_id,
+        trimmed_form_sent: !!c.trimmed_form_sent,
+        group_chat: !!c.group_chat,
+        diagnostic_done: !!diag[s.id]?.done,
+        first_session: (sessCount[s.id] || 0) > 0,
+      },
+    };
+  });
+  return { rows };
 }
