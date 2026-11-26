@@ -64,6 +64,8 @@ export function parseApplication(b) {
   };
   if (!row.name) return { error: 'Please add your name.' };
   if (!row.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) return { error: 'Please add a valid email.' };
+  if (!['female', 'male', 'other'].includes(row.gender)) return { error: 'Please select your gender.' };
+  if (!row.phone || row.phone.replace(/\D/g, '').length < 10) return { error: 'Please add a phone number.' };
   row.ap_taken = (Array.isArray(b.ap_taken) ? b.ap_taken : [])
     .map(x => ({ course: String(x?.course || '').slice(0, 80), score: Number(x?.score) }))
     .filter(x => x.course && x.score >= 1 && x.score <= 5).slice(0, 30);
