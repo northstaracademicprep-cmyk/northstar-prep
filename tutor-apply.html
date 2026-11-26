@@ -100,9 +100,9 @@
   </fieldset>
 
   <fieldset><legend>Your schedule</legend>
-    <p class="hint" style="margin-bottom:.6rem">Add the windows you could regularly tutor, in your time zone.</p>
+    <p class="hint" style="margin-bottom:.6rem">Every day is listed. Adjust the times for each day you could regularly tutor, in your time zone, and remove any day you want blocked off.</p>
     <div id="schedRows"></div>
-    <button type="button" class="mini" id="addSched">+ Add a time window</button>
+    <button type="button" class="mini" id="addSched">+ Add another window</button>
     <div class="grid" style="margin-top:1rem">
       <div><label class="f" for="weekly_hours">Hours per week you can give to Northstar</label><input type="text" inputmode="numeric" id="weekly_hours" name="weekly_hours" placeholder="e.g. 8" /></div>
       <div class="full"><label class="f" for="next_semester_classes">Your classes and commitments next semester</label><textarea id="next_semester_classes" name="next_semester_classes" placeholder="Courses, labs, work, sports, anything that eats time"></textarea></div>
@@ -167,12 +167,13 @@
     s+='<button type="button" class="mini rm">Remove</button>';
     d.innerHTML=s;d.querySelector('.rm').onclick=function(){d.remove()};$('apRows').appendChild(d);
   }
-  function schedRow(){
+  function schedRow(day,from,to){
     var d=document.createElement('div');d.className='row2';
-    d.innerHTML='<select class="sd">'+DAYS.map(function(x){return '<option>'+x+'</option>'}).join('')+'</select><input type="time" class="sf" value="16:00"><input type="time" class="st" value="20:00"><button type="button" class="mini rm">Remove</button>';
+    d.innerHTML='<select class="sd">'+DAYS.map(function(x){return '<option'+(x===day?' selected':'')+'>'+x+'</option>'}).join('')+'</select><input type="time" class="sf" value="'+(from||'16:00')+'"><input type="time" class="st" value="'+(to||'20:00')+'"><button type="button" class="mini rm">Remove</button>';
     d.querySelector('.rm').onclick=function(){d.remove()};$('schedRows').appendChild(d);
   }
-  $('addAp').onclick=apRow;$('addSched').onclick=schedRow;apRow();schedRow();
+  $('addAp').onclick=apRow;$('addSched').onclick=function(){schedRow()};apRow();
+  DAYS.forEach(function(d,i){schedRow(d,i<5?'16:00':'10:00',i<5?'20:00':'18:00')});
 
   var form=$('form'),err=$('err'),btn=$('submit');
   function showErr(m){err.textContent=m;err.classList.add('show');err.scrollIntoView({behavior:'smooth',block:'center'})}
