@@ -80,8 +80,8 @@
       <div><label class="f" for="school">College / university</label><input type="text" id="school" name="school" /></div>
       <div><label class="f" for="major">Major</label><input type="text" id="major" name="major" /></div>
       <div><label class="f" for="grad_year">Expected graduation year</label><input type="text" id="grad_year" name="grad_year" placeholder="e.g. 2028" /></div>
-      <div><label class="f" for="gender">Gender <small>(optional)</small></label>
-        <select id="gender" name="gender"><option value="">Prefer not to say</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select></div>
+      <div><label class="f" for="gender">Gender</label>
+        <select id="gender" name="gender"><option value="">Select</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select></div>
       <div class="full"><label class="f" for="timezone">Time zone</label>
         <select id="timezone" name="timezone"><option value="">Select</option><option>Pacific (PT)</option><option>Mountain (MT)</option><option>Central (CT)</option><option>Eastern (ET)</option><option>Other</option></select></div>
     </div>
@@ -188,6 +188,7 @@
     data.availability_schedule=[].map.call(document.querySelectorAll('#schedRows .row2'),function(r){return{day:r.querySelector('.sd').value,from:r.querySelector('.sf').value,to:r.querySelector('.st').value}});
     var m=[];
     if(!data.name)m.push('your name');
+    if(!data.gender)m.push('your gender');
     if(data.phone.replace(/\D/g,'').length<10)m.push('a phone number');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))m.push('a valid email');
     if(!data.commit_months)m.push('your commitment');
